@@ -1,0 +1,10 @@
+@import "tailwindcss";
+
+@layer base {
+  .prose-lite p { margin-block: 0.5rem; }
+  .prose-lite ol { list-style: decimal; padding-left: 1.5rem; margin-block: 0.5rem; }
+  .prose-lite li { margin-block: 0.25rem; }
+  .prose-lite a, footer a { text-decoration: underline; }
+  code { font-family: ui-monospace, monospace; font-size: 0.9em; padding: 0 0.2em; border-radius: 0.2rem;
+    background: color-mix(in oklab, currentColor 10%, transparent); overflow-wrap: anywhere; }
+}

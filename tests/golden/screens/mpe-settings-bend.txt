@@ -1,0 +1,4 @@
+MPE BEND RANGE  6/35
+Note Bend   48     ▶
+MasterBend   2      
+                    

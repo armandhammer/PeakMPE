@@ -1,0 +1,128 @@
+# Release: run by hand (Actions -> Release -> Run workflow). Only people with
+# write access to the repository can run it.
+#
+#   1. checks the version: the form vX.Y, equal to web/patches/mpe.json's
+#      version, not yet a tag or a release; a real release only from main;
+#   2. runs the CI checks (ci.yml) with the firmware required, and builds the
+#      web page with the source link and the commit, as the Pages artifact;
+#   3. unless dry_run: tags the commit and creates the GitHub Release (no
+#      firmware or .syx attached), then deploys the page to GitHub Pages.
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to tag, e.g. v1.2 (must match web/patches/mpe.json)
+        required: true
+        type: string
+      dry_run:
+        description: Dry run (checks and page build only; no tag, release or deploy)
+        type: boolean
+        default: true
+
+permissions: {}
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Check the version
+        env:
+          VERSION: ${{ inputs.version }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          fail() { echo "::error::$*"; exit 1; }
+          [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+(\.[0-9]+)?$ ]] || fail "version must look like v1.2, not '$VERSION'"
+          want="v$(jq -r .version web/patches/mpe.json)"
+          [[ "$VERSION" == "$want" ]] || fail "version $VERSION does not match web/patches/mpe.json ($want)"
+          if [[ "$DRY_RUN" != true && "$GITHUB_REF" != refs/heads/main ]]; then
+            fail "a release runs from main, not $GITHUB_REF (a dry run may use any branch)"
+          fi
+          if gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/tags/$VERSION" --jq '.[].ref' | grep -qxF "refs/tags/$VERSION"; then
+            fail "tag $VERSION exists already"
+          fi
+          if gh release view "$VERSION" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            fail "release $VERSION exists already"
+          fi
+          {
+            if [[ "$DRY_RUN" == true ]]; then echo "### Dry run of $VERSION"; else echo "### Release $VERSION"; fi
+            echo
+            echo "- commit \`$GITHUB_SHA\` on \`$GITHUB_REF\`"
+            echo "- patched image SHA-256 \`$(jq -r .output.sha256 web/patches/mpe.json)\`"
+            if [[ "$DRY_RUN" == true ]]; then
+              echo "- dry run: the checks and the page build run; nothing is tagged, released or deployed"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  checks:
+    needs: validate
+    permissions:
+      contents: read
+    uses: ./.github/workflows/ci.yml
+    with:
+      require-firmware: true
+      pages-artifact: true
+
+  release:
+    needs: checks
+    if: ${{ !inputs.dry_run }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pages: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Tag the commit and create the release
+        env:
+          VERSION: ${{ inputs.version }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Checked again here: another run may have made it since validate.
+          if gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/tags/$VERSION" --jq '.[].ref' | grep -qxF "refs/tags/$VERSION"; then
+            echo "::error::tag $VERSION exists already"
+            exit 1
+          fi
+          page="$(gh api "repos/$GITHUB_REPOSITORY/pages" --jq .html_url 2>/dev/null || true)"
+          cat > "$RUNNER_TEMP/notes.md" <<EOF
+          Summit MPE $VERSION: MPE for the Novation Summit with firmware 2.2 (build 2121) only.
+
+          - Flash it from the web patcher${page:+: $page}. It applies the patch to your own copy of the official firmware, in your browser.
+          - Patched image SHA-256, which the patcher builds and verifies: \`$(jq -r .output.sha256 web/patches/mpe.json)\`
+          - Commit: $GITHUB_SHA
+
+          No firmware is attached: Novation's firmware is theirs, and you download it from them. Unofficial, and at your own risk: see the README.
+          EOF
+          gh release create "$VERSION" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "$VERSION" --notes-file "$RUNNER_TEMP/notes.md"
+
+  deploy:
+    needs: [checks, release]
+    if: ${{ !inputs.dry_run }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

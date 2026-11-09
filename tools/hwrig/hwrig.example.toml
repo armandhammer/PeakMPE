@@ -1,0 +1,30 @@
+# Copy to work/hwrig.toml and fill in from `tools/hwrig list`.
+# work/ is git-ignored, so this file stays on your machine.
+
+[midi]
+usb_port = "Summit"      # MIDI output port: exact name or a unique substring
+din_port = ""            # the USB-MIDI interface output wired to the Summit's MIDI IN (DIN)
+channel = 1              # 1-16
+
+[audio]
+audio_device = ""        # input device: name substring or index from `list`; "" = default input
+inputs = [1, 2]          # 1-based input channels that carry the Summit's main outputs L, R
+samplerate = 48000
+
+[probe]
+notes = [57, 45, 69, 81] # A3, A2, A4, A5 (middle C = 60 = C4)
+velocity = 100
+hold_s = 1.0
+preroll_s = 0.5          # silence before the note: noise floor
+tail_s = 1.0             # after the note-off: release and stuck-note check
+a4_hz = 440.0
+slot = ""                # e.g. "D002": select that slot before the notes; "" = don't
+
+[patches]                # base slots for `hwrig setup` (they supply the MPE flag)
+mpe_base = "D002"        # a patch with VOICE MPE On
+plain_base = "D003"      # a patch with VOICE MPE Off
+part_a_channel = 2       # Settings > MIDI CHANNEL PartA Chan (Multi checks; MIDI can't set it)
+part_b_channel = 3       # Settings > MIDI CHANNEL PartB Chan
+
+[mpe]
+zone = "off"             # the layout the run restores at the end: "off" (Settings Zone Off), "lower N", "upper N"

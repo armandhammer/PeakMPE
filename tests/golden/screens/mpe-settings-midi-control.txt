@@ -1,0 +1,4 @@
+MIDI CONTROL    7/35
+Local      On      ▶
+Arp>MIDI   On       
+                    

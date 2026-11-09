@@ -1,0 +1,19 @@
+# The dev image's build context (docker/Dockerfile) admits only the files the
+# build reads. Everything else stays out, above all Novation's firmware: it
+# must never reach a build context, a layer or a registry. scripts/dev mounts
+# it read-only at run time instead.
+*
+!docker/Dockerfile
+!docker/entrypoint.sh
+!requirements-dev.txt
+
+# Belt and braces: never these, even if a rule above is widened later.
+firmware/
+work/
+**/*.syx
+**/*.bin
+**/*.elf
+**/*.dis
+.git/
+.venv/
+web/node_modules/

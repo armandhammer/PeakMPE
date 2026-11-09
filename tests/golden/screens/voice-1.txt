@@ -1,0 +1,4 @@
+VOICE            1/5
+Unison       1     ▶
+UniDetune   25      
+                    

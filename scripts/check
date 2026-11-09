@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+# Everything CI runs, in the dev image (scripts/dev), in one command
+# (docs/SETUP.md, "scripts/check"). With Novation's file in firmware/ (CI
+# downloads it for the run), pytest runs the full suite, the web parity test
+# runs, and the descriptor is checked byte for byte.
+#
+#   scripts/check                  every step; with the firmware if it is there
+#   scripts/check --no-firmware    firmware/ hidden (DEV_NO_FIRMWARE), as CI runs when the download fails
+#   scripts/check --quick          pytest -m "not slow" (while working)
+#
+# Steps, all run even if one fails; the exit status says whether all passed:
+#   pytest     scripts/dev python -m pytest -q -n auto (tests that need the
+#              firmware skip without it)
+#   web test   scripts/dev npm --prefix web test (vitest; parity skips without it)
+#   web build  scripts/dev npm --prefix web run build (tsc and vite)
+#   descriptor tools/web_descriptor.py compare web/patches/mpe.json: the
+#              compiled blob always, the whole descriptor with the firmware;
+#              and tools/web_descriptor.py check (no Novation bytes), which
+#              needs the firmware
+set -uo pipefail
+
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$root"
+descriptor=web/patches/mpe.json
+pytest_args=(-q -n auto)
+for a in "$@"; do
+    case "$a" in
+        --no-firmware) export DEV_NO_FIRMWARE=1 ;;
+        --quick) pytest_args+=(-m "not slow") ;;
+        *) echo "usage: scripts/check [--no-firmware] [--quick]" >&2; exit 2 ;;
+    esac
+done
+
+firmware=yes
+if [[ -n "${DEV_NO_FIRMWARE:-}" ]] || [[ ! -e firmware/summit-firmware-2.2-build2121.syx ]]; then
+    firmware=no
+fi
+if [[ $firmware == yes ]]; then view="firmware present: full suite"; else view="no firmware: tests that need it skip"; fi
+echo "== scripts/check ($view), image $(scripts/dev --image)"
+
+results=()
+failed=0
+step() {  # step <name> <command...>
+    local name="$1" t0=$SECONDS rc=0
+    shift
+    echo
+    echo "== $name: $*"
+    "$@" || rc=$?
+    local took=$((SECONDS - t0))
+    if [[ $rc == 0 ]]; then results+=("ok      $name (${took} s)"); else results+=("FAILED  $name (${took} s, exit $rc)"); failed=1; fi
+}
+
+step pytest scripts/dev python -m pytest "${pytest_args[@]}"
+step "web test" scripts/dev npm --prefix web test
+step "web build" scripts/dev npm --prefix web run build
+step "descriptor compare" scripts/dev python -I tools/web_descriptor.py compare "$descriptor"
+if [[ $firmware == yes ]]; then
+    step "descriptor check" scripts/dev python -I tools/web_descriptor.py check "$descriptor"
+else
+    results+=("skipped descriptor check (needs the firmware)")
+fi
+
+echo
+echo "== summary"
+printf '   %s\n' "${results[@]}"
+exit "$failed"

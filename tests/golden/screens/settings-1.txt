@@ -1,0 +1,4 @@
+SYSTEM          1/33
+Protect    Off     ▶
+Pickup     Off      
+Brightness  64      

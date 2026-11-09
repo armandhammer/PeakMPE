@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Optional local safety net (scripts/install-hooks.sh, CONTRIBUTING.md): refuse
+# to commit firmware or generated files, and shell or Python files that don't
+# parse. CI checks the same files on every pull request.
+set -uo pipefail
+
+fail() { echo "pre-commit: $*" >&2; exit 1; }
+
+staged="$(git diff --cached --name-only --diff-filter=ACMR)"
+
+blocked="$(grep -E '\.(syx|bin|elf|dis)$|^work/|^firmware/' <<< "$staged" | grep -v '^firmware/README\.md$' || true)"
+[[ -n "$blocked" ]] && fail "firmware or generated files staged (never commit these):
+$blocked"
+
+while IFS= read -r f; do
+    [[ -f "$f" ]] || continue
+    case "$f" in
+        *.sh | .githooks/*) bash -n "$f" || fail "shell syntax error in $f" ;;
+        *.py) python3 -I -m py_compile "$f" 2>/dev/null || fail "python does not compile: $f" ;;
+    esac
+done <<< "$staged"
+exit 0

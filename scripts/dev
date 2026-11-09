@@ -1,0 +1,171 @@
+#!/usr/bin/env bash
+# Run a command in the dev image (docker/Dockerfile) with this checkout
+# mounted: the one build and test environment, on the Mac and in CI
+# (docs/SETUP.md, "Docker").
+#
+#   scripts/dev pytest -q -n auto                    the full suite
+#   scripts/dev python -I tools/patch.py patches/mpe/patch.py --verify
+#   scripts/dev npm --prefix web test                (npm ci runs on its own when needed)
+#   scripts/dev                                      a shell in the image
+#   scripts/dev --build                              (re)build the image for this machine
+#   scripts/dev --image                              print the image tag in use
+#   scripts/dev --fingerprint                        toolchain and package versions in the image
+#
+#   DEV_PLATFORM=linux/amd64 scripts/dev ...         the other architecture (emulated)
+#   DEV_IMAGE=<ref> scripts/dev ...                  a pulled image instead of the local build
+#   DEV_PORTS=5173 scripts/dev npm --prefix web run dev -- --host 0.0.0.0 --port 5173
+#                                                    publish ports on 127.0.0.1 (the web dev server)
+#
+# Mounts, at the same absolute paths as on the host (so the symlinks of a
+# worktree resolve):
+#   the checkout                   read-write
+#   work/ (its real directory)     read-write: build output, simulator cache
+#   firmware/* (their real files)  READ-ONLY. Novation's files are never
+#                                  copied into the image or a build context.
+#   the git directory              read-only, when it lies outside the checkout
+#                                  (a worktree): git runs on the host
+#   volume summit-mpe-cache        /cache: home, npm cache, Python bytecode
+#   volume summit-mpe-web-…        web/node_modules (Linux binaries, per
+#                                  checkout and architecture)
+#
+# Inside the image (SUMMIT_MPE_IN_IMAGE=1) it runs the command
+# directly, so scripts that call scripts/dev work in both places.
+set -euo pipefail
+
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
+
+fingerprint_cmd='uname -m
+arm-none-eabi-gcc --version | head -1
+arm-none-eabi-ld --version | head -1
+"$LLVM_BIN/llvm-objdump" --version | grep -i version
+python -V
+python -m pip freeze --all
+echo "node $(node --version) npm $(npm --version)"
+echo "debian $(cat /etc/debian_version)"'
+
+die() { echo "dev: $*" >&2; exit 1; }
+
+if [[ "${SUMMIT_MPE_IN_IMAGE:-}" == 1 ]]; then
+    case "${1:-}" in
+        --fingerprint) exec bash -c "$fingerprint_cmd" ;;
+        --build | --image) die "$1: already inside the image" ;;
+    esac
+    [[ $# -gt 0 ]] || set -- bash
+    exec "$@"
+fi
+
+command -v docker >/dev/null || die "docker not found. Install Docker Desktop, OrbStack or Colima (docs/SETUP.md)"
+docker info >/dev/null 2>&1 || die "the Docker daemon isn't running; start Docker Desktop, OrbStack or Colima"
+
+if [[ -n "${DEV_PLATFORM:-}" ]]; then
+    platform="$DEV_PLATFORM"
+else
+    platform="linux/$(docker version -f '{{.Server.Arch}}')"
+fi
+arch="${platform#linux/}"
+
+# The local tag follows the image's inputs, so a changed Dockerfile or
+# requirements file builds a new image instead of reusing a stale one.
+inputs_hash() {
+    cat "$root/docker/Dockerfile" "$root/docker/entrypoint.sh" "$root/requirements-dev.txt" \
+        | shasum -a 256 | cut -c1-12
+}
+image="${DEV_IMAGE:-summit-mpe-dev:$(inputs_hash)-$arch}"
+
+build() {
+    echo "dev: building $image for $platform (docker/Dockerfile)" >&2
+    docker build --platform "$platform" -f "$root/docker/Dockerfile" -t "$image" "$root" >&2
+}
+
+case "${1:-}" in
+    --build) [[ -z "${DEV_IMAGE:-}" ]] || die "--build with DEV_IMAGE set"; build; exit ;;
+    --image) echo "$image"; exit ;;
+    --fingerprint) set -- bash -c "$fingerprint_cmd" ;;
+esac
+
+if ! docker image inspect "$image" >/dev/null 2>&1; then
+    if [[ -n "${DEV_IMAGE:-}" ]]; then
+        docker pull --platform "$platform" "$image" >&2
+    else
+        build
+    fi
+fi
+
+# stdin always (so `scripts/dev python - <<EOF` works), a TTY when there is one.
+args=(run --rm --init -i --platform "$platform")
+[[ -t 0 && -t 1 ]] && args+=(-t)
+
+mount() {  # mount <host path> <ro|rw>
+    local opt=""
+    [[ "$2" == ro ]] && opt=",readonly"
+    args+=(--mount "type=bind,\"src=$1\",\"dst=$1\"$opt")
+}
+mount "$root" rw
+
+# A worktree's git directory lies in the main checkout.
+if common="$(git -C "$root" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)"; then
+    common="$(cd "$common" && pwd -P)"
+    [[ "$common/" == "$root/"* ]] || mount "$common" ro
+fi
+
+# work/ may be a symlink to the main checkout's; mount where it really is.
+if [[ -L "$root/work" ]]; then
+    work="$(realpath "$root/work" 2>/dev/null)" || die "work/ is a dangling symlink"
+    mkdir -p "$work"
+    [[ "$work/" == "$root/"* ]] || mount "$work" rw
+fi
+
+# Firmware: every entry but the README, at its real path, read-only. That
+# covers the symlinks of a worktree and the real files of the main checkout.
+# DEV_NO_FIRMWARE=1 hides firmware/ behind an empty tmpfs instead: what CI
+# sees, which has no Novation file (scripts/check --no-firmware).
+shopt -s nullglob
+if [[ -n "${DEV_NO_FIRMWARE:-}" ]]; then
+    args+=(--mount "type=tmpfs,\"dst=$root/firmware\"")
+    unset SUMMIT_MPE_FIRMWARE_DIR SUMMIT_DEV_FIRMWARE_DIR
+fi
+for f in "$root"/firmware/*; do
+    [[ -z "${DEV_NO_FIRMWARE:-}" ]] || break
+    [[ "$(basename "$f")" == README.md ]] && continue
+    real="$(realpath "$f" 2>/dev/null)" || continue
+    [[ -e "$real" ]] && mount "$real" ro
+done
+shopt -u nullglob
+# Other firmware folders: emu/firmware.py's override, the web dev server's.
+for v in SUMMIT_MPE_FIRMWARE_DIR SUMMIT_DEV_FIRMWARE_DIR; do
+    [[ -n "${!v:-}" ]] || continue
+    fwdir="$(realpath "${!v}")" && [[ -d "$fwdir" ]] || die "$v: no such directory: ${!v}"
+    mount "$fwdir" ro
+    args+=(-e "$v=$fwdir")
+done
+
+# Ports for a server in the container (the web dev server), on localhost only.
+for p in ${DEV_PORTS:-}; do
+    [[ "$p" =~ ^[0-9]+$ ]] || die "DEV_PORTS: not a port number: $p"
+    args+=(-p "127.0.0.1:$p:$p")
+done
+
+key="$(printf '%s' "$root" | shasum -a 256 | cut -c1-12)"
+own="/cache"
+args+=(--mount "type=volume,src=summit-mpe-cache,dst=/cache")
+if [[ -d "$root/web" ]]; then
+    args+=(--mount "type=volume,src=summit-mpe-web-$key-$arch,\"dst=$root/web/node_modules\"")
+    args+=(-e "SUMMIT_MPE_WEB=$root/web")
+    own+=":$root/web/node_modules"
+fi
+args+=(-e "SUMMIT_MPE_UID=$(id -u)" -e "SUMMIT_MPE_GID=$(id -g)" -e "SUMMIT_MPE_OWN=$own")
+args+=(-e PYTHONPYCACHEPREFIX=/cache/pycache -e npm_config_cache=/cache/npm)
+args+=(-e "GIT_CONFIG_COUNT=1" -e "GIT_CONFIG_KEY_0=safe.directory" -e "GIT_CONFIG_VALUE_0=*")
+
+# The harness's settings pass through (tests/, emu/, tools/), and the web
+# build's source link (VITE_SOURCE_URL, set by the release workflow).
+for v in UPDATE_GOLDEN SUMMIT_MPE_NO_CACHE MPE_STRESS_SEEDS MPE_STRESS_PHRASES PYTEST_ADDOPTS TERM VITE_SOURCE_URL; do
+    [[ -n "${!v+x}" ]] && args+=(-e "$v")
+done
+
+# Start where the caller is, if that is inside the checkout.
+cwd="$(pwd -P)"
+[[ "$cwd/" == "$root/"* ]] || cwd="$root"
+args+=(-w "$cwd")
+
+exec docker "${args[@]}" "$image" "$@"

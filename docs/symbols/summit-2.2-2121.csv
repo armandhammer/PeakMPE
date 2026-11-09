@@ -1,0 +1,237 @@
+address,name,kind,confidence,notes
+0x0800c1ac,image_tag,data,observed,ASCII MAIN after the vector table; checked against TEST/MAIN/BOOT by image_tag_check
+0x0800c1b0,fw_version_word,data,emulated,u16 0x2126 one digit per nibble; drives the shown version and the identity reply
+0x0800ccfc,arp_note_on,function,inferred,arpeggiator input
+0x0800daa0,dataflash_select,function,observed,GPIOE BSRR select pin (0x20000088: 11 or 15) and send the command byte
+0x0800dadc,dataflash_deselect,function,observed,wait SPI4 idle then release the chip select
+0x0800daf8,dataflash_status,function,observed,command 0xd7: bit 7 ready bit 0 512-byte pages
+0x0800db84,dataflash_page_erase,function,observed,command 0x81 + 3 address bytes
+0x0800dd04,ext_flash_read,function,inferred,(addr buf len) external flash read
+0x0800dd40,ext_flash_write,function,inferred,(addr buf len) external flash write
+0x0800ddf8,ext_flash_read_buf,function,observed,(addr len<=0x400) ext_flash_read into a shared 0x400 buffer and return it
+0x0800df54,lcd_puts,function,observed,(str) each character through 0x0800df10 at the LCD cursor; returns the count
+0x0800e468,image_tag_check,function,observed,compare 4 bytes at image+0x1ac with TEST/MAIN/BOOT
+0x0800e4bc,jump_to_image,function,inferred,flag in backup SRAM 0x40024000 then set MSP and jump to image reset vector
+0x0800e50c,reboot_to_bootloader,function,observed,flag 2 then jump_to_image(0x08000000)
+0x0800ea00,fw_version,function,observed,return u16 at 0x0800c1b0
+0x0800ea0c,fpga_version_read,function,inferred,u16 from ext flash 0x2ffe00 (shown after the dot; presumably FPGA build)
+0x0800eb0c,mark_changed,function,observed,set changed flag 0x20004b21 bit 0
+0x0800ebb8,ui_message_active,function,observed,ui flags +2 nonzero: a message covers the page; 0x0801cd20 skips the redraw
+0x0800ecc0,midi_channels_sync,function,observed,globals +0x11/+0x2b/+0x2c -> 0x20004b2a-2c; CC120 + notes off on change
+0x0800edbc,local_control_cc,function,inferred,CC122 local control -> 0x2000403c+0x21
+0x0800ee70,globals_apply_poll,function,observed,main loop: apply globals to running state
+0x0800ef24,nrpn_mode_request,function,emulated,NRPN 62:0/62:1 value 0-10 -> mode_request = value|0x80
+0x0800ef34,mode_request_poll,function,observed,main loop: ui_select_mode(mode_request) when bit 7 set
+0x0800f478,patch_save,function,emulated,(slot bank) ext flash ((bank-1)*128+slot)<<9 <- patches[0] bytes 0x000-0x1FF (byte 0x200 not saved)
+0x0800f494,multi_save,function,emulated,(slot bank) ext flash 0x380000+n*0x400 <- part A and part B patches 0x000-0x1FF each
+0x0800f4ec,settings_save,function,observed,globals -> ext flash 0x300000 (0x200 B)
+0x0800f5a4,settings_save_action,function,observed,Save in Settings: tuning table (page >16) or settings_save
+0x0800f604,save_button,function,inferred,Save button handler by UI mode
+0x0800f830,delay_loop,function,observed,busy loop r0 iterations
+0x0800faf4,settings_initialise,function,inferred,write 0x30 defaults from 0x08048568 + zeros to ext flash 0x300000
+0x0800fbe8,factory_initialise,function,emulated,init patch to all 512 slots multis and globals; also the boot button combination
+0x0800fcd0,usart3_irq,function,observed,keybed link UART (0x40004800); ring at 0x20004b3c
+0x0800fe5c,keybed_rx_msg,function,inferred,parses keybed note on/off/aftertouch from USART3
+0x0800ff98,param_locate,function,observed,pnum -> (base offset): patch 0x200138a0 or globals (pnum-0x207e)
+0x0800ffe0,param_write,function,observed,(value pnum) store byte and set changed flag; used by UI for globals
+0x08010038,param_set_from_midi,function,emulated,(value pnum) pnum = CC# or 0x80+msb*128+lsb; patch params only (pnum <0xa84 or 0xd00-0xd35)
+0x080100f4,midi_queue_select,function,observed,select input queue for source
+0x08010114,midi_status_desc,function,observed,status -> descriptor in RAM tables 0x200002d0 / 0x20000308
+0x08010138,midi_queue_pop,function,observed,pop byte from selected input queue
+0x080101b4,held_note_add,function,inferred,note list for mono/legato
+0x0801021c,poly_at,function,observed,channel handler Ax
+0x08010234,chan_at,function,observed,channel handler Dx
+0x08010258,bend,function,observed,channel handler Ex
+0x08010278,program_change,function,observed,channel handler Cx
+0x080102c0,cc,function,emulated,channel handler Bx; CC switch; NRPN 99/98 per part + CC6 data entry; no RPN state
+0x080104ec,multi_global_dispatch,function,observed,multi mode global channel: split/layer to both parts
+0x08010710,midi_channel_filter,function,observed,single: global channel only; multi: part A/B channels; MPE hook
+0x080107b0,midi_parse_byte,function,observed,table-driven running-status parser
+0x08010874,midi_drain,function,observed,drain one source; 0xF8 clock handled separately
+0x08010940,held_note_prev,function,inferred,last-note priority on note off
+0x080109cc,note_off,function,observed,channel handler 8x
+0x08010ab0,note_on,function,observed,channel handler 9x
+0x08010b9c,midi_in_queue_push,function,observed,push byte into input queue for source (0 USB 1 DIN)
+0x08010bdc,midi_drain_inputs,function,observed,main loop: midi_drain(0) midi_drain(1) midi_drain(2)
+0x08010c40,usart6_irq,function,observed,DIN MIDI UART (0x40011400); ring at 0x200050cc
+0x08010cbc,din_tx_byte,function,observed,queue byte on DIN MIDI out
+0x08010ce8,din_rx_byte,function,observed,pop DIN RX byte; soft thru echoes via din_tx_byte
+0x08010e00,patch_load_buf,function,emulated,(buf part) memcpy 0x201 B into patches[multi+part] then apply; no range check or clamp; +0x19D 0 -> 0x40
+0x08010e6c,patch_load_slot,function,emulated,(part) read the current slot (0x200 B) and patch_load_buf; byte 0x200 is stale buffer content
+0x08010ebc,multi_load,function,inferred,read both part patches of the current multi and patch_load_buf each
+0x08011000,settings_load,function,observed,boot: ext flash 0x300000 -> globals (0x200 B) no checksum; restores patch/multi/mode
+0x080110c0,panel_clock,function,observed,pulse PC10 (panel chain clock)
+0x080110dc,panel_load,function,observed,pulse PB2 low (panel chain parallel load)
+0x080110f8,panel_latch,function,observed,pulse PA15 (panel LED latch)
+0x080111fc,panel_buttons_poll,function,emulated,"every 10 ms: words 0-4 of panel_inputs to button events id = 16*word + bit - 2, pressed << 7"
+0x08011400,clock_init,function,observed,PLLCFGR 0x05401e03 CFGR 0x00409402: 120 MHz if HSE 6 MHz; FLASH_ACR = 3 (plain store 0x08011422: 3 wait states; prefetch I-cache D-cache off)
+0x080115e4,panel_scan,function,emulated,"TIM6 1 kHz: load PB2, 7x16 bits in on PC11 (active low) / LED bits out on PC12, clock PC10, latch PA15; words to panel_inputs"
+0x08011698,encoder_poll,function,emulated,every 30 ms: encoder count to one accelerated signed delta event
+0x08011764,encoder_sample,function,emulated,1 kHz: panel_inputs word 0 bits 0-1 through the quadrature table 0x080494f4 into timer_state+0
+0x080117b0,panel_button_event,function,observed,"pop one button event: low byte 1 press / 0xFF release, high byte id"
+0x08011dd0,panel_change_scan,function,observed,"compare the 72 ADC/mux controls (pots 0-0x43, pedal inputs 0x44-0x47) with their last value and queue changes"
+0x08011f34,tim6_init,function,emulated,TIM6 PSC 59 ARR 49 UIE; IRQ 54
+0x08011f90,tim6_isr,function,emulated,20 kHz (inferred); every 20th IRQ -> mod_tick_request
+0x0801204c,delay_ms,function,observed,busy-wait on the ms counter
+0x08012084,boot_screen,function,emulated,prints Novation / SUMMIT / Version + digits then loads the FPGA (skipped when panel_inputs word 1 bits 6-7 are both set)
+0x08012250,exti15_isr,function,emulated,EXTI15_10 (vector 56): start ADC2 and bit-bang 12 bits on GPIOE; counts edges at timer_state+0x4b4
+0x08012954,system_init,function,observed,first call of main_loop: peripheral init; enables the FPU (CPACR 0xF00000 at 0x0801298a)
+0x080129e8,fpga_spi_init,function,observed,"(r0) SPI1 CR1 = 0xb0f if r0 (PCLK2/4 = 15 MHz if 60 MHz, 16-bit MSB first, CPOL/CPHA 1, SSM; main_init 0x08012994) else 0x884 (PCLK2/2, LSB first; the FPGA bitstream upload 0x080120c6); CR2 SSOE; SPE"
+0x08012a5c,fpga_spi_txrx16,function,observed,SPI1 full duplex: write DR wait RXNE return DR
+0x08012a84,fpga_spi_tx16,function,observed,wait SPI1 TXE then write DR (no read)
+0x08012a9c,fpga_spi_wait,function,observed,wait SPI1 TXE and not BSY
+0x08012ab8,fpga_read,function,emulated,(target param value) like fpga_spi_write but returns the 3 reply words at 0x2000579c
+0x08012b24,fpga_spi_write,function,emulated,(target param value): GPIOB BSRR select PB7 (voices 0-7) / PB6 (8-15) / both; SPI1 frames (t&0xf)<<12|param  value>>16  value&0xffff
+0x08012b94,fpga_voice_write,function,emulated,(target param value) under cpsid f -> fpga_spi_write; target 0-15 voice or 0x18-0x1a broadcast
+0x08012c04,spi4_xfer_pipelined,function,observed,read the previous SPI4 reply then send the next byte
+0x08012c30,spi4_xfer,function,observed,SPI4 (DataFlash) byte transfer
+0x08012c78,lcd_spi_init,function,observed,"SPI2 CR1 = 0x3af (PCLK1/64: 469 kHz if 30 MHz, 8-bit LSB first, CPOL/CPHA 1, SSM); CR2 SSOE; SPE"
+0x08012cd0,lcd_spi_tx,function,observed,"wait SPI2 TXE, write SPI2_DR"
+0x08012ce8,lcd_spi_wait,function,observed,wait SPI2 TXE and not BSY
+0x08013844,osc_drift_update,function,inferred,(part) per tick: osc_drift[part*3+o] from a slow random walk scaled by drift_amount[part] (patch Drift)
+0x08013914,voice_glide,function,observed,(part) for voice voice_loop_index: moves voice_pitch_out[v] toward voice_pitch[v] (glide); called per voice before osc_pitch
+0x08013a2c,osc_pitch,function,emulated,(osc part) one oscillator's pitch for voice voice_loop_index: note + offsets + part_bend_smoothed*BendRange>>6 + detune; s16 sum (8.8 semis - 0x3c00) * 0x5555 >> 14 = 4096/octave -> osc+0xc+4v; reads part_bend_smoothed through literal 0x08013ad4
+0x08013fcc,fpga_mod_write,function,emulated,(part_mask target param value) -> 128-entry RAM queue fpga_queue; drained by fpga_queue_drain in the TIM6 ISR
+0x080140c4,mod_update,function,observed,per part per 1 kHz tick: bend smoothing 0x68/0x69 + part sources; aftertouch 0x61 one voice per call (round-robin +0xe0)
+0x0801441c,fpga_queue_pop,function,observed,pop one fpga_queue entry or part_mask 0xff when empty
+0x08014458,fpga_queue_drain,function,emulated,up to 4 queue entries per call -> fpga_spi_write with part_mask as fpga_cs_override
+0x080144c8,mod_tick_request,function,observed,voice_state+0x14c++
+0x080144dc,tim6_fast,function,observed,every TIM6 IRQ (20 kHz) when enabled (0x200052d4+0x4a1): fpga_queue_drain
+0x080144e4,mod_tick,function,observed,main loop: if tick requested: voice mod + mod_update x2 + FPGA writes (8 voices per tick)
+0x08014ac4,voices_init,function,inferred,all voices note 60 pitch 0x3c00
+0x08014d54,voice_env_poll,function,emulated,(part first_voice wait) wait for EXTI15 edges then fpga_read(0x18 0x10 1/2/0): 8 voice levels and 2-bit envelope states
+0x08014e3c,voice_env_read,function,observed,voice_env_poll for one or both engines
+0x0801534c,voice_clear_at,function,inferred,zero a voice's aftertouch slot
+0x0801536c,env_command,function,emulated,(voice env state) fpga_voice_write(voice env_param[env] state|counter<<2); params 0x3f/0x42/0x45; state 0 start 3 release
+0x080153a0,env_command_stamp,function,observed,env_command; on (env 0 state 0) stamps the voice with the start counter (voice_state+0x378)
+0x080154f4,voice_release,function,observed,(note part) release the part's active voices whose voice_note is note (all of them in mono modes); sustain only marks them (+0x3b8)
+0x080155e4,voice_candidates,function,emulated,classify voices by FPGA envelope state: 3 quietest (preferred) then 1/2 quietest then 0 newest
+0x08015860,bend_store,function,observed,signed bend -> part+4
+0x080158b8,modwheel_store,function,observed,(part value both) -> part+6; both parts if both or Single mode or 0x20004b39 == 2; read by mod_update (0x60/0x860)
+0x080158ec,cc_modwheel,function,observed,CC1 (cc 0x08010366) and 0x0801A708 (panel wheel; inferred) -> modwheel_store(part value 0)
+0x080158f8,expression_store,function,observed,(part value both) -> part+8, as modwheel_store; read by mod_update (0x62/0x862)
+0x0801592c,cc_expression,function,observed,CC11 -> expression_store(part value 0)
+0x08015938,breath_store,function,observed,(part value both) -> part+9, as modwheel_store; read by mod_update (0x63/0x863)
+0x0801596c,cc_breath,function,observed,CC2 (cc 0x0801037A; also 0x0800ED8C 0x0801B0A4 not traced) -> breath_store(part value 0)
+0x08015978,volume_store,function,observed,(part value both) -> part+0xa, as modwheel_store
+0x080159ac,cc_volume,function,observed,CC7 -> volume_store(part value 0)
+0x080159b8,chan_at_store,function,observed,channel pressure -> all voices of part (+0xe4)
+0x08015a14,poly_at_store,function,observed,poly pressure -> active voices playing note (+0xe4)
+0x08016b40,voice_alloc,function,observed,(note vel part voice unison); voice>=0 forces voice index
+0x08017244,voice_trigger,function,observed,(note vel part) unison loop over voice_alloc
+0x08017874,patch_apply_osc,function,inferred,(part patch) patch -> osc_pitch structs: BendRange (+0x42/+0x57/+0x6c - 0x40) Range/Coarse/Fine offsets FixedNote; Diverge Drift
+0x08018124,tuning_nrpn_write,function,observed,NRPN 25:54/55 -> tuning table entry MSB/LSB (Settings tuning pages only)
+0x08019d40,lcd_write_cmd,function,emulated,"PB11 low, SPI2 0x1F, low nibble, high nibble, PB11 high (US2066-style serial)"
+0x08019d68,lcd_write_data,function,emulated,as lcd_write_cmd with start byte 0x5F
+0x08019d90,lcd_load_cgram,function,emulated,"CGRAM address 0, 64 bytes from 0x20001098: 8 box-frame glyphs"
+0x08019db4,lcd_cursor,function,emulated,(col row) lcd_write_cmd(0x80 | col + row*32)
+0x08019dc8,lcd_putc,function,emulated,"one character: 0xBA space, 0xBB-0xBF to ROM 0xDA-0xD6, 0-7 and 0x10-0x7F as is, 8 = clear (cmd 0x01), 0x1F as is"
+0x08019e24,lcd_wake,function,observed,"on panel activity: PB10 high, display on (0x0C) if it was off"
+0x08019e54,lcd_sleep,function,observed,"display off (0x08), PB10 low"
+0x0801a064,param_mark_redraw,function,inferred,flag patch offset for display refresh
+0x0801a8cc,midi_poll_din,function,observed,feeds DIN bytes to midi_route(b 2)
+0x0801a91c,keybed_poll,function,inferred,main-loop consumer of keybed messages
+0x0801ac18,ui_encoder_event,function,emulated,encoder delta to the value handler 0x0801cde0 (index 1 would go to patch step; no second encoder is scanned)
+0x0801ac80,ui_button_event,function,emulated,"button event through button_table: kind 3 menu buttons (ui_mode_button), kind 4 actions (page, item, save, patch, value...)"
+0x0801b18c,format_value,function,observed,(display type value) value formatter switch; 0x59 = version
+0x0801c564,main_loop,function,inferred,calls midi_poll_din and keybed_poll
+0x0801c5d6,main_loop_head,label,observed,first instruction of main_loop's endless loop
+0x0801c7e4,ui_current_menu,function,observed,menus[ui_state+2]
+0x0801c7f8,ui_current_page,function,observed,menu->pages[menu->cur]; page +5 = selected item
+0x0801c808,ui_current_page_index,function,observed,menu->cur
+0x0801c830,ui_draw_page,function,inferred,draw page title and item names/values from descriptors
+0x0801c9ec,ui_draw_values,function,emulated,draw the page's item values (kind 3: format_value at 0x0801cbf4) and the 0x10 mark after the selected item
+0x0801cd20,ui_redraw,function,observed,unless ui_message_active: clear (0x08) then ui_draw_page and ui_draw_values
+0x0801cde0,ui_value_change,function,observed,(delta) change the selected page item's value by delta (0 = Init Patch value); kind 1 goes through the offset->NRPN table 0x20015e60 and param_write
+0x0801d22c,ui_page_step,function,inferred,move current page by delta and redraw
+0x0801d2e4,ui_select_mode,function,observed,0 Single 1 Multi (writes multi_mode) 2-10 other menus
+0x0801d3cc,ui_mode_button,function,inferred,front-panel mode button; echoes NRPN 0x1f80
+0x0801d610,midi_route,function,observed,mode switch: forward to USB/DIN out and/or deliver internally
+0x0801d95c,patch_param_offset,function,observed,pnum -> patch byte offset
+0x0801d9bc,Reset_Handler,function,observed,.bss zero and .data copy then main
+0x0801dda4,sysex_send,function,observed,(port) 0 USB 1 DIN: send the SysEx buffer
+0x0801de18,identity_reply,function,emulated,(port) template 0x0804ffe0 + 4 version nibbles + F7
+0x0801df3c,sysex_patch_dump,function,emulated,(src bank slot port) F0 00 20 29 01 11 01 33 cmd 00 00 x bank slot + 0x200 raw bytes + F7; cmd 0 current (patches[0]) 1 stored
+0x0801e484,sysex_multi_dump,function,emulated,cmd 2/3: part A 0x000-0x1FF then part B 0x000-0x1FF (0x400 B)
+0x0801e988,sysex_rx_summit,function,emulated,Summit SysEx receive: cmd 0 patch->RAM 1 patch->slot 2/3 multi 4 globals 6/7 tuning; requests 0x40-0x4B; data stored verbatim
+0x0801f138,peak_patch_convert,function,observed,Peak patch import fix-up: copies init_patch 0x164-0x1A1 and adjusts 0x7B/0x99/0xA2/0xAA/0x15E/0x161; tail untouched
+0x0801f1d0,sysex_rx_peak,function,observed,Peak-format (00 20 29 01 10 00 7E) patch receive -> peak_patch_convert
+0x0801f494,update_sysex_rx,function,observed,update SysEx parser; reboots via reboot_to_bootloader once 7 bytes match update_header_prefix (before the version digits)
+0x08021100,usb_midi_rx,function,observed,USB-MIDI OUT packets -> midi_in_queue_push(src 0)
+0x08021168,usb_out_poll,function,emulated,main loop: OUT endpoint buffer -> ring -> usb_midi_rx callback
+0x080211d4,usb_in_flush,function,emulated,ring -> IN endpoint buffer then start the IN transfer (state 2)
+0x08021294,usb_tx_packet,function,inferred,send one 4-byte USB-MIDI packet
+0x080212d8,usb_tx_byte,function,emulated,byte stream -> USB-MIDI IN packets (output path)
+0x0802354c,sprintf,function,inferred,newlib-nano sprintf (string FILE flags 0x208)
+0x0802365c,_svfprintf_r,function,inferred,newlib-nano formatter behind sprintf
+0x08023c20,_malloc_r,function,inferred,newlib-nano malloc; reached only from _svfprintf_r and _realloc_r; never allocates for sprintf
+0x08023d48,libm_trig_d,function,inferred,double sin or cos via rem_pio2 0x08024c20; argument and result in d0 (hard-float ABI evidence)
+0x080261e8,_sbrk,function,observed,heap from 0x20017850 up to SP; heap_end at 0x20017858
+0x08048568,globals_defaults,data,observed,0x30 B factory defaults for globals
+0x080492f4,init_patch,data,observed,0x201 B Init Patch written by factory_initialise
+0x08049960,sysex_summit_header,data,observed,00 20 29 01 11 01 33
+0x08049b1c,sysex_peak_header,data,observed,00 20 29 01 10 00 7E (Components: peak [1 16 0 126])
+0x08049b74,update_header_prefix,data,observed,00 20 29 00 71 01 33 (Novation 0x71 header for product 01 33)
+0x0804b3e4,settings_version_name,data,emulated,item name Version on Settings page 2/33 SYSTEM
+0x0804c3b7,boot_version_label,data,emulated,"boot screen label "" Version "" (.data); patched by patches/version_string.py"
+0x0804d698,matrix_source_names,data,observed,24 char* mod-matrix sources (Direct ModWheel AftTouch ...)
+0x0804d6f8,matrix_dest_names,data,observed,49 char* mod-matrix destinations (O123Ptch Osc1Ptch ...)
+0x0804d860,osc_wave_names,data,observed,5 char* Sine Triangle Sawtooth Pulse BS sine
+0x0804d9f0,voice_mode_names,data,observed,5 char* Mono MonoLG Mono2 Poly Poly2 (patch +0x22)
+0x200002d0,midi_channel_handlers,data,observed,8 x {handler u32; len u8; flags u8} initialised from flash 0x0804c050
+0x20000308,midi_system_handlers,data,observed,16 x {handler; len; flags}
+0x200007cc,diverge_rand,data,observed,s8 per (3*voice + osc) for voices 0-7 then the same 24 again for 8-15; .data (init 0x0804c54c); osc_pitch: diverge_amount * s8 >> 5
+0x20000818,osc2_pitch,data,observed,osc_pitch struct for Osc 2 (0x200007a8+0x70); layout as osc1_pitch; per-voice result s32 at +0xc+4v sent as param 0x001
+0x20000864,osc3_pitch,data,observed,osc_pitch struct for Osc 3 (0x200007a8+0xbc); layout as osc1_pitch; per-voice result s32 at +0xc+4v sent as param 0x002
+0x20000b14,voice_last_pick,data,observed,u8: voice_alloc poly mode 3 last pick; it takes the next quietest instead of this one
+0x20001098,lcd_cgram_glyphs,data,emulated,64 bytes: custom characters 0-7 (corners and edges of a frame)
+0x200010d8,button_table,data,emulated,"u32 per button id 0-71: kind, action, s16 argument (init from .data)"
+0x20001fac,menus,data,observed,15 menu pointers by UI mode (10 = Settings); init from flash 0x0804dd2c
+0x2000202c,settings_menu,data,observed,{u8 cur; u8 n=33; pad; page* pages[33]}
+0x200021dc,menu_pages,data,observed,90 x 0x18 {title; u8 n_items; pad; 4 x {u8 kind; pad; u16 index}}; init from 0x0804df5c
+0x20002a4c,patch_param_desc,data,observed,12 B {min max nrpn_msb nrpn_lsb; u32 display; name} by patch offset; init from 0x0804e7cc
+0x20003dfc,global_param_desc,data,observed,12 B descriptors for Settings items (kind 3); value at globals[lsb+2]; init from 0x0804fb7c
+0x20004068,kind4_param_desc,data,observed,12 B descriptors for page items of kind 4 (record 34 = Version)
+0x2000427c,usb_ep_out,data,emulated,{u8* buf; u16 size; u16 received; u16 read; u8 ep; u8 state}
+0x20004288,usb_ep_in,data,emulated,{u8* buf; u16 size; u16 count; u16 pad; u8 ep 0x81; u8 state (2 busy)}
+0x200042a4,usb_midi_dev,data,observed,+4 usb_ep_in +8 usb_ep_out +0xc IN ring +0x10 OUT ring +0x14 rx callback (usb_midi_rx)
+0x20004b20,multi_mode,data,observed,nonzero = Multi
+0x20004b28,edit_part,data,observed,u8 part whose patch param_locate (0x0800FF98) addresses; midi_channel_filter sets it to the part per message in Multi and restores it
+0x20004b2a,midi_global_channel,data,observed,
+0x20004b2b,midi_part_a_channel,data,observed,
+0x20004b2c,midi_part_b_channel,data,observed,
+0x20004b38,mode_request,data,emulated,NRPN 62:0 pending mode select (bit 7 = pending)
+0x20004b3c,keybed_uart_ring,data,observed,
+0x20004d88,midi_current_part,data,observed,also base of input queue structs (+4 + src*0x110; +0x334 current)
+0x200050cc,din_uart_ring,data,observed,
+0x200052d4,timer_state,data,observed,+0x4a1 queue-drain enable; +0x4a2 IRQ count; +0x4a8 100 us steps since the tick request (0-9); +0x4ac ms counter (u32) +0x3be (u16); +0x4b4 EXTI15 edge count
+0x200057d8,voice_state,data,observed,SoA: +0x334+v active; +0xe4+2v aftertouch; +0x104+4v smoothed AT; +10 voice loop index (voice_alloc's pick; mod_tick's loop counter); +0x312 last allocated voice; +0xe0 AT round-robin; +0x14c tick request; +0x2dc half toggle
+0x200057e2,voice_loop_index,data,observed,voice_state+10: voice index that osc_pitch voice_glide etc. work on; set by mod_tick's loop and voice_alloc's pick
+0x20005a68,osc1_pitch,data,observed,osc_pitch struct for Osc 1 (voice_state+0x290): +0 osc index; +1+p s8 BendRange; +4+2p s16 Range/Coarse/Fine offset (8.8); +8+p FixedNote (0 off); +0xc+4v s32 result sent as param 0x000
+0x20005aea,voice_last_alloc,data,observed,voice_state+0x312: u8 voice index; written only by voice_alloc (strb 0x0801700A) after each allocation; read for the part-level 0x867 pitch (0x080149DE)
+0x20012534,ui_state,data,observed,+2 UI mode (0 Patch 1 Multi ... 10 Settings)
+0x2001253c,sysex_rx_state,data,observed,SysEx receive state; +0x220 data buffer (0x400) +0x620 stage +0x62f cmd +0x633 bank +0x634 slot
+0x20013045,usb_configured,data,inferred,1 when the device is configured; usb_tx_packet drops packets otherwise
+0x20013240,panel_led_words,data,observed,7 u16 LED words shifted out by panel_scan (bit = LED id & 15)
+0x20013318,panel_inputs,data,emulated,"7 u16 words from panel_scan, bit set = input active; word 0 bits 0-1 encoder, ids 16*word+bit-2"
+0x20013328,fpga_cs_override,data,observed,u8 chip-select mask for broadcast targets (0 = derive from mode); 0x20013329 the same for fpga_read
+0x20013330,master_tune,data,observed,s16 8.8: TuneCents (globals+0xf) + Transpose (globals+0x10) * 256 - 0x45cf; written by 0x0801328c; summed into every osc_pitch
+0x20013354,voice_env_state,data,observed,u8 per (part*16 + voice) envelope state read from the FPGA: 0 attack 1/2 decay/sustain 3 release or idle
+0x20013388,parts,data,observed,2 x 0x288; +4 bend; +6 modwheel; +7 chan AT; +0x126 last note; +0x127 bank LSB; +0x128/+0x129 NRPN LSB/MSB
+0x20013898,diverge_amount,data,inferred,u8 per part = patch+0x2b Diverge; osc_pitch: * per-voice-osc s8 (0x200007cc+3v+o) >> 5
+0x2001389c,part_bend_smoothed,data,observed,2 x s16: mod_update's smoothed bend accumulator >> 16 per part
+0x200138a0,patches,data,inferred,(multi+part) x 0x201 patch parameters; +0x22 voice mode; +0x23 unison
+0x20013ea4,voice_pitch_out,data,observed,16 x u16 8.8 semitones: glided pitch (0x08013914) sent as 0x67 - 0x3C00 by voice_alloc and every 2 ms by mod_tick (0x080145E2)
+0x20013ec8,osc_drift,data,inferred,s8 per (part*3 + osc): drift offset from osc_drift_update; summed into osc_pitch
+0x20013ee4,fpga_queue,data,observed,128 x 8 B {u8 part_mask; u8 target; u16 param; u32 value}; write index voice_state+0xbc read index +0x144 count +0x148
+0x200148f0,voice_env_level,data,observed,u16 per (part*16 + voice) level read from the FPGA; voice_candidates counts > 0x200 as still sounding (0x08015694); tells release from idle (state 3)
+0x20014940,voice_unison_spread,data,inferred,s8 per voice written by voice_trigger per unison voice; osc_pitch: * unison_detune[part] >> 7
+0x20014950,voice_note,data,observed,16 x u8
+0x200149a8,voice_pitch,data,observed,16 x u16 8.8 semitones
+0x200149c8,unison_detune,data,inferred,u8 per part; osc_pitch multiplier for voice_unison_spread (presumably UniDetune)
+0x200149cc,fpga_queue_lag,data,observed,s16 = voice_state+0x314 (+75 per mod_tick) - fpga queue sent count (+0x148); stored at 0x08014A0A through its only literal (0x08014A28); no load seen, so presumably never read
+0x20014b04,drift_amount,data,inferred,u16 per part = patch+0x2c Drift (patch_apply_osc); scales osc_drift
+0x20014b0c,tuning_tables,data,inferred,u16 per (table*128 + note)
+0x200161a4,globals,data,observed,512 B global settings = ext flash 0x300000; +0x11 global chan +0x14 CC/NRPN +0x15 bank +0x2b/+0x2c part chans
+0x2001784c,errno,data,inferred,set to 12 (ENOMEM) by _sbrk
+0x20017858,heap_end,data,observed,_sbrk state; highest .bss variable

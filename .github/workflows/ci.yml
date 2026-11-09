@@ -1,0 +1,135 @@
+# The tests, in the dev image (docker/Dockerfile), on every pull request and
+# every push to main. The release workflow calls the same checks.
+#
+# The official firmware is downloaded from Novation for the run
+# (scripts/fetch-firmware.sh, checked against its pinned SHA-256), so the full
+# suite runs. It is never cached or uploaded, and neither is anything built
+# from it: work/ and firmware/ end with the runner. If the download fails, the
+# job runs scripts/check --no-firmware and says so in the job summary.
+#
+# Fork pull requests need no secrets: everything here is public.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_call:
+    inputs:
+      require-firmware:
+        description: Fail if the firmware download fails, instead of running the no-firmware checks
+        type: boolean
+        default: false
+      pages-artifact:
+        description: Also build the web page with the source link and the commit, and upload it for GitHub Pages
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      DEV_IMAGE: summit-mpe-dev:ci
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: No firmware or generated files in the tree
+        run: |
+          bad="$(git ls-files | grep -E '\.(syx|bin|elf|dis)$|^work/|^firmware/' | grep -v '^firmware/README\.md$' || true)"
+          if [ -n "$bad" ]; then
+            echo "::error::firmware or generated files are tracked; remove them from the branch:"
+            echo "$bad"
+            exit 1
+          fi
+
+      - uses: docker/setup-buildx-action@v4
+
+      # The build context is only the Dockerfile, the entrypoint and
+      # requirements-dev.txt (.dockerignore), so no firmware reaches the cache.
+      - name: Build the dev image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: docker/Dockerfile
+          load: true
+          tags: ${{ env.DEV_IMAGE }}
+          cache-from: type=gha,scope=dev-image
+          cache-to: type=gha,scope=dev-image,mode=max
+
+      - name: Download the official firmware from Novation
+        id: firmware
+        continue-on-error: ${{ !inputs.require-firmware }}
+        run: |
+          scripts/fetch-firmware.sh
+          cd firmware && sha256sum -c SHA256SUMS
+
+      - name: scripts/check
+        env:
+          FIRMWARE: ${{ steps.firmware.outcome }}
+        run: |
+          if [ "$FIRMWARE" = success ]; then
+            scripts/check 2>&1 | tee "$RUNNER_TEMP/check.log"
+          else
+            echo "::warning::The firmware download failed: running scripts/check --no-firmware. Tests that need the firmware are SKIPPED."
+            scripts/check --no-firmware 2>&1 | tee "$RUNNER_TEMP/check.log"
+          fi
+
+      - name: Job summary
+        if: always()
+        env:
+          FIRMWARE: ${{ steps.firmware.outcome }}
+        run: |
+          {
+            if [ "$FIRMWARE" = success ]; then
+              echo "### Full suite, with the official firmware"
+            else
+              echo "## :warning: PARTIAL RUN: no firmware"
+              echo
+              echo "The download from Novation failed, so this job ran \`scripts/check --no-firmware\`."
+              echo "**Every test that needs the official firmware was skipped.** Re-run the job, or run"
+              echo "\`scripts/check\` locally with the firmware, before relying on this result."
+            fi
+            echo
+            if [ -f "$RUNNER_TEMP/check.log" ]; then
+              echo '```'
+              sed -n '/^== summary/,$p' "$RUNNER_TEMP/check.log"
+              echo '```'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # Only for the release workflow: the page as GitHub Pages serves it.
+      - name: Stamp the commit into the served descriptor
+        if: inputs.pages-artifact
+        run: |
+          jq --arg c "${GITHUB_SHA::12}" '.built.commit = $c' web/patches/mpe.json > "$RUNNER_TEMP/mpe.json"
+          mv "$RUNNER_TEMP/mpe.json" web/patches/mpe.json
+
+      - name: Build the web page
+        if: inputs.pages-artifact
+        run: VITE_SOURCE_URL="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" scripts/dev npm --prefix web run build
+
+      - name: The page holds no firmware
+        if: inputs.pages-artifact
+        run: |
+          find web/dist -type f | sort
+          if find web/dist -type f \( -iname '*.syx' -o -iname '*.bin' -o -iname '*.elf' \) | grep .; then
+            echo "::error::web/dist contains a firmware-like file; not uploading"
+            exit 1
+          fi
+          grep -rqF "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" web/dist || { echo "::error::source link missing from the build"; exit 1; }
+          grep -rqF "${GITHUB_SHA::12}" web/dist || { echo "::error::commit missing from the build"; exit 1; }
+
+      - uses: actions/upload-pages-artifact@v5
+        if: inputs.pages-artifact
+        with:
+          path: web/dist

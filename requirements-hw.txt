@@ -1,0 +1,20 @@
+# Native packages for the Mac's .venv: the tools that talk to the hardware
+# through CoreMIDI and CoreAudio, which a container can't reach on macOS
+# (docs/SETUP.md). Everything else runs in the dev image (scripts/dev).
+#   python3 -m venv .venv && .venv/bin/pip install -r requirements-hw.txt
+python-rtmidi==1.5.8   # tools/flash.py, tools/midirec.py, tools/hwrig
+numpy==2.0.2           # tools/hwrig
+sounddevice==0.5.1     # tools/hwrig
+unicorn==2.1.4         # tools/hwrig reads its parameter table through emu/
+pytest==8.4.2          # the hardware runs: pytest --hw -m hw tests/test_hw_*.py
+# pytest's dependencies on the Mac's Python 3.9
+exceptiongroup==1.3.1
+iniconfig==2.1.0
+packaging==26.3
+pluggy==1.6.0
+Pygments==2.21.0
+tomli==2.5.0
+typing_extensions==4.16.0
+# sounddevice's dependencies
+CFFI==2.0.0
+pycparser==2.23

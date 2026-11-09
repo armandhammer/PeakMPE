@@ -1,0 +1,25 @@
+# Proprietary Focusrite/Novation images: fetched by scripts/fetch-firmware.sh,
+# never committed. Only the folder's README is tracked.
+/firmware/*
+!/firmware/README.md
+
+# Any stray update images or decoded flash dumps, wherever they land.
+*.syx
+*.bin
+*.elf
+*.dis
+
+# C patch build output lands in work/build/ (tools/patch_build.py); catch strays.
+*.o
+*.map
+
+# Generated analysis output (decoded images, disassembly, Ghidra projects).
+/work/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# macOS
+.DS_Store

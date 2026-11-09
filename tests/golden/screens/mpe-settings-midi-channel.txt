@@ -1,0 +1,4 @@
+MIDI CHANNEL    4/35
+PartA Chan   2     ▶
+PartB Chan   3      
+Globl Chan   1      
