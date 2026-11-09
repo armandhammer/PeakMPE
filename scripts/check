@@ -7,6 +7,8 @@
 #   scripts/check                  every step; with the firmware if it is there
 #   scripts/check --no-firmware    firmware/ hidden (DEV_NO_FIRMWARE), as CI runs when the download fails
 #   scripts/check --quick          pytest -m "not slow" (while working)
+#   scripts/check --shard I/N      pytest shard I of N only (tests/shard.py), for
+#                                  parallel CI jobs; the other steps run in shard 1
 #
 # Steps, all run even if one fails; the exit status says whether all passed:
 #   pytest     scripts/dev python -m pytest -q -n auto (tests that need the
@@ -23,12 +25,16 @@ root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$root"
 descriptor=web/patches/mpe.json
 pytest_args=(-q -n auto)
-for a in "$@"; do
-    case "$a" in
+shard=""
+usage() { echo "usage: scripts/check [--no-firmware] [--quick] [--shard I/N]" >&2; exit 2; }
+while [[ $# -gt 0 ]]; do
+    case "$1" in
         --no-firmware) export DEV_NO_FIRMWARE=1 ;;
         --quick) pytest_args+=(-m "not slow") ;;
-        *) echo "usage: scripts/check [--no-firmware] [--quick]" >&2; exit 2 ;;
+        --shard) [[ "${2:-}" =~ ^[0-9]+/[0-9]+$ ]] || usage; shard="$2"; pytest_args+=(--shard "$2"); shift ;;
+        *) usage ;;
     esac
+    shift
 done
 
 firmware=yes
@@ -50,7 +56,14 @@ step() {  # step <name> <command...>
     if [[ $rc == 0 ]]; then results+=("ok      $name (${took} s)"); else results+=("FAILED  $name (${took} s, exit $rc)"); failed=1; fi
 }
 
-step pytest scripts/dev python -m pytest "${pytest_args[@]}"
+step "pytest${shard:+ (shard $shard)}" scripts/dev python -m pytest "${pytest_args[@]}"
+if [[ -n "$shard" && "${shard%%/*}" != 1 ]]; then
+    results+=("skipped web and descriptor steps (they run in shard 1)")
+    echo
+    echo "== summary"
+    printf '   %s\n' "${results[@]}"
+    exit "$failed"
+fi
 step "web test" scripts/dev npm --prefix web test
 step "web build" scripts/dev npm --prefix web run build
 step "descriptor compare" scripts/dev python -I tools/web_descriptor.py compare "$descriptor"

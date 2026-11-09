@@ -8,8 +8,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from emu.firmware import SUMMIT_2_2, load_image  # noqa: E402
 from emu.machine import Machine  # noqa: E402
 
-# hwmark: the `hw` marker and --hw (deselected by default); pytester: its tests.
-pytest_plugins = ["hwmark", "pytester"]
+# hwmark: the `hw` marker and --hw (deselected by default); pytester: its tests;
+# shard: --shard I/N for parallel CI jobs (tests/shard.py).
+pytest_plugins = ["hwmark", "pytester", "shard"]
 
 
 @pytest.fixture(scope="session")

@@ -7,6 +7,10 @@
 # from it: work/ and firmware/ end with the runner. If the download fails, the
 # job runs scripts/check --no-firmware and says so in the job summary.
 #
+# pytest is split into SHARDS parallel jobs (tests/shard.py), each on its own
+# runner; shard 1 also runs the web and descriptor steps and, for a release,
+# builds the page. The `checks` job at the end is the one status to require.
+#
 # Fork pull requests need no secrets: everything here is public.
 name: CI
 
@@ -33,11 +37,17 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  checks:
+  tests:
+    name: tests (${{ matrix.shard }}/6)
     runs-on: ubuntu-24.04
-    timeout-minutes: 90
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6]
     env:
       DEV_IMAGE: summit-mpe-dev:ci
+      SHARD: ${{ matrix.shard }}/6
     steps:
       - uses: actions/checkout@v7
         with:
@@ -64,7 +74,7 @@ jobs:
           load: true
           tags: ${{ env.DEV_IMAGE }}
           cache-from: type=gha,scope=dev-image
-          cache-to: type=gha,scope=dev-image,mode=max
+          cache-to: ${{ matrix.shard == 1 && 'type=gha,scope=dev-image,mode=max' || '' }}
 
       - name: Download the official firmware from Novation
         id: firmware
@@ -78,10 +88,10 @@ jobs:
           FIRMWARE: ${{ steps.firmware.outcome }}
         run: |
           if [ "$FIRMWARE" = success ]; then
-            scripts/check 2>&1 | tee "$RUNNER_TEMP/check.log"
+            scripts/check --shard "$SHARD" 2>&1 | tee "$RUNNER_TEMP/check.log"
           else
             echo "::warning::The firmware download failed: running scripts/check --no-firmware. Tests that need the firmware are SKIPPED."
-            scripts/check --no-firmware 2>&1 | tee "$RUNNER_TEMP/check.log"
+            scripts/check --no-firmware --shard "$SHARD" 2>&1 | tee "$RUNNER_TEMP/check.log"
           fi
 
       - name: Job summary
@@ -91,9 +101,9 @@ jobs:
         run: |
           {
             if [ "$FIRMWARE" = success ]; then
-              echo "### Full suite, with the official firmware"
+              echo "### Shard $SHARD of the full suite, with the official firmware"
             else
-              echo "## :warning: PARTIAL RUN: no firmware"
+              echo "## :warning: PARTIAL RUN: no firmware (shard $SHARD)"
               echo
               echo "The download from Novation failed, so this job ran \`scripts/check --no-firmware\`."
               echo "**Every test that needs the official firmware was skipped.** Re-run the job, or run"
@@ -109,17 +119,17 @@ jobs:
 
       # Only for the release workflow: the page as GitHub Pages serves it.
       - name: Stamp the commit into the served descriptor
-        if: inputs.pages-artifact
+        if: inputs.pages-artifact && matrix.shard == 1
         run: |
           jq --arg c "${GITHUB_SHA::12}" '.built.commit = $c' web/patches/mpe.json > "$RUNNER_TEMP/mpe.json"
           mv "$RUNNER_TEMP/mpe.json" web/patches/mpe.json
 
       - name: Build the web page
-        if: inputs.pages-artifact
+        if: inputs.pages-artifact && matrix.shard == 1
         run: VITE_SOURCE_URL="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" scripts/dev npm --prefix web run build
 
       - name: The page holds no firmware
-        if: inputs.pages-artifact
+        if: inputs.pages-artifact && matrix.shard == 1
         run: |
           find web/dist -type f | sort
           if find web/dist -type f \( -iname '*.syx' -o -iname '*.bin' -o -iname '*.elf' \) | grep .; then
@@ -130,6 +140,19 @@ jobs:
           grep -rqF "${GITHUB_SHA::12}" web/dist || { echo "::error::commit missing from the build"; exit 1; }
 
       - uses: actions/upload-pages-artifact@v5
-        if: inputs.pages-artifact
+        if: inputs.pages-artifact && matrix.shard == 1
         with:
           path: web/dist
+
+  checks:
+    needs: tests
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: All shards passed
+        env:
+          RESULT: ${{ needs.tests.result }}
+        run: |
+          echo "tests: $RESULT"
+          [ "$RESULT" = success ]

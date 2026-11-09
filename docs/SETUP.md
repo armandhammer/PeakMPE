@@ -269,7 +269,16 @@ you can see exactly that view:
 scripts/check --no-firmware
 ```
 
-`--quick` adds `-m "not slow"` to pytest. The cross-architecture byte
+`--quick` adds `-m "not slow"` to pytest. `--shard I/N` runs only shard I
+of N of pytest, as CI's six parallel jobs do (`tests/shard.py`; the web and
+descriptor steps run in shard 1). Shards keep each xdist group whole and are
+balanced by `tests/shard_weights.json`; refresh it after adding slow tests:
+
+```bash
+scripts/dev python -m pytest -q -n auto --shard-weights-out tests/shard_weights.json
+```
+
+ The cross-architecture byte
 check is `scripts/check-repro.sh` (below), since the second architecture
 is emulated here.
 
