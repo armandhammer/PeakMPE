@@ -1,0 +1,78 @@
+address,name,kind,confidence,notes
+0x0801d6c4,Reset_Handler,function,observed,zeroes 0x20000000-0x20030000 then copies .data from 0x08045210 (0x3ac4 bytes); bl main_loop at 0x0801d6fa (startup hook site)
+0x0800d11c,main_loop,function,observed,init then the endless loop 0x0800d18c-0x0800d1ea
+0x0800eed0,midi_channel_filter,function,observed,(src handler msg): handler runs only when channel == midi_global_channel; no Multi branch; callers 0x0800f014 0x0800f074 in midi_parse_byte
+0x0800efc0,midi_parse_byte,function,inferred,aligned with Summit 0x080107b0 (matcher)
+0x0800f4b0,note_off,function,observed,channel handler table entry 0; arp on (patch+0xf5) -> arp_note_off 0x08014e10; poly: voice_release at 0x0800f4e0; mono: 0x0800f4f8 0x0800f51a (held-note trigger) 0x0800f52c
+0x0800f53c,note_on,function,observed,vel 0 -> note_off; held_note_add; arp on -> arp_note_on; else last note at 0x200127d4+0x1d3 and voice_dispatch at 0x0800f570
+0x0800f328,poly_at,function,observed,channel handler table entry 2
+0x0800f124,cc,function,observed,channel handler table entry 3; no NRPN 25:54/55 (tuning) handling: no 0xd36 immediate anywhere
+0x0800f0ec,program_change,function,observed,channel handler table entry 4
+0x0800f0e0,chan_at,function,observed,channel handler table entry 5
+0x0800f0c8,bend,function,observed,channel handler table entry 6
+0x0800f364,held_note_add,function,observed,(note vel); called first by note_on
+0x0800f448,held_note_prev,function,inferred,aligned with Summit 0x08010940
+0x08015018,arp_note_on,function,observed,note_on's arp branch
+0x08014e10,arp_note_off,function,observed,note_off's arp branch (no voice_release in the arp path)
+0x08015216,arp_trigger_site,data,observed,bl voice_dispatch in the arpeggiator (fn 0x080151a0); hook site
+0x08012984,voice_dispatch,function,observed,(note vel): by mode byte 0x20011212: 0 -> voice_trigger(part 0); 1 split at 0x2000385b; 2 layer (parts 0 and 1). Callers: note_on note_off arp panel_button_event
+0x080128c0,voice_trigger,function,observed,(note vel part): unison loop; voice_alloc(note vel part -1 unison) at 0x08012942
+0x08012a0c,voice_alloc_forced,function,observed,(note vel voice): voice_alloc with a forced voice and unison 0
+0x080122b0,voice_alloc,function,observed,(note vel part voice unison): voice_candidates at 0x08012392; voice_glide 0x08012640; osc_pitch x3 0x0801264a 0x08012654 0x0801265e; 0x67 pitch; last alloc at voice_state+0x1e6 (0x080126f0)
+0x08011b70,voice_candidates,function,observed,8-voice oldest/quietest search; voice_env_read at 0x08011b8e
+0x0801162c,voice_env_read,function,observed,reads 8 voices' envelope level/state from the FPGA into voice_env_level / voice_env_state
+0x08010a9c,voice_glide,function,observed,(part); voice_alloc passes 0
+0x08011cc8,voice_release,function,observed,(note part) -> voice_release_part 0x08011a80 per part by mode byte
+0x08011a80,voice_release_part,function,observed,release by note within a part; uses voice_clear_at
+0x08011980,voice_clear_at,function,observed,clears voice_state+0x1f4+v (gate) and +0x44+2v (aftertouch)
+0x080119a4,env_command,function,inferred,aligned with Summit 0x0801536c
+0x08010e54,mod_tick,function,observed,1 kHz tick (voice_state+0xac request): mod_update at 0x08010e70 then for every voice: voice_glide; osc_pitch x3 (0x08010eb8 0x08010ec2 0x08010ecc); params 0-5 and 0x67 written directly
+0x0801088c,mod_update,function,observed,(): one part: bend parts+4 smoothed in voice_state+0x30 -> part_bend_smoothed; 0x68/0x69 to target 0xa and 0x868/0x869; wheel parts+6 -> voice_state+0x34 -> broadcast 0x60 at 0x08010972; 0x62/0x63; one voice's 0x61 per call (round robin voice_state+0x40)
+0x08010b60,osc_pitch,function,observed,(osc part): reads part_bend_smoothed through the literal at 0x08010c24 (one s16; no per-part index)
+0x0800ebf0,fpga_write,function,observed,(target param value): one direct SPI1 transaction (3 frames) with CS PB6 (GPIOB BSRR 0x40020418); no cpsid; returns the rx buffer 0x20003ea4. There is no FPGA write queue on the Peak
+0x08010850,voice_mod_write,function,observed,(target n value): fpga_write(target 0x60+n value); target 0xa = broadcast
+0x0801085c,part_param_write,function,observed,(n value): fpga_write(9 0x800+n value)
+0x0801086c,part_mod_write,function,observed,(n value): fpga_write(9 0x860+n value)
+0x08018c24,globals_apply_poll,function,observed,same shape as Summit 0x0800ee70: three helpers then globals+0xd vs cache 0x20003768+0x1d; main_loop site 0x0800d1b6
+0x08018f2c,settings_save,function,observed,globals -> ext flash 0x300000 (0x200 bytes)
+0x08018fcc,settings_save_action,function,observed,Save in Settings (UI mode 8): page > 8 -> tuning table (page - 9) else settings_save at 0x08018ffa
+0x0801afd8,settings_load,function,observed,ext flash 0x300000 -> globals (0x200 bytes); main_loop's first call at 0x0800d132
+0x0801a47c,sysex_rx_poll,function,inferred,main-loop SysEx state machine (state at 0x20011214+0x67c); void(void); main_loop site 0x0800d1c4
+0x08018800,ui_mode_switch,function,observed,(mode): ui_state[0] = mode; callers only in the panel UI (no NRPN mode request on the Peak)
+0x08018448,ui_value_change,function,observed,(delta); callers 0x08016fc2 (encoder) 0x080170f2 0x080170fa (buttons) 0x08018708 (ui_page_step)
+0x08017604,format_value,function,observed,(display value); kind 3 site in ui_draw_values 0x080181d8
+0x08017eec,ui_current_page_index,function,observed,menu->cur of menus[ui_state[0]]
+0x08018070,ui_draw_values,function,observed,kind 3 reads global_param_desc through the literal 0x080182b8
+0x08017f14,ui_draw_page,function,observed,kind 3 item name through the literal 0x0801806c
+0x08018358,item_action,function,observed,Settings (mode 8) page 1 Go -> Calibrate (0x0801838c); page 9 Go -> backup 0x08019de0 (0x080183a4)
+0x080186ec,ui_page_step,function,observed,one value-change branch (UI mode 5) at 0x08018708
+0x08016ff0,panel_button_event,function,observed,button_table 0x20000ab8; one button plays note 60 vel 64 through voice_dispatch (0x08017040) and releases it; value buttons -> ui_value_change
+0x08016fa0,ui_encoder_event,function,inferred,aligned with Summit 0x0801ac18; ui_value_change at 0x08016fc2
+0x200001a8,midi_channel_handlers,data,observed,8 x {handler; len; flags}; .data
+0x200017cc,patch_param_desc,data,observed,12 B per patch offset; init 0x080469dc; entry 0x1a2 reserved (min=max=0 NRPN 255:0 no name) at 0x08047d74
+0x20002b7c,global_param_desc,data,observed,Settings item descriptors (kind 3)
+0x20002e90,menus,data,observed,11 menu pointers by UI mode; [6] VOICE [8] Settings
+0x20002ee8,settings_menu,data,observed,26 pages: SYSTEM SYSTEM SYNTH MIDI CONTROL MIDI ENABLE PEDAL SW SENSE PEDAL SW MODE MISC MISC BACKUP TUNINGTABLE 1-16; init 0x080480f8
+0x20003438,voice_page_1,data,observed,VOICE page 1: Unison (0x23) UniDetune (0x24) + 2 free items; init 0x08048648
+0x20004650,voice_state,data,observed,SoA: +9 voice loop index; +0x30 bend acc; +0x34 wheel acc (s16 at +0x36); +0x40 AT round robin; +0x44+2v aftertouch slot; +0x54+4v smoothed AT; +0xac tick request; +0x1e6 last alloc; +0x1f4+v gate
+0x20011200,ui_state,data,observed,[0] UI mode (8 Settings 5/7/9 other modes)
+0x20011210,midi_global_channel,data,observed,read by midi_channel_filter
+0x20011212,voice_part_mode,data,observed,0 one part 1 split 2 layer; read by voice_dispatch voice_alloc voice_release mod_tick; no direct store found (inferred: stays 0)
+0x2000385b,voice_split_point,data,observed,voice_dispatch's split note
+0x20012298,parts,data,observed,one part: +4 bend +6 mod wheel +8 expression +9 breath +0x13 unison bookkeeping
+0x2001233e,part_bend_smoothed,data,observed,s16 smoothed bend (mod_update)
+0x20012340,patches,data,observed,current patch; +0x22 voice mode +0x23 unison +0xf5 arp on
+0x20012544,voice_pitch_out,data,observed,u16 per voice; sent as 0x67 - 0x3c00
+0x20012794,voice_note,data,observed,8 x u8
+0x200127c4,voice_pitch,data,inferred,matcher pair of Summit 0x200149a8
+0x2001228c,voice_env_state,data,observed,8 x u8 from voice_env_read
+0x20012774,voice_env_level,data,observed,8 x u16 from voice_env_read
+0x20014494,globals,data,observed,512 B = ext flash 0x300000; +0x30-0x40 unused by stock code (static scan)
+0x20003768,globals_cache,data,observed,globals_apply_poll's copies (+0x1d)
+0x080452fb,boot_version_label,data,observed," Version " (.data init of RAM 0x200000eb)
+0x080445e8,settings_version_name,data,observed,"Version\0"
+0x0800d260,lcd_puts,function,observed,(str) each character through 0x0800d21c; returns the count; same code as Summit 0x0800df54
+0x08018a88,mark_changed,function,observed,set changed flag 0x20011208+1 bit 0; same code as Summit 0x0800eb0c
+0x08018b34,ui_message_active,function,observed,0x20011208+2 nonzero: a message covers the page; same code as Summit 0x0800ebb8
+0x08017edc,ui_current_page,function,observed,menu->pages[menu->cur]; page +5 = selected item; same code as Summit 0x0801c7f8
+0x080168b4,lcd_cursor,function,inferred,matcher pair of Summit 0x08019db4

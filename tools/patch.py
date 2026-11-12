@@ -77,6 +77,11 @@ STARTUP_HOOKS = {
     "summit-firmware-2.2-build2121.syx":
         ("bl", 0x0801D9F2, 0x0801C564, "__patch_start",
          "Reset_Handler -> main_loop: zero patch RAM and run patch_init first"),
+    # Peak: Reset_Handler 0x0801D6C4 calls main_loop 0x0800D11C at 0x0801D6FA
+    # (docs/symbols/peak-2.2-2108.csv).
+    "peak-firmware-2.2-build2108.syx":
+        ("bl", 0x0801D6FA, 0x0800D11C, "__patch_start",
+         "Reset_Handler -> main_loop: zero patch RAM and run patch_init first"),
 }
 
 
@@ -311,7 +316,8 @@ def build_image(definition_path, firmware_dir=FIRMWARE_DIR, build_dir=None):
             raise PatchError(f"no startup hook known for {definition.SOURCE}")
         origin = IMAGE_BASE + len(image) + (-len(image) % 4)
         try:
-            blob = patch_build.build(definition.NAME, sources(definition), origin, build_dir)
+            blob = patch_build.build(definition.NAME, sources(definition), origin, build_dir,
+                                     csv_path=patch_build.symbols_for(definition.SOURCE))
         except patch_build.BuildError as e:
             raise PatchError(str(e)) from None
         hooks = resolve_hooks([STARTUP_HOOKS[definition.SOURCE], *getattr(definition, "HOOKS", [])], blob)
