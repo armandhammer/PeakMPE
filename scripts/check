@@ -15,7 +15,8 @@
 #              firmware skip without it)
 #   web test   scripts/dev npm --prefix web test (vitest; parity skips without it)
 #   web build  scripts/dev npm --prefix web run build (tsc and vite)
-#   descriptor tools/web_descriptor.py compare web/patches/mpe.json: the
+#   descriptor tools/web_descriptor.py compare, for each of web/patches/mpe.json
+#              (Summit) and web/patches/peak-mpe.json (Peak): the
 #              compiled blob always, the whole descriptor with the firmware;
 #              and tools/web_descriptor.py check (no Novation bytes), which
 #              needs the firmware
@@ -23,7 +24,7 @@ set -uo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$root"
-descriptor=web/patches/mpe.json
+descriptors=(web/patches/mpe.json web/patches/peak-mpe.json)
 pytest_args=(-q -n auto)
 shard=""
 usage() { echo "usage: scripts/check [--no-firmware] [--quick] [--shard I/N]" >&2; exit 2; }
@@ -66,12 +67,15 @@ if [[ -n "$shard" && "${shard%%/*}" != 1 ]]; then
 fi
 step "web test" scripts/dev npm --prefix web test
 step "web build" scripts/dev npm --prefix web run build
-step "descriptor compare" scripts/dev python -I tools/web_descriptor.py compare "$descriptor"
-if [[ $firmware == yes ]]; then
-    step "descriptor check" scripts/dev python -I tools/web_descriptor.py check "$descriptor"
-else
-    results+=("skipped descriptor check (needs the firmware)")
-fi
+for descriptor in "${descriptors[@]}"; do
+    name="$(basename "$descriptor" .json)"
+    step "descriptor compare ($name)" scripts/dev python -I tools/web_descriptor.py compare "$descriptor"
+    if [[ $firmware == yes ]]; then
+        step "descriptor check ($name)" scripts/dev python -I tools/web_descriptor.py check "$descriptor"
+    else
+        results+=("skipped descriptor check ($name, needs the firmware)")
+    fi
+done
 
 echo
 echo "== summary"

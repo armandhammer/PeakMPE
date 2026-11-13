@@ -1,4 +1,4 @@
-// A simulated Summit for the tests and the page's practice mode. It follows
+// A simulated Summit or Peak (`product`) for the tests and the page's practice mode. It follows
 // tools/flash.py's SimulatedSynth and the hardware captures in
 // docs/update-protocol.md:
 //
@@ -122,7 +122,7 @@ export class FakeSummit implements MidiBackend {
     if (this.mode === "app") {
       const q = fpgaRequest(this.opts.product);
       if (msg.length === q.length && msg.every((b, i) => b === q[i])) {
-        const v = this.opts.fpga === undefined ? 778 : this.opts.fpga;
+        const v = this.opts.fpga === undefined ? (this.opts.product === "Peak" ? 469 : 778) : this.opts.fpga;
         if (v !== null) {
           const pid = q.subarray(6, 8);
           this.reply(Uint8Array.from([...NOVATION, 0x7c, ...pid, 0x40, 0x45, 0x12,

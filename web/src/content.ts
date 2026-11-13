@@ -1,10 +1,12 @@
 // All text on the page. Edit here; main.ts only places it.
 // Strings marked (html) may contain simple markup; everything else is plain text.
+// {synth}, {build}, {backupWhat}, {backupShort}, {other} and {otherId} name the
+// synth (product.ts) and are filled in by contentFor(); the other
 // {placeholders} are filled in by main.ts from the patch descriptor.
 
+import type { Product } from "./product";
+
 export const links = {
-  officialFirmware: "https://components.novationmusic.com/api/v2/firmwares/154/file",
-  officialFirmwareName: "summit-firmware-2121.syx",
   // Set at build time: the release workflow passes VITE_SOURCE_URL from
   // GITHUB_SERVER_URL/GITHUB_REPOSITORY, so a fork's page links to the fork.
   // Empty in a local build; the footer then names no URL.
@@ -12,15 +14,17 @@ export const links = {
   components: "https://components.novationmusic.com/",
 };
 
-export const content = {
-  title: "Summit MPE firmware patcher",
-  subtitle: "An unofficial, community-made MPE mod for the Summit synthesizer, applied in your browser.",
+const template = {
+  title: "{synth} MPE firmware patcher",
+  subtitle: "An unofficial, community-made MPE mod for the {synth} synthesizer, applied in your browser.",
+  // (html) Under the subtitle.
+  otherSynth: "For the {other}, use <a href=\"?synth={otherId}\">the {other} version of this page</a>.",
 
   // (html) Always visible at the top.
   banner:
     "<strong>Unofficial and vibe-coded.</strong> This project and its firmware patch were built with an AI " +
     "coding assistant. It is not affiliated with, endorsed by or supported by Novation or Focusrite. " +
-    "“Novation”, “Focusrite” and “Summit” are their trademarks and are used here only to say which instrument this is for.",
+    "“Novation”, “Focusrite” and “{synth}” are their trademarks and are used here only to say which instrument this is for.",
 
   about: {
     heading: "What this does",
@@ -55,12 +59,12 @@ export const content = {
     heading: "Back up your sounds",
     // (html)
     body:
-      "<p>Before you flash anything, back up your patches (sounds) and Multis: open " +
-      "<a href=\"{components}\" rel=\"noopener noreferrer\">Novation Components</a>, connect the Summit and save " +
+      "<p>Before you flash anything, back up your {backupWhat}: open " +
+      "<a href=\"{components}\" rel=\"noopener noreferrer\">Novation Components</a>, connect the {synth} and save " +
       "all of them to your computer. Write down any Settings you have changed, too.</p>" +
       "<p>A firmware update, modded or official, or a failed flash may change or erase what is stored on the " +
       "synth. Without a backup it may be gone for good.</p>",
-    checkbox: "I have backed up all my patches and Multis with Novation Components, and I know where the backup is.",
+    checkbox: "I have backed up all my {backupShort} with Novation Components, and I know where the backup is.",
     confirm: "Confirm backup",
     confirmed: "Backup confirmed for this visit. Reloading the page asks again.",
   },
@@ -70,7 +74,7 @@ export const content = {
       heading: "1. Download the official firmware",
       // (html)
       body:
-        "Download Summit firmware 2.2 directly from Novation. The file is called " +
+        "Download {synth} firmware 2.2 directly from Novation. The file is called " +
         "<code>{officialName}</code>. Keep it: you need it to go back to stock.",
       button: "Download official firmware 2.2 from Novation",
     },
@@ -78,14 +82,14 @@ export const content = {
       heading: "2. Choose the file",
       drop: "Drop the .syx file here, or click to choose it",
       checking: "Checking …",
-      official: "Official Summit firmware 2.2 (build 2121), checksum verified.",
+      official: "Official {synth} firmware 2.2 (build {build}), checksum verified.",
       patched:
         "This is an already-modded file. Choose the official file from Novation instead: this page builds " +
         "and checks the mod itself.",
       // {sha} is the file's SHA-256.
       unknown:
-        "This is not the file this patcher is made for (SHA-256 {sha}). Only the official Summit firmware 2.2 " +
-        "build 2121 works. Download it again with the button above.",
+        "This is not the file this patcher is made for (SHA-256 {sha}). Only the official {synth} firmware 2.2 " +
+        "build {build} works. Download it again with the button above.",
     },
     mod: {
       heading: "3. Build the modded firmware",
@@ -98,11 +102,11 @@ export const content = {
       heading: "4. Flash it",
       // (html)
       body:
-        "Connect the Summit over USB and close Novation Components, your DAW and any other app that uses the " +
-        "Summit's MIDI port. Keep the synth powered and the cable plugged in until the page says it's done. " +
+        "Connect the {synth} over USB and close Novation Components, your DAW and any other app that uses the " +
+        "{synth}'s MIDI port. Keep the synth powered and the cable plugged in until the page says it's done. " +
         "The synth's own “100%” display runs ahead: wait for this page.",
-      modeReal: "My Summit (Web MIDI)",
-      modeFake: "Practice with a simulated Summit (sends nothing)",
+      modeReal: "My {synth} (Web MIDI)",
+      modeFake: "Practice with a simulated {synth} (sends nothing)",
       flashButton: "Flash modded firmware",
       restoreHeading: "Restore the official firmware",
       // (html)
@@ -145,17 +149,17 @@ export const content = {
   result: {
     ok: {
       title: "Done: the synth is back",
-      body: "The firmware was written and the Summit restarted, reporting firmware {version}. Check the boot screen.",
+      body: "The firmware was written and the {synth} restarted, reporting firmware {version}. Check the boot screen.",
     },
     okMod: "Next: switch MPE on per sound on the VOICE page, and set the zone on the Settings MPE page.",
     okRestore: "The official firmware is back on the synth.",
     mismatch: {
       title: "Restarted, but with another version",
-      body: "The Summit restarted but reports firmware {version}, not the version in the file. Check the boot screen, then flash again, starting from the bootloader (see Recovery).",
+      body: "The {synth} restarted but reports firmware {version}, not the version in the file. Check the boot screen, then flash again, starting from the bootloader (see Recovery).",
     },
     noAnswer: {
       title: "Sent, but the synth didn't answer",
-      body: "All of the firmware was sent, but the Summit didn't answer afterwards. Switch it off and on and look at the boot screen. If it doesn't start, follow Recovery below.",
+      body: "All of the firmware was sent, but the {synth} didn't answer afterwards. Switch it off and on and look at the boot screen. If it doesn't start, follow Recovery below.",
     },
     failed: {
       title: "Flashing stopped",
@@ -166,10 +170,10 @@ export const content = {
     noIdentity: {
       title: "The synth didn't answer",
       body:
-        "The page found the Summit's MIDI port, but no answer came back. Nothing was sent that changes the synth. " +
+        "The page found the {synth}'s MIDI port, but no answer came back. Nothing was sent that changes the synth. " +
         "Some browsers stop passing on MIDI from USB devices until they are restarted: quit the browser completely " +
         "(not just this tab or window), open it again, come back to this page and try once more. Also check that " +
-        "the Summit is switched on and that no other app (Novation Components, a DAW) is talking to it.",
+        "the {synth} is switched on and that no other app (Novation Components, a DAW) is talking to it.",
     },
     cancelled: {
       title: "Cancelled",
@@ -188,9 +192,9 @@ export const content = {
       "<p>The update writes the start-up part of the firmware last and never touches the synth's bootloader. " +
       "So if a flash stops halfway, or the modded firmware doesn't start, the bootloader is still there:</p>" +
       "<ol>" +
-      "<li>Switch the Summit off.</li>" +
+      "<li>Switch the {synth} off.</li>" +
       "<li>Hold down the <strong>three buttons to the left of the screen</strong> and switch it on.</li>" +
-      "<li>The computer now sees a MIDI device called <code>Summit Bootloader</code>.</li>" +
+      "<li>The computer now sees a MIDI device called <code>{synth} Bootloader</code>.</li>" +
       "<li>Flash the official firmware: use <em>Restore the official firmware</em> above (it detects the " +
       "bootloader), or Novation Components.</li>" +
       "</ol>" +
@@ -210,3 +214,17 @@ export const content = {
       "Focusrite. Patch {title} {version}, built from commit <code>{commit}</code>.",
   },
 };
+
+type Deep<T> = { [K in keyof T]: T[K] extends string ? string : Deep<T[K]> };
+
+/** The page text for one synth: the synth placeholders filled in, the rest left for main.ts. */
+export function contentFor(p: Product, other: Product): Deep<typeof template> {
+  const vars: Record<string, string> = {
+    synth: p.name, build: p.build, backupWhat: p.backupWhat, backupShort: p.backupShort,
+    other: other.name, otherId: other.id,
+  };
+  const walk = (o: unknown): unknown =>
+    typeof o === "string" ? o.replace(/\{(\w+)\}/g, (m, k) => vars[k] ?? m)
+      : Object.fromEntries(Object.entries(o as object).map(([k, v]) => [k, walk(v)]));
+  return walk(template) as Deep<typeof template>;
+}

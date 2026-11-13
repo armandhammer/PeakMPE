@@ -1,8 +1,8 @@
 // Parity with the Python build (only with Novation's firmware in firmware/; skipped without it).
 //
-// Runs the TS patcher under Node on firmware/summit-firmware-2.2-build2121.syx
-// and compares its output byte for byte with tools/patch.py's .syx for the
-// same definition. Skipped, with the reason printed, when the official file
+// Runs the TS patcher under Node on each synth's official file (Summit
+// 2121, Peak 2108) and compares its output byte for byte with tools/patch.py's
+// .syx for the same definition. Skipped, with the reason printed, when the official file
 // or a Python that can run tools/patch.py (and the ARM toolchain it calls)
 // is missing. Python: $SUMMIT_PYTHON, else ../.venv/bin/python, else python3.
 // $SUMMIT_FIRMWARE_DIR overrides where the official file is looked for.
@@ -17,12 +17,11 @@ import { sha256 } from "../src/core/hash";
 import { patchFirmware } from "../src/core/patcher";
 import { FakeSummit } from "../src/flash/fake";
 import { flash, Plan, TIMING } from "../src/flash/protocol";
-import raw from "../patches/mpe.json";
+import summitRaw from "../patches/mpe.json";
+import peakRaw from "../patches/peak-mpe.json";
 
 const ROOT = resolve(__dirname, "..", "..");
-const d = parseDescriptor(raw);
 const FIRMWARE_DIR = process.env.SUMMIT_FIRMWARE_DIR ?? join(ROOT, "firmware");
-const FIRMWARE = join(FIRMWARE_DIR, d.input.fileName);
 
 function python(): string | null {
   for (const p of [process.env.SUMMIT_PYTHON, join(ROOT, ".venv", "bin", "python"), "python3"]) {
@@ -38,40 +37,51 @@ function python(): string | null {
 }
 
 const py = python();
-const reason = !existsSync(FIRMWARE)
-  ? `${FIRMWARE} not present (run scripts/fetch-firmware.sh)`
-  : !py
-    ? "no Python found (set SUMMIT_PYTHON)"
-    : null;
-if (reason) console.warn(`parity test skipped: ${reason}`);
 
-describe.skipIf(reason !== null)("parity with tools/patch.py", () => {
-  it("TS output is byte-identical to patch.py's .syx", async () => {
-    const out = mkdtempSync(join(tmpdir(), "summit-parity-"));
-    try {
-      execFileSync(py!, ["-I", join(ROOT, "tools", "patch.py"), join(ROOT, d.built.definition),
-        "--firmware", FIRMWARE_DIR, "--out", out], { cwd: ROOT, stdio: "pipe" });
-      const pyOut = readFileSync(join(out, d.output.fileName));
-      const ts = await patchFirmware(new Uint8Array(readFileSync(FIRMWARE)), d);
-      expect(ts.syx.length).toBe(pyOut.length);
-      expect(Buffer.from(ts.syx).equals(pyOut)).toBe(true);
-      expect(ts.sha256).toBe(await sha256(new Uint8Array(pyOut)));
-      expect(ts.sha256).toBe("28916b05a90e56f8091644031af03b01d1f7e10b0160ac2e6e1017ad8c08ac96");
-    } finally {
-      rmSync(out, { recursive: true, force: true });
-    }
-  });
+// [descriptor, expected output .syx SHA-256, product, stock version, messages in the official file]
+const CASES = [
+  [summitRaw, "28916b05a90e56f8091644031af03b01d1f7e10b0160ac2e6e1017ad8c08ac96", "Summit", "2126", 8719],
+  [peakRaw, "bc3bf703f94c2791e666edff503a09bd42c30863988ce6dc6fd20c3a2c99532a", "Peak", "2108", 7784],
+] as const;
 
-  it("the patched and the official file flash unchanged to the fake bootloader", async () => {
-    const official = new Uint8Array(readFileSync(FIRMWARE));
-    const patched = (await patchFirmware(official, d)).syx;
-    const fast = { ...TIMING, settleAfterBootloader: 0, identityTimeout: 50, poll: 5 };
-    for (const data of [patched, official]) {
-      const synth = new FakeSummit({ repeatEvery: 40 });
-      const r = await flash(new Plan(data), synth, { confirm: async () => true }, fast);
-      expect(Buffer.concat(synth.received).equals(Buffer.from(data))).toBe(true);
-      expect(r.messagesSent).toBe(data === patched ? d.output.messages : 8719);
-      expect(r.version).toBe("2126");
-    }
+for (const [raw, outSha, product, stockVersion, stockMessages] of CASES) {
+  const d = parseDescriptor(raw);
+  const FIRMWARE = join(FIRMWARE_DIR, d.input.fileName);
+  const reason = !existsSync(FIRMWARE)
+    ? `${FIRMWARE} not present (run scripts/fetch-firmware.sh)`
+    : !py
+      ? "no Python found (set SUMMIT_PYTHON)"
+      : null;
+  if (reason) console.warn(`parity test (${product}) skipped: ${reason}`);
+
+  describe.skipIf(reason !== null)(`parity with tools/patch.py: ${product}`, () => {
+    it("TS output is byte-identical to patch.py's .syx", async () => {
+      const out = mkdtempSync(join(tmpdir(), "summit-parity-"));
+      try {
+        execFileSync(py!, ["-I", join(ROOT, "tools", "patch.py"), join(ROOT, d.built.definition),
+          "--firmware", FIRMWARE_DIR, "--out", out], { cwd: ROOT, stdio: "pipe" });
+        const pyOut = readFileSync(join(out, d.output.fileName));
+        const ts = await patchFirmware(new Uint8Array(readFileSync(FIRMWARE)), d);
+        expect(ts.syx.length).toBe(pyOut.length);
+        expect(Buffer.from(ts.syx).equals(pyOut)).toBe(true);
+        expect(ts.sha256).toBe(await sha256(new Uint8Array(pyOut)));
+        expect(ts.sha256).toBe(outSha);
+      } finally {
+        rmSync(out, { recursive: true, force: true });
+      }
+    });
+
+    it("the patched and the official file flash unchanged to the fake bootloader", async () => {
+      const official = new Uint8Array(readFileSync(FIRMWARE));
+      const patched = (await patchFirmware(official, d)).syx;
+      const fast = { ...TIMING, settleAfterBootloader: 0, identityTimeout: 50, poll: 5 };
+      for (const data of [patched, official]) {
+        const synth = new FakeSummit({ product, version: stockVersion, repeatEvery: 40 });
+        const r = await flash(new Plan(data), synth, { confirm: async () => true }, fast);
+        expect(Buffer.concat(synth.received).equals(Buffer.from(data))).toBe(true);
+        expect(r.messagesSent).toBe(data === patched ? d.output.messages : stockMessages);
+        expect(r.version).toBe(product === "Summit" ? "2126" : "2108");
+      }
+    });
   });
-});
+}

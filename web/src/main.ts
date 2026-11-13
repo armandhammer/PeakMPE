@@ -1,19 +1,22 @@
 import "./style.css";
-import { content as C, links } from "./content";
-import rawDescriptor from "../patches/mpe.json";
+import { contentFor, links } from "./content";
 import { parseDescriptor } from "./core/descriptor";
 import { identifyFile, patchFirmware, type PatchResult } from "./core/patcher";
 import { FakeSummit } from "./flash/fake";
 import { EXPECTED_FPGA, flash, FlashError, Plan, type MidiBackend, type Phase } from "./flash/protocol";
 import { connectMidi, midiSupport } from "./flash/webmidi";
+import { otherProduct, pickProduct } from "./product";
 
-const d = parseDescriptor(rawDescriptor);
+const P = pickProduct(location.search);
+const C = contentFor(P, otherProduct(P));
+const d = parseDescriptor(P.descriptor);
+document.title = C.title;
 
 // ------------------------------------------------------------------ helpers
 
 const vars: Record<string, string> = {
   summary: d.summary, label: d.label, title: d.title, version: d.version,
-  officialName: links.officialFirmwareName, source: links.source, components: links.components, commit: d.built.commit ?? "unknown",
+  officialName: P.officialFirmwareName, source: links.source, components: links.components, commit: d.built.commit ?? "unknown",
 };
 const escape = (s: string) => s.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
 /** Fill {placeholders}; values are escaped, the template itself is trusted (content.ts). */
@@ -74,7 +77,8 @@ app.append(main);
 
 main.append(
   h("header", {}, h("h1", { class: "text-3xl font-bold tracking-tight" }, C.title),
-    h("p", { class: "mt-1 text-stone-600 dark:text-stone-400" }, C.subtitle)),
+    h("p", { class: "mt-1 text-stone-600 dark:text-stone-400" }, C.subtitle),
+    html("p", "mt-1 text-sm text-stone-500", C.otherSynth)),
   html("div", "rounded-xl border-2 border-amber-500 bg-amber-50 p-4 text-sm dark:bg-amber-950/40", C.banner),
   h("section", { class: card }, heading(C.about.heading), html("div", "prose-lite", fill(C.about.body))),
 );
@@ -106,7 +110,7 @@ backupTick.addEventListener("change", () => (backupBtn.disabled = !backupTick.ch
 // 1. Download
 gated.append(h("section", { class: card }, heading(C.steps.download.heading),
   html("p", "", fill(C.steps.download.body)),
-  h("p", { class: "mt-4" }, h("a", { class: btnSecondary, href: links.officialFirmware, rel: "noopener noreferrer" },
+  h("p", { class: "mt-4" }, h("a", { class: btnSecondary, href: P.officialFirmware, rel: "noopener noreferrer" },
     C.steps.download.button))));
 
 // 2. File
@@ -261,7 +265,8 @@ function ask(question: string, what: string): Promise<boolean> {
 
 async function backend(): Promise<MidiBackend> {
   if (modeFake.checked)
-    return new FakeSummit({ bootDelayMs: 900, eraseMs: 3400, requestDelayMs: 0, repeatEvery: 40, appDelayMs: 2100, slowBoot: 1 });
+    return new FakeSummit({ product: P.name, version: P.stockVersion, fpga: P.expectedFpga,
+      bootDelayMs: 900, eraseMs: 3400, requestDelayMs: 0, repeatEvery: 40, appDelayMs: 2100, slowBoot: 1 });
   if (!state.backend) {
     try {
       state.backend = await connectMidi();
@@ -315,7 +320,7 @@ async function run(data: Uint8Array, what: string, kind: "mod" | "restore") {
   };
   try {
     const plan = new Plan(data);
-    say(modeFake.checked ? "practice mode: simulated Summit, no MIDI is sent" : "Web MIDI");
+    say(modeFake.checked ? `practice mode: simulated ${P.name}, no MIDI is sent` : "Web MIDI");
     let lastPaint = 0;
     const r = await flash(plan, await backend(), {
       log: say,
@@ -354,6 +359,6 @@ async function run(data: Uint8Array, what: string, kind: "mod" | "restore") {
 
 flashBtn.addEventListener("click", () => state.patched && run(state.patched.syx, `${d.title} ${d.version} (${state.patched.fileName})`, "mod"));
 restoreBtn.addEventListener("click", () => state.official && run(state.official, `official firmware (${state.officialName})`, "restore"));
-logBtn.addEventListener("click", () => save(new TextEncoder().encode(state.log.join("\n") + "\n"), "summit-flash-log.txt", "text/plain"));
+logBtn.addEventListener("click", () => save(new TextEncoder().encode(state.log.join("\n") + "\n"), `${P.id}-flash-log.txt`, "text/plain"));
 
 refresh();

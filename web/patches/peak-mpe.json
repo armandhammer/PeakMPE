@@ -1,0 +1,327 @@
+{
+ "format": "summit-mpe-patch-descriptor",
+ "formatVersion": 1,
+ "name": "mpe",
+ "title": "MPE for Peak",
+ "version": "0.1",
+ "label": "MPE1 Ver 108.469",
+ "summary": "Per-note pitch bend, pressure (channel or poly aftertouch) and slide (MPE) on the Peak's 8 voices, a per-patch MPE switch (VOICE page) and Settings MPE pages; one or two zones. A first version: tested on one Peak with the hardware test rig, not yet with a LinnStrument.",
+ "built": {
+  "commit": "0461e26f60b0",
+  "definition": "patches/peak_mpe/patch.py"
+ },
+ "input": {
+  "fileName": "peak-firmware-2.2-build2108.syx",
+  "sha256": "f9d50b4268a5c612b71d4cafd45dc01a02ecdf0902aa6e31784ad4d1bc4de26e",
+  "bytes": 342467,
+  "imageSha256": "43d4ce10e977bd2ce769c399cc68f740779527630241e6d3475b0279ddcc812b",
+  "imageLength": 249056
+ },
+ "output": {
+  "fileName": "peak-firmware-2.2-build2108+mpe.syx",
+  "sha256": "bc3bf703f94c2791e666edff503a09bd42c30863988ce6dc6fd20c3a2c99532a",
+  "bytes": 348627,
+  "imageSha256": "9f90f9cd9e8a3c7ff39343a98925b6c4ed4d76076bf9b786e4c47a4589bc84f2",
+  "imageLength": 253536,
+  "messages": 7924
+ },
+ "header": null,
+ "fill": 255,
+ "writes": [
+  {
+   "address": "0x0800D132",
+   "data": "PA==",
+   "why": "bl hook -> mpe_ui_boot: main_loop: first settings_load, before the main loop runs"
+  },
+  {
+   "address": "0x0800D134",
+   "data": "wfo=",
+   "why": "bl hook -> mpe_ui_boot: main_loop: first settings_load, before the main loop runs"
+  },
+  {
+   "address": "0x0800D1B6",
+   "data": "Ow==",
+   "why": "bl hook -> mpe_globals_apply_poll: main_loop: apply globals"
+  },
+  {
+   "address": "0x0800D1B8",
+   "data": "Af4=",
+   "why": "bl hook -> mpe_globals_apply_poll: main_loop: apply globals"
+  },
+  {
+   "address": "0x0800D1C4",
+   "data": "PA==",
+   "why": "bl hook -> mpe_ui_poll: main_loop: per-pass call, redraw the MPE values"
+  },
+  {
+   "address": "0x0800D1C6",
+   "data": "SPs=",
+   "why": "bl hook -> mpe_ui_poll: main_loop: per-pass call, redraw the MPE values"
+  },
+  {
+   "address": "0x0800F014",
+   "data": "OvBA+A==",
+   "why": "bl hook -> mpe_channel_filter: midi_parse_byte: channel message"
+  },
+  {
+   "address": "0x0800F074",
+   "data": "OvAQ+A==",
+   "why": "bl hook -> mpe_channel_filter: midi_parse_byte: channel message, other path"
+  },
+  {
+   "address": "0x0800F4E0",
+   "data": "OQ==",
+   "why": "bl hook -> mpe_note_release: note_off: poly modes"
+  },
+  {
+   "address": "0x0800F4E2",
+   "data": "qP8=",
+   "why": "bl hook -> mpe_note_release: note_off: poly modes"
+  },
+  {
+   "address": "0x0800F4F8",
+   "data": "OQ==",
+   "why": "bl hook -> mpe_note_release: note_off: mono, no last note"
+  },
+  {
+   "address": "0x0800F4FA",
+   "data": "nP8=",
+   "why": "bl hook -> mpe_note_release: note_off: mono, no last note"
+  },
+  {
+   "address": "0x0800F51A",
+   "data": "OQ==",
+   "why": "bl hook -> mpe_trigger_held: note_off: mono fallback to a held note"
+  },
+  {
+   "address": "0x0800F51C",
+   "data": "R/8=",
+   "why": "bl hook -> mpe_trigger_held: note_off: mono fallback to a held note"
+  },
+  {
+   "address": "0x0800F52C",
+   "data": "OQ==",
+   "why": "bl hook -> mpe_note_release: note_off: mono, no held note left"
+  },
+  {
+   "address": "0x0800F52E",
+   "data": "gv8=",
+   "why": "bl hook -> mpe_note_release: note_off: mono, no held note left"
+  },
+  {
+   "address": "0x0800F570",
+   "data": "OQ==",
+   "why": "bl hook -> mpe_trigger_note_on: note_on -> voice_dispatch"
+  },
+  {
+   "address": "0x0800F572",
+   "data": "DP8=",
+   "why": "bl hook -> mpe_trigger_note_on: note_on -> voice_dispatch"
+  },
+  {
+   "address": "0x08010972",
+   "data": "OfCn+Q==",
+   "why": "bl hook -> mpe_wheel_write: mod_update: broadcast 0x60 to all voices"
+  },
+  {
+   "address": "0x08010C24",
+   "data": "fAEAEA==",
+   "why": "pointer hook -> mpe_bend_in: osc_pitch: literal for the part bend"
+  },
+  {
+   "address": "0x08010E70",
+   "data": "OPA+/w==",
+   "why": "bl hook -> mpe_mod_update: mod_tick -> mod_update(), before the voice loop"
+  },
+  {
+   "address": "0x08010EB8",
+   "data": "OPDk/Q==",
+   "why": "bl hook -> mpe_osc_pitch_tick: mod_tick: osc_pitch(osc1)"
+  },
+  {
+   "address": "0x08010EC2",
+   "data": "OPDf/Q==",
+   "why": "bl hook -> mpe_osc_pitch_tick: mod_tick: osc_pitch(osc2)"
+  },
+  {
+   "address": "0x08010ECC",
+   "data": "OPDa/Q==",
+   "why": "bl hook -> mpe_osc_pitch_tick: mod_tick: osc_pitch(osc3)"
+  },
+  {
+   "address": "0x08011B8E",
+   "data": "N/Ax/A==",
+   "why": "bl hook -> mpe_env_read: voice_candidates: FPGA envelope read"
+  },
+  {
+   "address": "0x08012640",
+   "data": "NvDi/g==",
+   "why": "bl hook -> mpe_alloc_glide: voice_alloc: voice chosen, before osc_pitch"
+  },
+  {
+   "address": "0x0801264A",
+   "data": "N/Ae",
+   "why": "bl hook -> mpe_osc_pitch_alloc: voice_alloc: osc_pitch(osc1)"
+  },
+  {
+   "address": "0x08012654",
+   "data": "N/AZ",
+   "why": "bl hook -> mpe_osc_pitch_alloc: voice_alloc: osc_pitch(osc2)"
+  },
+  {
+   "address": "0x0801265E",
+   "data": "N/AU",
+   "why": "bl hook -> mpe_osc_pitch_alloc: voice_alloc: osc_pitch(osc3)"
+  },
+  {
+   "address": "0x08012942",
+   "data": "NvA9/Q==",
+   "why": "bl hook -> mpe_voice_alloc: voice_trigger's unison loop -> voice_alloc"
+  },
+  {
+   "address": "0x08015216",
+   "data": "NPDJ+A==",
+   "why": "bl hook -> mpe_trigger_held: arpeggiator -> voice_dispatch"
+  },
+  {
+   "address": "0x08016FC2",
+   "data": "Mg==",
+   "why": "bl hook -> mpe_ui_value_change: ui_encoder_event: encoder"
+  },
+  {
+   "address": "0x08016FC4",
+   "data": "kfw=",
+   "why": "bl hook -> mpe_ui_value_change: ui_encoder_event: encoder"
+  },
+  {
+   "address": "0x080170F2",
+   "data": "Mg==",
+   "why": "bl hook -> mpe_ui_value_change: panel_button_event: value reset"
+  },
+  {
+   "address": "0x080170F4",
+   "data": "+fs=",
+   "why": "bl hook -> mpe_ui_value_change: panel_button_event: value reset"
+  },
+  {
+   "address": "0x080170FA",
+   "data": "Mg==",
+   "why": "bl hook -> mpe_ui_value_change: panel_button_event: value inc/dec"
+  },
+  {
+   "address": "0x080170FC",
+   "data": "9fs=",
+   "why": "bl hook -> mpe_ui_value_change: panel_button_event: value inc/dec"
+  },
+  {
+   "address": "0x0801806C",
+   "data": "6AE=",
+   "why": "pointer hook -> mpe_global_desc: ui_draw_page: kind 3 item name"
+  },
+  {
+   "address": "0x0801806F",
+   "data": "EA==",
+   "why": "pointer hook -> mpe_global_desc: ui_draw_page: kind 3 item name"
+  },
+  {
+   "address": "0x080181D8",
+   "data": "MfAm+w==",
+   "why": "bl hook -> mpe_ui_format: ui_draw_values: kind 3 (global) value"
+  },
+  {
+   "address": "0x080182B8",
+   "data": "6AE=",
+   "why": "pointer hook -> mpe_global_desc: ui_draw_values: kind 3 display type"
+  },
+  {
+   "address": "0x080182BB",
+   "data": "EA==",
+   "why": "pointer hook -> mpe_global_desc: ui_draw_values: kind 3 display type"
+  },
+  {
+   "address": "0x0801838C",
+   "data": "MfA4+g==",
+   "why": "bl hook -> mpe_settings_page_index: item action: Settings page 1 (Calibrate)"
+  },
+  {
+   "address": "0x080183A4",
+   "data": "MfAs+g==",
+   "why": "bl hook -> mpe_settings_page_index: item action: Settings page 9 (BACKUP)"
+  },
+  {
+   "address": "0x080186E4",
+   "data": "6AE=",
+   "why": "pointer hook -> mpe_global_desc: ui_value_change: kind 3 min/max"
+  },
+  {
+   "address": "0x080186E7",
+   "data": "EA==",
+   "why": "pointer hook -> mpe_global_desc: ui_value_change: kind 3 min/max"
+  },
+  {
+   "address": "0x08018708",
+   "data": "MfDu+A==",
+   "why": "bl hook -> mpe_ui_value_change: ui_page_step: value change"
+  },
+  {
+   "address": "0x08018FD6",
+   "data": "MPAT/A==",
+   "why": "bl hook -> mpe_settings_page_index: settings_save_action: tuning page > 8"
+  },
+  {
+   "address": "0x08018FFA",
+   "data": "L/Bh",
+   "why": "bl hook -> mpe_settings_save: settings_save_action: Settings Save"
+  },
+  {
+   "address": "0x0801D6FA",
+   "data": "K/Dx+g==",
+   "why": "bl hook -> __patch_start: Reset_Handler -> main_loop: zero patch RAM and run patch_init first"
+  },
+  {
+   "address": "0x080445E8",
+   "data": "TVBFMVZlcg==",
+   "why": "Settings 2/28 SYSTEM item name"
+  },
+  {
+   "address": "0x080452FB",
+   "data": "TVBFMSBWZXI=",
+   "why": "boot screen label (.data initialiser of RAM 0x200000EB)"
+  },
+  {
+   "address": "0x08047D75",
+   "data": "AQ==",
+   "why": "patch_param_desc[0x1A2].max: MPE flag 0-1"
+  },
+  {
+   "address": "0x08047D78",
+   "data": "Dw==",
+   "why": "patch_param_desc[0x1A2].display: Off/On"
+  },
+  {
+   "address": "0x08047D7C",
+   "data": "3p0ECA==",
+   "why": "pointer hook -> mpe_flag_name: patch_param_desc[0x1A2].name"
+  },
+  {
+   "address": "0x0804864C",
+   "data": "Aw==",
+   "why": "VOICE page 1: 2 -> 3 items"
+  },
+  {
+   "address": "0x08048656",
+   "data": "AQ==",
+   "why": "VOICE page 1 item 3: kind 1, index 0x1A2"
+  },
+  {
+   "address": "0x08048658",
+   "data": "ogE=",
+   "why": "VOICE page 1 item 3: kind 1, index 0x1A2"
+  },
+  {
+   "address": "0x08048CE0",
+   "data": "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",
+   "why": "patch blob mpe (compiled C)"
+  }
+ ]
+}

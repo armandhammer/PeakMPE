@@ -121,8 +121,10 @@ jobs:
       - name: Stamp the commit into the served descriptor
         if: inputs.pages-artifact && matrix.shard == 1
         run: |
-          jq --arg c "${GITHUB_SHA::12}" '.built.commit = $c' web/patches/mpe.json > "$RUNNER_TEMP/mpe.json"
-          mv "$RUNNER_TEMP/mpe.json" web/patches/mpe.json
+          for f in web/patches/mpe.json web/patches/peak-mpe.json; do
+            jq --arg c "${GITHUB_SHA::12}" '.built.commit = $c' "$f" > "$RUNNER_TEMP/descriptor.json"
+            mv "$RUNNER_TEMP/descriptor.json" "$f"
+          done
 
       - name: Build the web page
         if: inputs.pages-artifact && matrix.shard == 1

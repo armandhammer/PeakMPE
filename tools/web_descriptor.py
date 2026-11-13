@@ -60,14 +60,23 @@ FORMAT_VERSION = 1
 FILL = 0xFF
 MIN_SHARED = 16
 
-# Shown on the web page; the definition's NAME selects the entry.
+# Shown on the web page; the synth (the SOURCE file's first word) and the
+# definition's NAME select the entry.
 META = {
-    "mpe": {
+    ("summit", "mpe"): {
         "title": "MPE for Summit",
         "version": "1.2",
         "label": "MPE3 Ver 126.778",
         "summary": "Per-note pitch bend, pressure and slide (MPE), a per-patch MPE switch "
                    "(VOICE page), Settings MPE pages, Single and Multi mode; v1.1 rotates idle voices; v1.2 fixes Slide on hardware.",
+    },
+    ("peak", "mpe"): {
+        "title": "MPE for Peak",
+        "version": "0.1",
+        "label": "MPE1 Ver 108.469",
+        "summary": "Per-note pitch bend, pressure (channel or poly aftertouch) and slide (MPE) on the Peak's "
+                   "8 voices, a per-patch MPE switch (VOICE page) and Settings MPE pages; one or two zones. "
+                   "A first version: tested on one Peak with the hardware test rig, not yet with a LinnStrument.",
     },
 }
 
@@ -115,7 +124,7 @@ def export(definition_path, firmware_dir=patch.FIRMWARE_DIR, build_dir=None):
         for a, data in changed_runs(b.image, addr, new):
             writes.append({"address": f"0x{a:08X}", "data": base64.b64encode(data).decode(), "why": why})
     out = syx.encode(b.new_header, b.patched)
-    meta = META.get(d.NAME, {"title": d.NAME, "version": "0", "label": "", "summary": ""})
+    meta = META.get((d.SOURCE.split("-")[0], d.NAME), {"title": d.NAME, "version": "0", "label": "", "summary": ""})
     desc = {
         "format": FORMAT,
         "formatVersion": FORMAT_VERSION,
@@ -258,7 +267,8 @@ def compare(desc, definition_path=None, firmware_dir=patch.FIRMWARE_DIR, blob_on
             n = desc["input"]["imageLength"]
             origin = patch.IMAGE_BASE + n + (-n % 4)
             try:
-                blob = patch.patch_build.build(d.NAME, srcs, origin, Path(tmp) / "blob")
+                blob = patch.patch_build.build(d.NAME, srcs, origin, Path(tmp) / "blob",
+                                               csv_path=patch.patch_build.symbols_for(d.SOURCE))
             except patch.patch_build.BuildError as e:
                 raise patch.PatchError(str(e)) from None
             runs = [w for w in desc["writes"] if w["why"].startswith(f"patch blob {d.NAME}")]

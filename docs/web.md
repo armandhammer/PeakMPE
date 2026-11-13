@@ -9,6 +9,29 @@ and Tailwind CSS; no server, so it can be hosted on GitHub Pages.
 otherwise tested against a simulated bootloader. The page's concept is settled in
 [Decisions](#decisions-2026-11-08).
 
+## The Peak page (2026-11-12)
+
+The same page patches the Peak when opened with `?synth=peak` (the default
+stays the Summit). [`src/product.ts`](../web/src/product.ts) holds what
+differs per synth: the descriptor (`patches/mpe.json` for the Summit,
+`patches/peak-mpe.json` for the Peak, exported from `patches/peak_mpe/`),
+Novation's download (catalogue id 155 for Peak 2.2), the build, the version
+the stock application reports, the FPGA build that goes with 2.2 (Peak 469)
+and what a Components backup covers (no Multis on the Peak). The page text
+in `src/content.ts` names the synth through `{synth}`-style placeholders,
+filled by `contentFor()`; a line under the subtitle links to the other
+synth's page. The flash protocol already knew the Peak (identity templates,
+product id `00 7E`).
+
+**Status:** the parity test builds the Peak descriptor's output byte for byte
+from the official file. The output (`bc3bf703…`) carries the per-zone master
+bend fix found with the rig on 2026-11-12; the image before the fix
+(`c961f3a1…`) was flashed and tested ([hardware log](hardware-log.md)), the
+fixed one is emulated only so far. The page itself has not flashed a Peak yet: the
+flashes so far used `tools/flash.py`. The name the Peak download arrives
+with (`peak-firmware-2108.syx`) is inferred from the Summit's pattern; the
+page checks the file's hash, not its name.
+
 ## How it works
 
 1. **Download.** Novation's API sends no CORS headers, so the page can't

@@ -31,8 +31,8 @@ export const IDENTITY_TEMPLATES: Record<string, number[][]> = {
 const PRODUCT_ID: Record<string, [number, number]> = { Summit: [0x01, 0x33], Peak: [0x00, 0x7e] };
 export const fpgaRequest = (product: string) =>
   Uint8Array.from([...NOVATION, 0x7c, ...PRODUCT_ID[product], 0x44, 0, 0, 0, 0, 0, 0, 0xf7]);
-/** The FPGA build that goes with firmware 2.2 (FPGA 2.1, build 778). */
-export const EXPECTED_FPGA: Record<string, number> = { Summit: 778 };
+/** The FPGA build that goes with firmware 2.2 (FPGA 2.1: Summit build 778, Peak build 469). */
+export const EXPECTED_FPGA: Record<string, number> = { Summit: 778, Peak: 469 };
 
 export function parseFpga(msg: Uint8Array, product: string): number | null {
   if (msg.length < 16 || !startsWith(msg, [...NOVATION, 0x7c, ...PRODUCT_ID[product], 0x40])) return null;
