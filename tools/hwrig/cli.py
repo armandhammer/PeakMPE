@@ -17,6 +17,9 @@
                                    Prints every message first and sends nothing
                                    until you type 'play'.
 
+  --yes (setup, run, probe) prints the plan and sends without the prompt,
+  for runs approved in advance.
+
 Run from the repository root:
   .venv/bin/python -I tools/hwrig list
   .venv/bin/python -I tools/hwrig probe --inputs 1,2
@@ -37,6 +40,12 @@ def confirm_play():
     except (EOFError, OSError):
         return False
     return answer.strip() == "play"
+
+
+def confirmer(args):
+    """--yes: the plan is still printed, but sent without the 'play' prompt
+    (for runs the user has approved in advance)."""
+    return (lambda: True) if getattr(args, "yes", False) else confirm_play
 
 
 def cmd_list(args, say=print):
@@ -106,7 +115,7 @@ def cmd_setup(args, say=print):
     out = config_mod.RUNS_DIR / time.strftime("%Y-%m-%d_%H%M%S") / f"setup-{recipe.name}"
     out.mkdir(parents=True, exist_ok=True)
     listing = out / "messages.txt"
-    listing.write_text(setup.listing(steps) + "\n")
+    listing.write_text(setup.listing(steps) + "\n", encoding="utf-8")
     say(setup.plan_text(table, recipe, cfg, port_name, steps, listing))
     rec = None
     if args.check:
@@ -115,7 +124,7 @@ def cmd_setup(args, say=print):
         rec = audio.SoundDeviceRecorder(dev[0], cfg.inputs, cfg.samplerate, input_delay_s=cfg.input_delay_ms / 1000.0)
         say(f"Then the check, audio from {dev[1]!r} inputs {cfg.inputs}:")
         say(probe.plan_text(cfg, port_name))
-    if not confirm_play():
+    if not confirmer(args)():
         say("Not confirmed: nothing sent.")
         return 2
     port = midi.RtMidiOut(port_name)
@@ -152,7 +161,7 @@ def cmd_run(args, say=print):
     rec = audio.SoundDeviceRecorder(dev[0], cfg.inputs, cfg.samplerate, input_delay_s=cfg.input_delay_ms / 1000.0)
     out = config_mod.RUNS_DIR / time.strftime("%Y-%m-%d_%H%M%S")
     say(f"Audio from {dev[1]!r} (index {dev[0]}), inputs {cfg.inputs}, {cfg.samplerate} Hz")
-    rows = run.run(plan, port_name, lambda: midi.RtMidiOut(port_name), rec, confirm_play, out, say=say)
+    rows = run.run(plan, port_name, lambda: midi.RtMidiOut(port_name), rec, confirmer(args), out, say=say)
     if rows is None:
         return 2
     say(run.summary(rows))
@@ -189,7 +198,7 @@ def cmd_probe(args, say=print):
     say(f"Audio from {dev[1]!r} (index {dev[0]}), inputs {cfg.inputs}, {cfg.samplerate} Hz")
     out = config_mod.RUNS_DIR / time.strftime("%Y-%m-%d_%H%M%S") / "probe"
     rec = audio.SoundDeviceRecorder(dev[0], cfg.inputs, cfg.samplerate, input_delay_s=cfg.input_delay_ms / 1000.0)
-    res = probe.run(cfg, port_name, lambda: midi.RtMidiOut(port_name), rec, confirm_play, out, say=say)
+    res = probe.run(cfg, port_name, lambda: midi.RtMidiOut(port_name), rec, confirmer(args), out, say=say)
     if res is None:
         return 2
     say(f"WAVs and report: {out}")
@@ -197,6 +206,9 @@ def cmd_probe(args, say=print):
 
 
 def main(argv=None):
+    for stream in (sys.stdout, sys.stderr):  # a Windows console code page lacks ±, ≥ ...
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(errors="replace")
     p = argparse.ArgumentParser(prog="hwrig", description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = p.add_subparsers(dest="command", required=True)
@@ -205,6 +217,7 @@ def main(argv=None):
     pp.add_argument("--config", help="config file (default work/hwrig.toml)")
     ru = sub.add_parser("run", help="the stage-2 checks, unattended after one 'play'")
     ru.add_argument("--config", help="config file (default work/hwrig.toml)")
+    ru.add_argument("--yes", action="store_true", help="send without the 'play' prompt (plan still printed)")
     gr = ru.add_mutually_exclusive_group()
     gr.add_argument("--port", help="MIDI output port (name or unique substring)")
     gr.add_argument("--din", action="store_true", help="use midi.din_port")
@@ -215,6 +228,7 @@ def main(argv=None):
     su = sub.add_parser("setup", help="build a test sound in the edit buffer (asks first)")
     su.add_argument("name", help="recipe: p1 ... p7 (see `patches`)")
     su.add_argument("--config", help="config file (default work/hwrig.toml)")
+    su.add_argument("--yes", action="store_true", help="send without the 'play' prompt (plan still printed)")
     gs = su.add_mutually_exclusive_group()
     gs.add_argument("--port", help="MIDI output port (name or unique substring)")
     gs.add_argument("--din", action="store_true", help="use midi.din_port")
@@ -222,6 +236,7 @@ def main(argv=None):
     su.add_argument("--check", action="store_true", help="then play A3 and measure it")
     s = sub.add_parser("probe", help="play test notes and measure them (asks first)")
     s.add_argument("--config", help="config file (default work/hwrig.toml)")
+    s.add_argument("--yes", action="store_true", help="send without the 'play' prompt (plan still printed)")
     g = s.add_mutually_exclusive_group()
     g.add_argument("--port", help="MIDI output port (name or unique substring)")
     g.add_argument("--din", action="store_true", help="use midi.din_port instead of midi.usb_port")

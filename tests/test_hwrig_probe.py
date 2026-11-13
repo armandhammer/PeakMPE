@@ -107,6 +107,14 @@ def test_confirm_requires_the_word_play(monkeypatch):
     assert cli.confirm_play() is False
 
 
+def test_yes_skips_the_prompt_only_when_given(monkeypatch):
+    import argparse
+    monkeypatch.setattr("builtins.input", lambda prompt: "no")
+    assert cli.confirmer(argparse.Namespace(yes=True))() is True
+    assert cli.confirmer(argparse.Namespace(yes=False))() is False
+    assert cli.confirmer(argparse.Namespace())() is False
+
+
 def test_plan_lists_exactly_what_is_sent(tmp_path):
     synth = FakeSynth()
     c = cfg(channel=3, slot="D005")

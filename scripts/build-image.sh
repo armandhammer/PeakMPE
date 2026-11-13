@@ -99,3 +99,17 @@ $py -I tools/flash.py flash $flashfile --log work/flash-${sha:0:8}-\$(date +%F).
 
 Then add a row to docs/hardware-log.md: commit $commit, image \`${sha:0:8}…${sha: -8}\`.
 EOF
+if [[ "$py" == *Scripts/python.exe ]]; then  # Windows: PowerShell forms
+  winroot="$(cygpath -w "$root" 2>/dev/null || echo "$root")"
+  cat <<EOF
+
+On Windows, from PowerShell: all three flash steps in one command
+(scripts/flash.ps1; flash.py still asks you to type flash):
+
+& "$winroot\\scripts\\flash.ps1" "$winroot\\${flashfile//\//\\}"
+
+Recovery from PowerShell:
+
+& "$winroot\\.venv\\Scripts\\python.exe" -I "$winroot\\tools\\flash.py" flash "$winroot\\${stock//\//\\}"
+EOF
+fi

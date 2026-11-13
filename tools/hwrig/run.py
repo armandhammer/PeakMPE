@@ -239,7 +239,7 @@ def run(plan, port_name, open_port, recorder, confirm, out_dir, say=print, sleep
     from .checks import Row
     out_dir.mkdir(parents=True, exist_ok=True)
     listing = out_dir / "messages.txt"
-    listing.write_text(plan.listing())
+    listing.write_text(plan.listing(), encoding="utf-8")
     say(plan.text(port_name, listing))
     if not confirm():
         say("Not confirmed: nothing sent.")
@@ -328,11 +328,11 @@ def write_report(out_dir, plan, port_name, recorder, rows, failed_takes, started
                                      cwd=str(out_dir), timeout=5).stdout.strip()
     except Exception:  # noqa: BLE001 - the report must still be written
         meta["git"] = ""
-    (out_dir / "report.json").write_text(json.dumps({**meta, "rows": [asdict(r) for r in rows]}, indent=2))
+    (out_dir / "report.json").write_text(json.dumps({**meta, "rows": [asdict(r) for r in rows]}, indent=2), encoding="utf-8")
     md = [f"# hwrig run {started}", "",
           f"{summary(rows)}. Port `{port_name}`, {recorder.sr} Hz, inputs {recorder.inputs}, "
           f"git {meta['git'] or '?'}.", ""]
     if failed_takes:
         md += ["Failing takes (WAV + sent MIDI): " + ", ".join(f"`{n}.wav`" for n in failed_takes), ""]
     md += [table(rows), ""]
-    (out_dir / "report.md").write_text("\n".join(md))
+    (out_dir / "report.md").write_text("\n".join(md), encoding="utf-8")

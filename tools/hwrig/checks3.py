@@ -369,7 +369,7 @@ class B1ZoneChange(Check):
                 f"# trial {tr['i']}: delay {tr['delay']}, {tr['zone']} {tr['members']}, chord {tr['chord']}, "
                 f"missing {tr['missing']}, extra {tr['extra']}; times re the clip start\n" +
                 "".join(f"{s - t0:8.4f} {e.data.hex(' ').upper():<9} {e.label}\n"
-                        for e, s in log if e.data and e.label.startswith(pref)))
+                        for e, s in log if e.data and e.label.startswith(pref)), encoding="utf-8")
             names.append(name)
         bad_takes = [r for r in rows if r.item == "silent after each take" and r.status == "fail"]
         if bad_takes:

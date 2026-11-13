@@ -189,6 +189,6 @@ def write_report(out_dir, cfg, port_name, recorder, results):
     (out_dir / "probe.json").write_text(json.dumps({
         "port": port_name, "channel": cfg.channel, "samplerate": recorder.sr,
         "inputs": recorder.inputs, "a4_hz": cfg.a4_hz,
-        "results": [asdict(r) for r in results]}, indent=2))
+        "results": [asdict(r) for r in results]}, indent=2), encoding="utf-8")
     (out_dir / "probe.md").write_text(f"# hwrig probe\n\nport `{port_name}`, channel {cfg.channel}, "
-                                      f"{recorder.sr} Hz, inputs {recorder.inputs}\n\n{table(results)}\n")
+                                      f"{recorder.sr} Hz, inputs {recorder.inputs}\n\n{table(results)}\n", encoding="utf-8")

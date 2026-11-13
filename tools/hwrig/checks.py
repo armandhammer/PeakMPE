@@ -74,7 +74,7 @@ class Check:
             name = self.name if len(takes) == 1 else f"{self.name}-{k + 1}"
             write_wav(out_dir / f"{name}.wav", take.audio, take.sr)
             (out_dir / f"{name}.midi.txt").write_text(
-                "".join(f"{s:8.4f} {e.data.hex(' ').upper():<9} {e.label}\n" for e, s in log if e.data))
+                "".join(f"{s:8.4f} {e.data.hex(' ').upper():<9} {e.label}\n" for e, s in log if e.data), encoding="utf-8")
             names.append(name)
         return names
 
