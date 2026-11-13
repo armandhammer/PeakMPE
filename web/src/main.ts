@@ -35,26 +35,32 @@ const html = (tag: keyof HTMLElementTagNameMap, cls: string, markup: string) => 
   return el;
 };
 
-const card = "rounded-xl border border-stone-200 bg-white p-5 shadow-sm dark:border-stone-800 dark:bg-stone-900";
-const btn = "inline-flex items-center justify-center rounded-lg px-4 py-2 font-medium transition " +
+const cardBase = "rounded-xl bg-panel p-5 shadow-sm";
+const card = `${cardBase} border border-line`;
+const btn = "inline-flex items-center justify-center rounded-md px-4 py-2 font-medium transition " +
   "disabled:cursor-not-allowed disabled:opacity-40";
-const btnPrimary = `${btn} bg-amber-600 text-white hover:bg-amber-700`;
-const btnSecondary = `${btn} border border-stone-300 hover:bg-stone-100 dark:border-stone-700 dark:hover:bg-stone-800`;
-/** A card heading; "1. Download ..." gets its number as a round badge. */
+const btnPrimary = `${btn} bg-steel text-steel-ink hover:bg-steel-hover`;
+const btnSecondary = `${btn} border border-line bg-panel-2 hover:border-rule`;
+/** A card heading as the Peak labels its panel sections: small capitals over
+ * a blue rule. "1. Download ..." gets its number on a square key. */
+const headingCls = "mb-4 flex items-center gap-3 border-b-2 border-rule pb-1.5 text-sm font-bold uppercase tracking-wider";
 const heading = (text: string) => {
   const m = /^(\d+)\.\s+(.*)$/.exec(text);
-  if (!m) return h("h2", { class: "mb-3 text-lg font-semibold" }, text);
-  return h("h2", { class: "mb-3 flex items-center gap-3 text-lg font-semibold" },
-    h("span", { class: "flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-600 text-sm font-bold text-white", "aria-hidden": "true" }, m[1]),
+  if (!m) return h("h2", { class: headingCls }, text);
+  return h("h2", { class: headingCls },
+    h("span", { class: "flex h-6 w-6 shrink-0 items-center justify-center rounded-sm bg-steel text-xs font-bold text-steel-ink", "aria-hidden": "true" }, m[1]),
     h("span", {}, m[2]));
 };
 const chip = (text: string) =>
-  h("span", { class: "rounded-full bg-white/15 px-3 py-1 text-xs font-medium ring-1 ring-white/30" }, text);
+  h("span", { class: "rounded-sm bg-white/10 px-2.5 py-1 text-xs font-medium ring-1 ring-white/25" }, text);
+/** Text as the Peak's display shows it: light on black. */
+const display = (text: string) =>
+  h("span", { class: "rounded-sm bg-black px-2.5 py-1 font-mono text-xs tracking-wide text-[#dbe7ff] ring-1 ring-deck-rule/60" }, text);
 const note = (cls = "") => h("p", { class: `mt-3 text-sm ${cls}`, role: "status" });
 const setNote = (el: HTMLElement, text: string, tone: "ok" | "bad" | "info" = "info") => {
   el.textContent = text;
   el.className = "mt-3 text-sm " +
-    { ok: "text-emerald-700 dark:text-emerald-400", bad: "text-red-700 dark:text-red-400", info: "text-stone-600 dark:text-stone-400" }[tone];
+    { ok: "text-ok-ink", bad: "text-bad-ink", info: "text-muted" }[tone];
 };
 
 function save(data: Uint8Array, name: string, type = "application/octet-stream") {
@@ -77,6 +83,48 @@ const state = {
   log: [] as string[],
 };
 
+// -------------------------------------------------------------------- theme
+
+type Theme = "light" | "medium" | "dark";
+const THEMES: Theme[] = ["light", "medium", "dark"];
+const THEME_KEY = "peak-mpe-theme";
+
+function savedTheme(): Theme | null {
+  try {
+    const t = localStorage.getItem(THEME_KEY);
+    return THEMES.includes(t as Theme) ? (t as Theme) : null;
+  } catch {
+    return null;
+  }
+}
+
+const themeButtons = THEMES.map((t) => {
+  const b = h("button", { type: "button", "data-theme-choice": t,
+    class: "px-2.5 py-1 text-xs font-medium transition" }, C.theme[t]);
+  b.addEventListener("click", () => {
+    applyTheme(t);
+    try {
+      localStorage.setItem(THEME_KEY, t);
+    } catch {
+      /* private window: the choice lasts for this visit */
+    }
+  });
+  return b;
+});
+const themePicker = h("div", { role: "group", "aria-label": C.theme.label,
+  class: "inline-flex overflow-hidden rounded-sm ring-1 ring-white/25" }, ...themeButtons);
+
+function applyTheme(t: Theme) {
+  document.documentElement.dataset.theme = t;
+  for (const b of themeButtons) {
+    const on = b.dataset.themeChoice === t;
+    b.setAttribute("aria-pressed", String(on));
+    b.className = "px-2.5 py-1 text-xs font-medium transition " +
+      (on ? "bg-deck-rule text-deck" : "text-deck-ink/75 hover:bg-white/10 hover:text-deck-ink");
+  }
+}
+applyTheme(savedTheme() ?? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"));
+
 // --------------------------------------------------------------------- page
 
 const app = document.getElementById("app")!;
@@ -84,22 +132,23 @@ const main = h("main", { class: "mx-auto max-w-3xl space-y-6 px-4 py-8" });
 app.append(main);
 
 main.append(
-  h("header", { class: "rounded-2xl bg-linear-to-br from-amber-500 via-orange-600 to-rose-700 p-6 text-white shadow-lg sm:p-8" },
-    h("p", { class: "text-xs font-semibold uppercase tracking-widest text-white/80" }, C.kicker),
-    h("h1", { class: "mt-2 text-3xl font-bold tracking-tight sm:text-4xl" }, C.title),
-    h("p", { class: "mt-2 max-w-2xl text-white/90" }, C.subtitle),
-    h("div", { class: "mt-5 flex flex-wrap gap-2" }, chip(`${d.title} ${d.version}`), chip(`Boot screen: ${d.label}`),
-      chip("Nothing uploaded: patched in your browser"))),
-  html("div", "rounded-xl border-2 border-amber-500 bg-amber-50 p-4 text-sm dark:bg-amber-950/40", C.banner),
+  h("header", { class: "rounded-xl border-x-[10px] border-walnut bg-deck p-6 text-deck-ink shadow-lg sm:p-8" },
+    h("div", { class: "flex flex-wrap items-center justify-between gap-3 border-b border-deck-rule pb-2" },
+      h("p", { class: "text-xs font-semibold uppercase tracking-widest text-deck-rule" }, C.kicker), themePicker),
+    h("h1", { class: "mt-4 text-3xl font-bold tracking-tight sm:text-4xl" }, C.title),
+    h("p", { class: "mt-2 max-w-2xl text-deck-ink/85" }, C.subtitle),
+    h("div", { class: "mt-5 flex flex-wrap items-center gap-2" }, chip(`${d.title} ${d.version}`), display(d.label),
+      chip(C.chips.local))),
+  html("div", "rounded-xl border-2 border-rule bg-panel-2 p-4 text-sm", C.banner),
   h("section", { class: card }, heading(C.about.heading), html("div", "prose-lite", fill(C.about.body)),
-    ...(links.source ? [html("p", "mt-3 text-sm", fill(C.guide, { guideUrl: `${links.source}/blob/main/docs/linnstrument.md` }))] : [])),
+    ...(links.source ? [html("p", "guide mt-3 text-sm", fill(C.guide, { guideUrl: `${links.source}/blob/main/docs/linnstrument.md` }))] : [])),
 );
 
 // Disclaimer: an unticked checkbox, then an explicit button.
-const tick = h("input", { type: "checkbox", id: "accept", class: "mt-1 h-4 w-4 shrink-0 accent-amber-600" });
+const tick = h("input", { type: "checkbox", id: "accept", class: "mt-1 h-4 w-4 shrink-0 accent-steel" });
 const acceptBtn = h("button", { class: btnPrimary, disabled: "" }, C.disclaimer.accept);
 const acceptNote = note();
-main.append(h("section", { class: `${card} border-2 border-red-300 dark:border-red-900`, id: "disclaimer" },
+main.append(h("section", { class: `${cardBase} border-2 border-bad-line`, id: "disclaimer" },
   heading(C.disclaimer.heading), html("div", "prose-lite", C.disclaimer.body),
   h("label", { for: "accept", class: "mt-4 flex gap-3 text-sm font-medium" }, tick, C.disclaimer.checkbox),
   h("div", { class: "mt-4" }, acceptBtn), acceptNote));
@@ -110,10 +159,10 @@ const gated = h("fieldset", { class: "space-y-6 transition", disabled: "" });
 main.append(gated);
 
 // Backup: like the disclaimer, an unticked checkbox, then an explicit button.
-const backupTick = h("input", { type: "checkbox", id: "backup", class: "mt-1 h-4 w-4 shrink-0 accent-amber-600" });
+const backupTick = h("input", { type: "checkbox", id: "backup", class: "mt-1 h-4 w-4 shrink-0 accent-steel" });
 const backupBtn = h("button", { class: btnPrimary, disabled: "" }, C.backup.confirm);
 const backupNote = note();
-gated.append(h("section", { class: `${card} border-2 border-amber-300 dark:border-amber-900`, id: "backup-card" },
+gated.append(h("section", { class: `${cardBase} border-2 border-rule`, id: "backup-card" },
   heading(C.backup.heading), html("div", "prose-lite", fill(C.backup.body)),
   h("label", { for: "backup", class: "mt-4 flex gap-3 text-sm font-medium" }, backupTick, C.backup.checkbox),
   h("div", { class: "mt-4" }, backupBtn), backupNote));
@@ -128,7 +177,7 @@ gated.append(h("section", { class: card }, heading(C.steps.download.heading),
 // 2. File
 const fileInput = h("input", { type: "file", accept: ".syx", class: "sr-only", id: "file" });
 const drop = h("label", { for: "file", class: "flex cursor-pointer items-center justify-center rounded-lg border-2 " +
-  "border-dashed border-stone-300 p-8 text-center text-stone-600 hover:border-amber-500 dark:border-stone-700 dark:text-stone-400" },
+  "border-dashed border-line bg-panel-2 p-8 text-center text-muted hover:border-rule" },
 C.steps.file.drop);
 const fileNote = note();
 gated.append(h("section", { class: card }, heading(C.steps.file.heading), fileInput, drop, fileNote));
@@ -142,8 +191,8 @@ gated.append(h("section", { class: card }, heading(C.steps.mod.heading),
 
 // 4. Flash
 const support = midiSupport();
-const modeReal = h("input", { type: "radio", name: "mode", value: "real", class: "accent-amber-600" });
-const modeFake = h("input", { type: "radio", name: "mode", value: "fake", class: "accent-amber-600" });
+const modeReal = h("input", { type: "radio", name: "mode", value: "real", class: "accent-steel" });
+const modeFake = h("input", { type: "radio", name: "mode", value: "fake", class: "accent-steel" });
 if (support === "ok") modeReal.checked = true;
 else {
   modeFake.checked = true;
@@ -155,13 +204,13 @@ const flashGate = note();
 const flashBtn = h("button", { class: btnPrimary, disabled: "" }, C.steps.flash.flashButton);
 const restoreBtn = h("button", { class: btnPrimary, disabled: "" }, C.steps.flash.restoreButton);
 const phaseText = h("p", { class: "text-sm font-medium" });
-const bar = h("div", { class: "h-full w-0 bg-amber-600 transition-[width]" });
-const counter = h("p", { class: "text-xs tabular-nums text-stone-500" });
+const bar = h("div", { class: "h-full w-0 bg-steel transition-[width]" });
+const counter = h("p", { class: "text-xs tabular-nums text-muted" });
 const resultBox = h("div", { class: "mt-4 hidden", role: "alert" });
-const logBox = h("pre", { class: "mt-3 max-h-48 overflow-auto rounded bg-stone-100 p-3 text-xs dark:bg-stone-950" });
+const logBox = h("pre", { class: "mt-3 max-h-48 overflow-auto rounded-sm bg-black p-3 font-mono text-xs text-[#dbe7ff]" });
 const logBtn = h("button", { class: `${btnSecondary} mt-3 text-sm`, disabled: "" }, C.steps.flash.downloadLog);
 const progress = h("div", { class: "mt-4 hidden space-y-2" }, phaseText,
-  h("div", { class: "h-3 overflow-hidden rounded bg-stone-200 dark:bg-stone-800" }, bar), counter);
+  h("div", { class: "h-3 overflow-hidden rounded-sm bg-panel-2 ring-1 ring-line" }, bar), counter);
 
 gated.append(h("section", { class: card, id: "flash" }, heading(C.steps.flash.heading),
   html("p", "", C.steps.flash.body),
@@ -170,13 +219,13 @@ gated.append(h("section", { class: card, id: "flash" }, heading(C.steps.flash.he
     h("label", { class: "flex items-center gap-2" }, modeFake, C.steps.flash.modeFake)),
   supportNote, flashGate,
   h("div", { class: "mt-4 flex flex-wrap gap-3" }, flashBtn),
-  h("div", { class: "mt-6 rounded-lg border border-stone-200 p-4 dark:border-stone-800" },
+  h("div", { class: "mt-6 rounded-lg border border-line bg-panel-2 p-4" },
     h("h3", { class: "font-semibold" }, C.steps.flash.restoreHeading),
     html("p", "mt-1 text-sm", C.steps.flash.restoreBody), h("div", { class: "mt-3" }, restoreBtn)),
   progress, resultBox, logBox, logBtn));
 
 main.append(h("section", { class: card, id: "recovery" }, heading(C.recovery.heading), html("div", "prose-lite", C.recovery.body)));
-main.append(html("footer", "pb-8 text-xs text-stone-500", fill(links.source ? C.footer.body : C.footer.bodyLocal)));
+main.append(html("footer", "pb-8 text-xs text-muted", fill(links.source ? C.footer.body : C.footer.bodyLocal)));
 
 // ---------------------------------------------------------------- behaviour
 
@@ -255,7 +304,7 @@ modDownload.addEventListener("click", () => state.patched && save(state.patched.
 
 // A modal for the flasher's confirmation question.
 function ask(question: string, what: string): Promise<boolean> {
-  const dlg = h("dialog", { class: "m-auto max-w-md rounded-xl p-6 backdrop:bg-black/50 dark:bg-stone-900 dark:text-stone-100" });
+  const dlg = h("dialog", { class: "m-auto max-w-md rounded-xl border border-line bg-panel p-6 text-ink backdrop:bg-black/60" });
   const yes = h("button", { class: btnPrimary }, C.confirm.yes);
   const no = h("button", { class: btnSecondary, autofocus: "" }, C.confirm.no);
   dlg.append(h("h2", { class: "text-lg font-semibold" }, C.confirm.heading),
@@ -291,9 +340,9 @@ async function backend(): Promise<MidiBackend> {
 
 type Tone = "ok" | "warn" | "bad";
 const tones: Record<Tone, { box: string; icon: string }> = {
-  ok: { box: "border-emerald-500 bg-emerald-50 text-emerald-950 dark:bg-emerald-950/50 dark:text-emerald-100", icon: "✓" },
-  warn: { box: "border-amber-500 bg-amber-50 text-amber-950 dark:bg-amber-950/50 dark:text-amber-100", icon: "!" },
-  bad: { box: "border-red-500 bg-red-50 text-red-950 dark:bg-red-950/50 dark:text-red-100", icon: "✕" },
+  ok: { box: "border-ok-line bg-ok-bg text-ok-ink", icon: "✓" },
+  warn: { box: "border-warn-line bg-warn-bg text-warn-ink", icon: "!" },
+  bad: { box: "border-bad-line bg-bad-bg text-bad-ink", icon: "✕" },
 };
 
 /** The big result panel: a title, what happened, and what to do next. */

@@ -27,7 +27,18 @@ product id `00 7E`).
 from the official file. The output (`bc3bf703…`) carries the per-zone master
 bend fix found with the rig on 2026-11-12; the image before the fix
 (`c961f3a1…`) was flashed and tested, and so was the fixed one on
-2026-11-13 (136 rig rows pass, [hardware log](hardware-log.md)). The page itself has not flashed a Peak yet: the
+2026-11-13 (136 rig rows pass, [hardware log](hardware-log.md)). The
+published page flashed a Peak on 2026-11-13 (24 s end to end, synth back on
+2108; [hardware log](hardware-log.md)).
+
+**Look (2026-11-13):** blue, steel and grey after the Peak's panel (charcoal
+header with walnut ends, section headings over a light-blue rule, the boot
+mark as a display), with a Light / Medium / Dark picker in the header. The
+colours are CSS variables per theme (`src/style.css`, used as Tailwind tokens
+such as `bg-panel`, `text-ink`, `border-rule`); the choice is kept in
+`localStorage` (`peak-mpe-theme`), else the system's light or dark. All text
+meets 4.5:1 contrast in every theme. The release workflow's **page_only**
+input redeploys the page for an existing release without a new tag. The page itself has not flashed a Peak yet: the
 flashes so far used `tools/flash.py`. The name the Peak download arrives
 with (`peak-firmware-2108.syx`) is inferred from the Summit's pattern; the
 page checks the file's hash, not its name.

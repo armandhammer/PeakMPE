@@ -18,6 +18,8 @@ const template = {
   title: "{synth} MPE firmware patcher",
   // Above the title in the header band.
   kicker: "Novation {synth} · firmware 2.2 (build {build})",
+  chips: { local: "Nothing uploaded: patched in your browser" },
+  theme: { label: "Colour theme", light: "Light", medium: "Medium", dark: "Dark" },
   subtitle: "An unofficial, community-made MPE mod for the {synth} synthesizer, applied in your browser.",
 
   // (html) Always visible at the top.

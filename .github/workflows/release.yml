@@ -7,6 +7,10 @@
 #      web page with the source link and the commit, as the Pages artifact;
 #   3. unless dry_run: tags the commit and creates the GitHub Release (no
 #      firmware or .syx attached), then deploys the page to GitHub Pages.
+#
+# page_only: redeploy the page for an existing release (a change to the page
+# itself, not to the patch): the version must be that release's, nothing is
+# tagged or released, and the checks still run first.
 name: Release
 
 on:
@@ -20,6 +24,10 @@ on:
         description: Dry run (checks and page build only; no tag, release or deploy)
         type: boolean
         default: true
+      page_only:
+        description: Page only (redeploy the page for an existing release; no new tag or release)
+        type: boolean
+        default: false
 
 permissions: {}
 
@@ -42,6 +50,7 @@ jobs:
         env:
           VERSION: ${{ inputs.version }}
           DRY_RUN: ${{ inputs.dry_run }}
+          PAGE_ONLY: ${{ inputs.page_only }}
           GH_TOKEN: ${{ github.token }}
         run: |
           fail() { echo "::error::$*"; exit 1; }
@@ -51,14 +60,21 @@ jobs:
           if [[ "$DRY_RUN" != true && "$GITHUB_REF" != refs/heads/main ]]; then
             fail "a release runs from main, not $GITHUB_REF (a dry run may use any branch)"
           fi
-          if gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/tags/$VERSION" --jq '.[].ref' | grep -qxF "refs/tags/$VERSION"; then
-            fail "tag $VERSION exists already"
-          fi
-          if gh release view "$VERSION" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            fail "release $VERSION exists already"
+          if [[ "$PAGE_ONLY" == true ]]; then
+            gh release view "$VERSION" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 ||
+              fail "page_only redeploys the page of an existing release; there is no release $VERSION"
+          else
+            if gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/tags/$VERSION" --jq '.[].ref' | grep -qxF "refs/tags/$VERSION"; then
+              fail "tag $VERSION exists already"
+            fi
+            if gh release view "$VERSION" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+              fail "release $VERSION exists already"
+            fi
           fi
           {
-            if [[ "$DRY_RUN" == true ]]; then echo "### Dry run of $VERSION"; else echo "### Release $VERSION"; fi
+            if [[ "$DRY_RUN" == true ]]; then echo "### Dry run of $VERSION"
+            elif [[ "$PAGE_ONLY" == true ]]; then echo "### Page redeploy for $VERSION"
+            else echo "### Release $VERSION"; fi
             echo
             echo "- commit \`$GITHUB_SHA\` on \`$GITHUB_REF\`"
             echo "- patched image SHA-256 \`$(jq -r .output.sha256 web/patches/peak-mpe.json)\`"
@@ -78,7 +94,7 @@ jobs:
 
   release:
     needs: checks
-    if: ${{ !inputs.dry_run }}
+    if: ${{ !inputs.dry_run && !inputs.page_only }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -114,7 +130,8 @@ jobs:
 
   deploy:
     needs: [checks, release]
-    if: ${{ !inputs.dry_run }}
+    # After a release, or on its own with page_only (release skipped).
+    if: ${{ !cancelled() && !inputs.dry_run && needs.checks.result == 'success' && (needs.release.result == 'success' || (inputs.page_only && needs.release.result == 'skipped')) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:

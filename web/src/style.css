@@ -1,10 +1,112 @@
 @import "tailwindcss";
 
+/* Colours come from the theme on <html data-theme="light|medium|dark">
+ * (picked in the header, remembered per browser); main.ts only uses these
+ * token names (bg-page, text-ink, border-rule, ...). The motif follows the
+ * Peak's panel: charcoal, steel blue section rules, light grey buttons. */
+@theme {
+  --color-page: var(--c-page);
+  --color-panel: var(--c-panel);
+  --color-panel-2: var(--c-panel-2);
+  --color-ink: var(--c-ink);
+  --color-muted: var(--c-muted);
+  --color-line: var(--c-line);
+  --color-steel: var(--c-steel);
+  --color-steel-hover: var(--c-steel-hover);
+  --color-steel-ink: var(--c-steel-ink);
+  --color-rule: var(--c-rule);
+  --color-ok-bg: var(--c-ok-bg);
+  --color-ok-ink: var(--c-ok-ink);
+  --color-ok-line: var(--c-ok-line);
+  --color-warn-bg: var(--c-warn-bg);
+  --color-warn-ink: var(--c-warn-ink);
+  --color-warn-line: var(--c-warn-line);
+  --color-bad-bg: var(--c-bad-bg);
+  --color-bad-ink: var(--c-bad-ink);
+  --color-bad-line: var(--c-bad-line);
+  /* The header is the synth's panel in every theme. */
+  --color-deck: #1a1d21;
+  --color-deck-ink: #eef2f5;
+  --color-deck-rule: #4aa8dc;
+  --color-walnut: #6b4a30;
+}
+
+:root,
+:root[data-theme="light"] {
+  --c-page: #e9edf1;
+  --c-panel: #ffffff;
+  --c-panel-2: #f2f5f8;
+  --c-ink: #1b2128;
+  --c-muted: #56616c;
+  --c-line: #c9d2db;
+  --c-steel: #2f6f9a;
+  --c-steel-hover: #275d82;
+  --c-steel-ink: #ffffff;
+  --c-rule: #3f97c9;
+  --c-ok-bg: #e6f3ec;
+  --c-ok-ink: #1d5a3a;
+  --c-ok-line: #3f9a6b;
+  --c-warn-bg: #f3f0e4;
+  --c-warn-ink: #5c4a12;
+  --c-warn-line: #b8952e;
+  --c-bad-bg: #f7e9e9;
+  --c-bad-ink: #7a2020;
+  --c-bad-line: #c45050;
+  color-scheme: light;
+}
+
+:root[data-theme="medium"] {
+  --c-page: #64707c;
+  --c-panel: #4f5a65;
+  --c-panel-2: #5a6571;
+  --c-ink: #f3f6f9;
+  --c-muted: #dde3e9;
+  --c-line: #75818d;
+  --c-steel: #2b5d82;
+  --c-steel-hover: #244f6f;
+  --c-steel-ink: #ffffff;
+  --c-rule: #8fd0f5;
+  --c-ok-bg: #4d6a5c;
+  --c-ok-ink: #eaf6ef;
+  --c-ok-line: #8fd3ae;
+  --c-warn-bg: #6c6550;
+  --c-warn-ink: #f8f0d8;
+  --c-warn-line: #d8c27a;
+  --c-bad-bg: #725558;
+  --c-bad-ink: #fcebeb;
+  --c-bad-line: #e59a9a;
+  color-scheme: dark;
+}
+
+:root[data-theme="dark"] {
+  --c-page: #0f1113;
+  --c-panel: #1a1d21;
+  --c-panel-2: #22262b;
+  --c-ink: #e8ecef;
+  --c-muted: #9aa5af;
+  --c-line: #2f353c;
+  --c-steel: #2f6f9a;
+  --c-steel-hover: #3a80ae;
+  --c-steel-ink: #ffffff;
+  --c-rule: #4aa8dc;
+  --c-ok-bg: #15291f;
+  --c-ok-ink: #bfe8d0;
+  --c-ok-line: #3f9a6b;
+  --c-warn-bg: #29240f;
+  --c-warn-ink: #efdfaa;
+  --c-warn-line: #b8952e;
+  --c-bad-bg: #2e1717;
+  --c-bad-ink: #f2c4c4;
+  --c-bad-line: #c45050;
+  color-scheme: dark;
+}
+
 @layer base {
+  body { background: var(--c-page); color: var(--c-ink); }
   .prose-lite p { margin-block: 0.5rem; }
   .prose-lite ol { list-style: decimal; padding-left: 1.5rem; margin-block: 0.5rem; }
   .prose-lite li { margin-block: 0.25rem; }
-  .prose-lite a, footer a { text-decoration: underline; }
+  .prose-lite a, footer a, .guide a { text-decoration: underline; text-decoration-color: var(--c-rule); text-underline-offset: 2px; }
   code { font-family: ui-monospace, monospace; font-size: 0.9em; padding: 0 0.2em; border-radius: 0.2rem;
     background: color-mix(in oklab, currentColor 10%, transparent); overflow-wrap: anywhere; }
 }
