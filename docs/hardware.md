@@ -4,6 +4,13 @@ How a build gets onto the maintainer's Summit, and how a hardware session is
 run and recorded. Contributors don't need this: pull requests are checked by
 the tests and the simulator ([CONTRIBUTING.md](../CONTRIBUTING.md)).
 
+**Peak (Windows):** the maintainer's Peak is flashed from PowerShell with
+`scripts/flash.ps1 <image>` (file check, dry run and flash with a log in one
+command; `flash.py` still asks for the confirmation), which
+`scripts/build-image.sh` prints on Windows. The rig runs with
+`tools\hwrig ... --yes` when the owner has approved test runs in advance;
+its config for the Peak is `product = "Peak"` in `work/hwrig.toml`.
+
 ## Safety rules
 
 - **Never flash, and never send MIDI or SysEx to a real synth, without the

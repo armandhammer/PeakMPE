@@ -1,15 +1,24 @@
-# Summit MPE
+# Peak MPE
 
 An unofficial firmware patch that adds MPE (MIDI Polyphonic Expression) to
-the Novation Summit: per-note pitch bend, pressure and Slide, switched on
-per sound. It is applied on top of the official firmware, which you
-download from Novation yourself, and can be undone at any time by flashing
-the official file again.
+the **Novation Peak**: per-note pitch bend, pressure and Slide, switched on
+per sound, so an MPE controller such as a LinnStrument plays it with
+per-finger expression. It is applied on top of the official firmware, which
+you download from Novation yourself, and can be undone at any time by
+flashing the official file again.
+
+**Flash it from your browser: <https://armandhammer.github.io/PeakMPE/>**
+
+This is a port of [Summit MPE](https://github.com/michaelkollmann/gipfel_mpe)
+(MPE for the Summit, by Michael Kollmann and contributors) to the Peak. The
+Summit patch, its tools and its documentation are still here
+(`patches/mpe/`); the Peak work is in `patches/peak_mpe/` and the documents
+named below.
 
 > **Unofficial and vibe-coded.** This project and its firmware patch were
 > built with an AI coding assistant. It is not affiliated with, endorsed by
-> or supported by Novation or Focusrite. "Novation", "Focusrite" and
-> "Summit" are their trademarks, used only to identify the instrument.
+> or supported by Novation or Focusrite. "Novation", "Focusrite", "Peak"
+> and "Summit" are their trademarks, used only to identify the instrument.
 >
 > The software and the patched firmware come **as is, without warranty of
 > any kind** ([LICENSE](LICENSE)). Flashing modified firmware can void your
@@ -20,75 +29,67 @@ the official file again.
 
 ## Status
 
-**MPE v1.2**, for Summit firmware **2.2 (build 2121)** only, with FPGA
-build 778. It has been played and measured on one Summit
-([docs/hardware-log.md](docs/hardware-log.md)): every check of the
-automated test rig passes over USB and DIN. It is not tested on a Peak, on
-other firmware versions or on other units.
+**MPE for Peak 0.1**, for Peak firmware **2.2 (build 2108)** only, with FPGA
+build 469. Tested on one Peak ([docs/hardware-log.md](docs/hardware-log.md)):
+every check of the automated hardware test rig that applies to the Peak
+passes (136 of 136 measured rows over USB), a 600-run stress soak left no
+stuck note, and a LinnStrument played it over DIN in one and two zones. Not
+tested on other firmware versions or other units.
 
 ## What you get
 
-- **MPE receiver (MPE 1.0):** Lower and Upper Zone, set by the sender's MPE
-  Configuration Message or on the Summit's Settings MPE pages (zone, member
-  count, bend ranges), saved with the global settings.
+- **MPE receiver (MPE 1.0):** a Lower and an Upper Zone, set by the
+  sender's MPE Configuration Message or on the Peak's Settings MPE pages
+  (zone, member count, bend ranges), saved with the global settings. Both
+  zones (a LinnStrument split in two) play the one sound and share its 8
+  voices; each zone's master channel bends only its own notes.
 - **Per note:** pitch bend (±48 semitones by default, set by RPN 0),
-  pressure and Slide (CC 74), on top of the master channel's bend, mod wheel
-  and pressure.
+  pressure (channel pressure, or polyphonic aftertouch on a member channel)
+  and Slide (CC 74, arriving as the voice's mod wheel), on top of the master
+  channel's bend.
 - **Per sound:** an `MPE` switch on the VOICE page. With it off, the sound
   plays exactly as on stock.
-- **Single and Multi mode:** one zone per part, or two zones on two parts.
-- **Boot screen** `MPE3 Ver 126.778`, so you can see the patch is installed.
+- **Boot screen** `MPE1 Ver 108.469`, so you can see the patch is installed.
 
 ## Install
 
-You need a computer with Chrome or Edge (for Web MIDI) or Python 3, a USB
-cable, and the official Summit firmware 2.2 from Novation.
+You need a computer with Chrome or Edge (for Web MIDI), a USB cable, and the
+official Peak firmware 2.2 from Novation.
 
 1. **Back up your sounds** with Novation Components: a firmware update can
    change or erase what's stored on the synth.
-2. **Web patcher:** the page published from this repository (GitHub Pages,
-   see [docs/web.md](docs/web.md)) checks your official file, applies the
-   patch in your browser (nothing is uploaded), verifies the result against
-   the expected checksum and flashes it over Web MIDI. Or download the
-   patched `.syx` there for another tool.
-3. **Or from a checkout:** build the image yourself and flash it with the
-   included updater (setup in [docs/SETUP.md](docs/SETUP.md)):
-
-   ```bash
-   scripts/dev python -I tools/patch.py patches/mpe/patch.py --verify
-   ```
-
-   ```bash
-   .venv/bin/python -I tools/flash.py flash work/patched/summit-firmware-2.2-build2121+mpe.syx --dry-run
-   ```
-
-   ```bash
-   .venv/bin/python -I tools/flash.py flash work/patched/summit-firmware-2.2-build2121+mpe.syx
-   ```
+2. **Open the [web patcher](https://armandhammer.github.io/PeakMPE/).** It
+   checks your official file, applies the patch in your browser (nothing is
+   uploaded), verifies the result against the expected checksum and flashes
+   it over Web MIDI. Or download the patched `.syx` there for another tool.
+3. **Or from a checkout** (Windows, PowerShell; setup in
+   [docs/SETUP.md](docs/SETUP.md)): `scripts/build-image.sh
+   patches/peak_mpe/patch.py` builds and verifies the image and prints the
+   one-line flash command (`scripts/flash.ps1`).
 
 **Going back to stock:** flash the official file the same way, or with
-Novation Components. If the synth doesn't start, hold the three buttons left
-of the screen while switching it on: the bootloader is never modified, and
-you can flash stock from there ([docs/recovery.md](docs/recovery.md)).
+Novation Components. If the synth doesn't start, hold the **three buttons to
+the left of the screen** while switching it on: the bootloader is never
+modified, and you can flash stock from there
+([docs/recovery.md](docs/recovery.md#peak)).
 
 ## Playing MPE
 
 - Switch `MPE` on for a sound on the VOICE page.
+- Route the mod wheel (where Slide arrives) and aftertouch (pressure) in the
+  sound's mod matrix to hear Y and Z.
 - Set the zone on the Settings MPE pages, or let the sender's MPE
-  Configuration Message set it. Ableton Live sends none: set the zone and
-  member count to match Live's MPE settings.
-- **Connect Ableton Live over USB**, not DIN: its MPE output played hard
-  overruns DIN and can leave a note stuck.
-
-Details, and what each sender does, in
-[docs/mpe-design.md](docs/mpe-design.md#connecting-senders).
+  Configuration Message set it (a LinnStrument sends one).
+- **LinnStrument:** connect its MIDI OUT to the Peak's MIDI IN with a 5-pin
+  MIDI cable. A step-by-step guide for first-time LinnStrument users:
+  [docs/linnstrument.md](docs/linnstrument.md).
 
 ## How it works
 
 The official firmware stays as it is. The patch is our own C code,
-compiled for the Summit's Cortex-M4 and linked against the addresses of the
+compiled for the synth's Cortex-M4 and linked against the addresses of the
 firmware functions it calls. It goes into free flash at the end of the
-image, and about 40 call sites in the firmware are redirected into it. The
+image, and the firmware's call sites (37 on the Peak) are redirected into it. The
 build checks the official file's SHA-256 and every patched site before it
 writes anything, and a simulator runs the patched firmware's main loop for
 the tests. More in [docs/PLAN.md](docs/PLAN.md#how-the-patch-works).
@@ -115,20 +116,23 @@ hardware test rig run natively, from a small venv (`requirements-hw.txt`).
 
 How to contribute: [CONTRIBUTING.md](CONTRIBUTING.md) (fork, branch,
 `scripts/check`, pull request; CI runs the full suite). Anything flashed to
-a real Summit is built by `scripts/build-image.sh` and recorded in the
+a real synth is built by `scripts/build-image.sh` and recorded in the
 hardware log ([docs/hardware.md](docs/hardware.md)). `CLAUDE.md` holds the
 instructions the AI agent follows in this repository.
 
 | Path | Contents |
 |---|---|
 | `docker/`, `scripts/dev`, `scripts/check`, `.github/workflows/` | The dev image (pinned Arm toolchain, LLVM, Python, Node; arm64 and amd64), the wrapper that runs builds and tests in it, the CI entry point, and the CI and release workflows |
-| `patches/mpe/` | The MPE patch: C sources and the patch definition (hooks, byte patches) |
-| `patches/version_string.py`, `patches/version_word.py`, `patches/demo_note_hook/` | Minimal patches that test the toolchain and the bootloader |
+| `patches/peak_mpe/` | The Peak MPE patch: C sources and the patch definition (hooks, byte patches) |
+| `patches/mpe/` | The Summit MPE patch (upstream) |
+| `docs/peak-port-plan.md`, `docs/symbols/peak-2.2-2108.csv` | The Peak port: plan, findings, status; the Peak's symbols |
+| `docs/linnstrument.md` | Playing the Peak from a LinnStrument, step by step |
+| `patches/peak_version_string.py`, `patches/peak_version_word.py`, `patches/peak_demo_note_hook/` (and the Summit's) | Minimal patches that test the toolchain and the bootloader |
 | `tools/patch.py`, `tools/patch_build.py` | Build a patched `.syx` from the official file and a definition ([docs/patch-howto.md](docs/patch-howto.md)) |
 | `tools/flash.py` | Firmware updater (the Components protocol), with a dry run against a simulated synth |
 | `tools/syx.py`, `tools/find_base.py` | Decode, encode and inspect update files |
-| `emu/`, `tools/sim.py` | Unicorn-based simulator of the Summit's firmware: MIDI in, FPGA writes, display ([docs/SIMULATOR.md](docs/SIMULATOR.md)) |
-| `tools/hwrig/` | Hardware test rig: MIDI out, the Summit's audio in, measured checks ([docs/hw-test-rig.md](docs/hw-test-rig.md)) |
+| `emu/`, `tools/sim.py` | Unicorn-based simulator of the Summit's and the Peak's firmware: MIDI in, FPGA writes, display ([docs/SIMULATOR.md](docs/SIMULATOR.md)) |
+| `tools/hwrig/` | Hardware test rig: MIDI out, the synth's audio in, measured checks ([docs/hw-test-rig.md](docs/hw-test-rig.md)) |
 | `tools/mmon.py`, `tools/midirec.py` | Read MIDI Monitor captures; record MIDI inputs to a log ([docs/hardware.md](docs/hardware.md#recording-midi)) |
 | `web/`, `tools/web_descriptor.py` | The web patcher and flasher, and the export of its patch descriptor ([docs/web.md](docs/web.md)) |
 | `tests/` | pytest suite: the simulator, the patch, the tools |

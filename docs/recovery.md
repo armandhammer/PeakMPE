@@ -6,6 +6,33 @@ Components app ([update-protocol.md §7](update-protocol.md#7-firmware-vs-fpga-a
 [hardware-log.md](hardware-log.md)). Re-flashing from that state with our own
 tool hasn't been tried yet.
 
+## Peak
+
+The same holds on the Peak (observed on one unit, 2026-11-12 and 13,
+[hardware-log.md](hardware-log.md)):
+
+- **Manual bootloader entry:** hold the **three buttons to the left of the
+  screen** while switching the Peak on. The screen shows the bootloader
+  (`2108/246/0` on our unit) and the computer sees a MIDI device called
+  `Peak Bootloader`.
+- **Back to stock:** flash `peak-firmware-2.2-build2108.syx` with the web
+  page's *Restore the official firmware*, with Novation Components, or from
+  a checkout (Windows, PowerShell):
+
+  ```bash
+  & ".venv\Scripts\python.exe" -I tools\flash.py flash firmware\peak-firmware-2.2-build2108.syx
+  ```
+
+  Done on our Peak from a modified image with this tool, with no manual
+  entry needed. The Peak bootloader also accepted a raised version word
+  (2109) and the downgrade from it back to 2108.
+- **If Windows' MIDI hangs** (a flash or rig command never gets past opening
+  the port, though the Peak is listed): unplug the Peak's USB cable for a few
+  seconds and plug it back in. Seen once after the Peak was reconnected
+  while a port was open.
+
+The rest of this page was written for the Summit; the reasoning is the same.
+
 ## Why recovery should always be possible
 
 - The bootloader lives in flash below `0x0800C000`. Updates never write there,
