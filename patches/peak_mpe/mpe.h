@@ -75,6 +75,12 @@ extern int16_t mpe_chan_bend[16];
 extern uint8_t mpe_chan_pressure[16];
 extern uint8_t mpe_chan_slide[16];       /* CC 74 */
 
+/* Each zone's master-channel bend, -8192..8191, [MPE_LOWER] and [MPE_UPPER].
+ * Both zones play the Peak's one part, so the stock part bend can't tell the
+ * two masters apart; MPE voices take their own zone's master bend from here
+ * (found on hardware 2026-11-12: a master bend moved both zones). */
+extern int16_t mpe_master_bend[2];
+
 /* Channel of the zone message being handled, MPE_NONE outside it. */
 extern uint8_t mpe_rx_channel;
 

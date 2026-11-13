@@ -30,6 +30,7 @@
 
 struct mpe_zone mpe_zones[2];
 int16_t mpe_chan_bend[16];
+int16_t mpe_master_bend[2];
 uint8_t mpe_chan_pressure[16];
 uint8_t mpe_chan_slide[16];
 uint8_t mpe_rx_channel;
@@ -163,5 +164,7 @@ void mpe_channel_filter(uint32_t src, midi_handler_fn *handler, const uint8_t *m
             return;
         }
     }
+    if (type == 0xE0)   /* the zone's master: its bend also goes to the part, as stock */
+        mpe_master_bend[z->master == 0 ? MPE_LOWER : MPE_UPPER] = (int16_t)(((msg[2] << 7) | msg[1]) - 8192);
     deliver(ch, src, handler, msg);
 }

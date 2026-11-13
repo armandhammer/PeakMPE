@@ -288,6 +288,32 @@ def test_two_zones_each_bend_their_own_note(two_zones):
     assert after[lo] == before[lo]
 
 
+def test_two_zones_each_master_bends_only_its_zone(mpe_built):
+    """With both zones on the Peak's one part, a master's bend must reach
+    only its own zone's voices (found on hardware 2026-11-12, rig check
+    two_zones_bend: before the fix both zones moved by the same 100 c)."""
+    b = _boot(mpe_built.patched)
+    blob = mpe_built.blob
+    b.uc.mem_write(PATCHES + FLAG, b"")
+    _rpn(b, 0, 6, 7)
+    _rpn(b, 15, 6, 7)
+    _send(b, 0x91, 60, 100, 0x9E, 67, 100, ms=40)   # channel 2 (Lower) and channel 15 (Upper)
+    lo, up = _voice_of(b, blob, 1), _voice_of(b, blob, 14)
+    base = _last_pitch(b)
+    _send(b, 0xE0, 0x00, 0x60, ms=80)                # Lower master (ch 1): +4096 = +1 semitone at 2
+    p = _last_pitch(b)
+    assert p[lo] - base[lo] == 341                  # 4096 x 2 / 24 (4,096 per octave)
+    assert p[up] == base[up]
+    _send(b, 0xEF, 0x00, 0x20, ms=80)                # Upper master (ch 16): -4096
+    p = _last_pitch(b)
+    assert p[up] - base[up] == -341
+    assert p[lo] - base[lo] == 341
+    _send(b, 0xE0, 0x00, 0x40, 0xEF, 0x00, 0x40, ms=80)
+    p = _last_pitch(b)
+    assert p[lo] == base[lo] and p[up] == base[up]
+    _send(b, 0x81, 60, 0, 0x8E, 67, 0, ms=RELEASE_MS)
+
+
 def test_poly_pressure_on_a_member_channel(two_zones):
     b, blob = two_zones
     lo, up = _voice_of(b, blob, 1), _voice_of(b, blob, 14)
