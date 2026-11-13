@@ -114,8 +114,9 @@ Out of the box the LinnStrument sends MIDI over USB only.
 On the Peak, load the LinnStrument sound. Either:
 - tell me, and I load it over USB (`hwrig setup ls`: the Init saw with the
   filter half closed; Y opens the filter, Z opens it a little and makes the
-  note louder). It goes into the edit buffer only; save it on the Peak if you
-  like it; or
+  note louder; measured on your Peak 2026-11-13: brightness 935 → 2,025 Hz
+  with Y, 3,301 Hz and +6 dB with Y and Z). It goes into the edit buffer only;
+  save it on the Peak if you like it. It is in the edit buffer now; or
 - select D002 (the Init sound with MPE on). It plays and bends, but Y and Z
   do nothing audible, because the Init sound routes neither the mod wheel
   (where Slide arrives) nor aftertouch anywhere.
