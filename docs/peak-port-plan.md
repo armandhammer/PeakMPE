@@ -433,9 +433,13 @@ enough in the simulator.
    2026-11-12. FPGA 469 questions answered by flashing `peak_mpe` itself
    (2026-11-12, rig run `2026-11-12_210333`, 23 of 23 pass): per-note bend
    moves only its note (±1 c), Slide (per-voice `0x60`, no broadcast) moves
-   only its note (+199.48 c). Next: the rest of the rig (stage 2 in full,
-   stages 3 and 4: pressure, zones, stress), then the LinnStrument (step 6;
-   DIN needs an interface: none wired yet).
+   only its note (+199.48 c). Stage 2 in full, the stage 3/4 checks that
+   apply, a 600-run stuck-note soak and stage 5 (LinnStrument patterns over
+   USB) followed the same night. Stage 5 found a master bend reaching both
+   zones; fixed in `patches/peak_mpe` (image `bc3bf703…`, emulated). Next:
+   flash `bc3bf703…`, re-run `two_zones_bend` and `master_channel`, then the
+   LinnStrument itself (step 6; DIN needs an interface: none wired yet). The
+   web page patches the Peak with `?synth=peak` (docs/web.md).
 
 **Windows dev notes:** build the image with `scripts/dev --build`, run
 commands with `MSYS_NO_PATHCONV=1 scripts/dev ...`; the checkout must have LF
