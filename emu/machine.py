@@ -112,6 +112,8 @@ class Machine:
         self.image = bytes(image)
         self.base = base
         self.initial_sp, self.reset_vector = struct.unpack_from("<II", self.image, 0)
+        from .target import target_for
+        self.target = target_for(self.image)
 
         self.uc = Uc(UC_ARCH_ARM, UC_MODE_THUMB | UC_MODE_MCLASS)
         self.uc.ctl_set_cpu_model(UC_CPU_ARM_CORTEX_M4)
@@ -153,13 +155,14 @@ class Machine:
         own initialisation runs, so RAM holds only the linker-initialised
         state.
         """
-        if self.reset_vector & ~1 != RESET_HANDLER:
+        t = self.target
+        if self.reset_vector & ~1 != t.reset_handler:
             raise EmulationError(
                 f"reset vector {self.reset_vector:#x} is not the known Reset_Handler; "
-                "boot() only knows build 2121"
+                "boot() only knows the images in emu/target.py"
             )
         self.uc.reg_write(UC_ARM_REG_SP, self.initial_sp)
-        self._run(RESET_HANDLER | 1, RESET_STOP, budget)
+        self._run(t.reset_handler | 1, t.reset_stop, budget)
         self._snapshot = (
             bytes(self.uc.mem_read(SRAM_BASE, SRAM_SIZE)),
             bytes(self.uc.mem_read(CCM_BASE, CCM_SIZE)),

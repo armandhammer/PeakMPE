@@ -65,8 +65,10 @@ cp -p "$image" "$flashfile"
 
 # 4. What the user runs (the hardware venv, requirements-hw.txt).
 py=.venv/bin/python
+[[ -x "$py" ]] || [[ ! -x .venv/Scripts/python.exe ]] || py=.venv/Scripts/python.exe  # Windows
 [[ -x "$py" ]] || echo "build-image: note: no $py yet; set it up first (docs/SETUP.md, hardware venv)" >&2
 stock="firmware/${source:-summit-firmware-2.2-build2121.syx}"
+case "$source" in peak-*) product=Peak ;; *) product=Summit ;; esac
 cat <<EOF
 
 == Ready to flash
@@ -80,9 +82,9 @@ The user runs every command below, one at a time, in their own terminal
 cd "$root"
 
 Recovery, if the synth doesn't come back (docs/recovery.md):
-  1. Power the Summit off.
+  1. Power the $product off.
   2. Hold the three buttons left of the screen and power it on.
-  3. It enumerates as "Summit Bootloader". Re-flash stock (or use Components):
+  3. It enumerates as "$product Bootloader". Re-flash stock (or use Components):
 
 $py -I tools/flash.py flash $stock
 

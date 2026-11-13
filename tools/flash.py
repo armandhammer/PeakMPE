@@ -24,6 +24,7 @@ refused. Run with `.venv/bin/python -I tools/flash.py ...`.
 """
 import argparse
 import hashlib
+import re
 import sys
 import time
 from pathlib import Path
@@ -179,15 +180,31 @@ class Transfer:
 
 # --------------------------------------------------------------- MIDI layer
 
+def port_key(name, platform=sys.platform):
+    """A port's name without the index Windows' MIDI API appends ("Peak 2" ->
+    "Peak"), so an input and its output match; unchanged elsewhere."""
+    if platform == "win32":
+        return re.sub(r" \d+$", "", name)
+    return name
+
+
+def _port_index(ports, name):
+    keys = [port_key(p) for p in ports]
+    if name not in keys:
+        raise FlashError(f"MIDI port {name!r} is gone")
+    return keys.index(name)
+
+
 class RtMidiBackend:
-    """Real MIDI ports through python-rtmidi (CoreMIDI on macOS)."""
+    """Real MIDI ports through python-rtmidi (CoreMIDI on macOS, WinMM on Windows)."""
 
     def __init__(self):
         import rtmidi
         self.rtmidi = rtmidi
 
     def port_names(self):
-        return self.rtmidi.MidiIn().get_ports(), self.rtmidi.MidiOut().get_ports()
+        return ([port_key(n) for n in self.rtmidi.MidiIn().get_ports()],
+                [port_key(n) for n in self.rtmidi.MidiOut().get_ports()])
 
     def open(self, name):
         return RtMidiPort(self.rtmidi, name)
@@ -197,8 +214,8 @@ class RtMidiPort:
     def __init__(self, rtmidi, name):
         self.min, self.mout = rtmidi.MidiIn(), rtmidi.MidiOut()
         self.min.ignore_types(sysex=False, timing=True, active_sense=True)
-        self.min.open_port(self.min.get_ports().index(name))
-        self.mout.open_port(self.mout.get_ports().index(name))
+        self.min.open_port(_port_index(self.min.get_ports(), name))
+        self.mout.open_port(_port_index(self.mout.get_ports(), name))
         self.name = name
 
     def send(self, msg):
@@ -361,11 +378,18 @@ def flash(plan, backend, log, confirm, port_override=None, sleep=time.sleep):
     for _ in range(APPLICATION_IDENTITY_ATTEMPTS):
         main_name = find_port(backend, product, False, port_override)
         if main_name:
-            main = LoggedPort(backend.open(main_name), log)
+            # On Windows the returning port can refuse SysEx for a moment
+            # (WinMM "error sending sysex message", 2026-11-12 Peak flash):
+            # count that as no reply yet and ask again.
             try:
-                ident = identify(main)
-            finally:
-                main.close()
+                main = LoggedPort(backend.open(main_name), log)
+                try:
+                    ident = identify(main)
+                finally:
+                    main.close()
+            except Exception as e:  # rtmidi raises its own SystemError
+                log.say(f"  application port not ready ({type(e).__name__}: {e}); retrying")
+                ident = None
             if ident:
                 break
         sleep(POLL)

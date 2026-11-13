@@ -1,6 +1,6 @@
 # Hardware log
 
-Every release flashed to a Summit, newest first, with what was checked on
+Every release flashed to a Summit or a Peak, newest first, with what was checked on
 it. See [hardware.md](hardware.md) for how a build gets to the synth and
 how its row is recorded. The log is a record, not a merge gate.
 
@@ -24,6 +24,7 @@ before the flash, and the application came back reporting 2126.
 
 | Date | Tag | Image SHA-256 | Tool | Result | Notes |
 |---|---|---|---|---|---|
+| 2026-11-12 | Peak, `b6ebc6399096` plus uncommitted changes | `655cac88a7e0b2df0b4837c58f9e9507f8220a86e28a813897e9e497e6fd5553` (Peak 2.2/2108 `patches/peak_version_string.py`, 7,784 messages) | `tools/flash.py` on Windows | ok: boot screen `MPE0 Ver 108.469` (user). **First flash of a modified image to a Peak**: the Peak bootloader accepts changed bytes | The transfer completed; the post-flash identity request then failed with WinMM "error sending sysex message" (fixed since: retried). Windows port names needed the index stripped (`port_key`). FPGA 469, bootloader screen `2108/246/0` |
 | 2026-11-08 | `hw/2026-11-08-web-flash-v1.2` | `28916b05a90e56f8091644031af03b01d1f7e10b0160ac2e6e1017ad8c08ac96` (MPE v1.2 built in the dev image with Arm GNU Toolchain 15.3.rel2; 8,889 messages with header and final) | web page (`web/`, local dev server), Vivaldi 8.3 on macOS | ok: "synth back: Summit firmware 2126, as in the file header; FPGA 778", 19.2 s end to end. Boot screen `MPE3 Ver 126.778` (user check). Kept on the synth | First flash through the web page. It worked only after a browser restart: before it, Web MIDI passed no input on and the page stopped with "no identity reply" before sending anything ([web.md](web.md#first-hardware-flash-2026-11-08)). 9,105 requests for 8,887 blocks (218 repeats, handled). **Rig (2026-11-09), all pass, same values as `199f1903…`:** `slide_right_note` +199.51 c, USB and DIN; stage 2 57/57; stage 3 68/68, B1 0 of 300; stage 4 USB and DIN 6/6. By ear R1–R4 fine (user, 2026-11-09). CH CLASH (stage 3 info row) not looked at. Log: `work/flash-web-v1.2-2026-11-08.log` |
 | 2026-11-08 | `hw/2026-11-08-mpe-v1.2` | `199f190379852939b2903b155e1644249a80e6e2056be4f220c07047f4a74942` (MPE v1.2, 8,887 messages) | `tools/flash.py` | ok. Boot screen `MPE3 Ver 126.778`. **Slide works again and idle voices still rotate.** Kept on the synth | Test rig, USB and DIN, all pass: stage 2 57/57, stage 3 68/68 (B1 0 of 300), stage 4 6/6. By-ear checks fine |
 | 2026-11-08 | `hw/2026-11-08-mpe-v1.1` | `5f6c5e57e21acb85111e7d7b2a05626a2f7486a9302c69b660ca98a6c941081b` (MPE v1.1, 8,885 messages) | `tools/flash.py` | partly: boot screen `MPE2 Ver 126.778`; **idle voices rotate, but Slide does nothing** | Rig: stage 2 56/57 (`slide_right_note` +0.00 c), stage 3 68/68, stage 4 5/6. Cause: v1.1's late-tick guard on Slide (inferred); fixed in v1.2 |

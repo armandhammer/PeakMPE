@@ -222,9 +222,19 @@ class VoiceStateModel:
 class FpgaBus:
     """Decode GPIOB chip selects plus SPI1 data frames into :class:`FpgaEvent`."""
 
-    def __init__(self, clock: Callable[[], float]):
+    def __init__(self, clock: Callable[[], float], single_engine_cs: Optional[int] = None):
         self._clock = clock
         self.voices = VoiceStateModel()
+        #: Chip-select line -> (engine name, engine index). The Summit has two
+        #: engines (PB7 A, PB6 B); the Peak one, on PB6 (fpga_write 0x0800EBF0),
+        #: reported as engine A, voices 0-7.
+        if single_engine_cs is None:
+            self._lines = {CS_ENGINE0: ("A", 0), CS_ENGINE1: ("B", 1), CS_MASK: ("AB", None)}
+        else:
+            self._lines = {single_engine_cs: ("A", 0)}
+        #: The GPIOB lines that are FPGA chip selects (the Peak drives PB7 for
+        #: something else and leaves it low).
+        self._cs_mask = CS_MASK if single_engine_cs is None else single_engine_cs
         #: Last value written per (engines, target, param): the FPGA's
         #: register state as far as the MCU set it. Not cleared by reset().
         self.values: Dict[tuple, int] = {}
@@ -245,8 +255,8 @@ class FpgaBus:
     # -- peripheral hooks (called by the board) --------------------------------
 
     def gpiob_bsrr(self, value: int) -> None:
-        select = (value >> 16) & CS_MASK
-        release = value & CS_MASK
+        select = (value >> 16) & self._cs_mask
+        release = value & self._cs_mask
         if select:
             if not self._cs:
                 self._frames = []
@@ -265,13 +275,16 @@ class FpgaBus:
     def spi_read(self) -> int:
         if not self._cs:
             return 0
-        self._read = True
         f = self._frames
-        if f and f[0] == 0x8010 and len(f) <= 3 and self._cs in (CS_ENGINE0, CS_ENGINE1):
+        # The Peak's SPI routine (0x0800EB94) reads DR after every frame; only
+        # a transfer that starts with the envelope request 0x8010 is a read.
+        if self._cs_mask == CS_MASK or (f and f[0] == 0x8010):
+            self._read = True
+        if f and f[0] == 0x8010 and len(f) <= 3 and self._lines.get(self._cs, (None, None))[1] is not None:
             # The read's value (1, 2 or 0) is its third frame, so the
             # replies to the first two follow voice_env_poll's order; the
             # third frame resyncs it.
-            engine = 0 if self._cs == CS_ENGINE0 else 1
+            engine = self._lines[self._cs][1]
             if len(f) == 3:
                 select = f[2] if f[2] in self.voices.REPLY_VOICES else None
                 if select is None:
@@ -293,7 +306,10 @@ class FpgaBus:
             return
         w0, hi, lo = frames
         nibble, param = w0 >> 12, w0 & 0xFFF
-        engines = {CS_ENGINE0: "A", CS_ENGINE1: "B", CS_MASK: "AB"}[cs & CS_MASK]
+        if cs & CS_MASK not in self._lines:
+            self.malformed.append((self._clock(), cs, frames))
+            return
+        engines = self._lines[cs & CS_MASK][0]
         if nibble >= 8:
             target = 0x10 | nibble
         elif engines == "B":

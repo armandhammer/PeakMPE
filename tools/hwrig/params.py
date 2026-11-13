@@ -43,6 +43,17 @@ MATRIX_DESTS = (0x0804D6F8, 49)
 OSC_WAVES = (0x0804D860, 5)
 VOICE_MODES = (0x0804D9F0, 5)
 
+# The same tables in Peak 2.2 (build 2108), observed: the name tables found by
+# their strings (destinations: one entry is "not used" on the Peak).
+PEAK = dict(PATCH_PARAM_DESC=0x080469DC, INIT_PATCH=0x08043160,
+            MATRIX_SOURCES=(0x08046480, 24), MATRIX_DESTS=(0x080464E0, 49),
+            OSC_WAVES=(0x08046648, 5), VOICE_MODES=(0x080467F0, 5))
+SUMMIT = dict(PATCH_PARAM_DESC=PATCH_PARAM_DESC, INIT_PATCH=INIT_PATCH,
+              MATRIX_SOURCES=MATRIX_SOURCES, MATRIX_DESTS=MATRIX_DESTS,
+              OSC_WAVES=OSC_WAVES, VOICE_MODES=VOICE_MODES)
+IMAGES = {"Summit": ("summit-firmware-2.2-build2121.syx", SUMMIT),
+          "Peak": ("peak-firmware-2.2-build2108.syx", PEAK)}
+
 # The sound: everything from the voice mode (0x22) to the end of the patch
 # proper (0x18C). Not the name, category, bank/patch fields (0x00-0x21), nor
 # the Multi part fields (0x18D-0x1A1), nor the UI's selected matrix slots.
@@ -102,18 +113,20 @@ class Param:
 class Table:
     """Parameters, Init Patch and value names of one firmware image."""
 
-    def __init__(self, image):
+    def __init__(self, image, addrs=None):
+        a = addrs or SUMMIT
         self.image = image
         self.params = {}
         for off in range(N_PARAMS):
             mn, mx, msb, lsb, _disp, name = struct.unpack_from(
-                "<BBBBII", image, PATCH_PARAM_DESC + 12 * off - IMAGE_BASE)
+                "<BBBBII", image, a["PATCH_PARAM_DESC"] + 12 * off - IMAGE_BASE)
             self.params[off] = Param(off, self._str(name) if mx else "", mn, mx, msb, lsb)
-        self.init = image[INIT_PATCH - IMAGE_BASE:INIT_PATCH - IMAGE_BASE + 0x200]
-        self.sources = self._names(*MATRIX_SOURCES)
-        self.dests = self._names(*MATRIX_DESTS)
-        self.waves = self._names(*OSC_WAVES)
-        self.modes = self._names(*VOICE_MODES)
+        init = a["INIT_PATCH"] - IMAGE_BASE
+        self.init = image[init:init + 0x200]
+        self.sources = self._names(*a["MATRIX_SOURCES"])
+        self.dests = self._names(*a["MATRIX_DESTS"])
+        self.waves = self._names(*a["OSC_WAVES"])
+        self.modes = self._names(*a["VOICE_MODES"])
         for p in self.params.values():
             if p.kind == "cc" and p.lsb in RESERVED_CCS:
                 raise ValueError(f"{p} would use a reserved CC")
@@ -158,12 +171,13 @@ class Table:
             raise ValueError(f"no {what} {name!r}; known: {names}") from None
 
 
-def load_table():
-    """The table from firmware/<Summit 2.2>, or raise FileNotFoundError."""
+def load_table(product="Summit"):
+    """The table from firmware/<product 2.2>, or raise FileNotFoundError."""
     if str(REPO_ROOT) not in sys.path:
         sys.path.insert(0, str(REPO_ROOT))
-    from emu.firmware import FIRMWARE_DIR, SUMMIT_2_2, load_image
-    image = load_image(SUMMIT_2_2)
+    from emu.firmware import FIRMWARE_DIR, load_image
+    name, addrs = IMAGES[product]
+    image = load_image(name)
     if image is None:
-        raise FileNotFoundError(f"{FIRMWARE_DIR / SUMMIT_2_2} (run scripts/fetch-firmware.sh)")
-    return Table(image)
+        raise FileNotFoundError(f"{FIRMWARE_DIR / name} (run scripts/fetch-firmware.sh)")
+    return Table(image, addrs)

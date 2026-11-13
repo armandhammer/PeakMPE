@@ -20,6 +20,7 @@ RUNS_DIR = REPO_ROOT / "work" / "hw-runs"
 @dataclass
 class Config:
     # MIDI
+    product: str = "Summit"    # "Summit" or "Peak": which firmware's parameter tables to use
     usb_port: str = "Summit"   # output port name, exact or a unique substring
     din_port: str = ""         # the USB-MIDI interface's output wired to the Summit's DIN in
     channel: int = 1           # 1-16; the probe's channel
@@ -27,6 +28,7 @@ class Config:
     audio_device: str = ""     # input device name (substring) or index; "" = system default
     inputs: list = field(default_factory=lambda: [1, 2])  # 1-based input channels with Summit L/R
     samplerate: int = 48000
+    input_delay_ms: float = 0.0  # constant input-path delay, measured with probe; dropped from each take
     # Probe
     notes: list = field(default_factory=lambda: [57, 45, 69, 81])  # A3, A2, A4, A5
     velocity: int = 100
@@ -68,8 +70,8 @@ class Config:
 
 
 SECTIONS = {
-    "midi": ("usb_port", "din_port", "channel"),
-    "audio": ("audio_device", "inputs", "samplerate"),
+    "midi": ("product", "usb_port", "din_port", "channel"),
+    "audio": ("audio_device", "inputs", "samplerate", "input_delay_ms"),
     "probe": ("notes", "velocity", "hold_s", "preroll_s", "tail_s", "a4_hz",
               "slot"),
     "patches": ("mpe_base", "plain_base", "part_a_channel", "part_b_channel"),

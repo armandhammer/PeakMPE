@@ -168,3 +168,12 @@ def test_real_summit_file_dry_run():
     run(plan, synth)
     assert b"".join(synth.received) == plan.data
     assert len(plan.messages) == 8719
+
+
+def test_windows_port_names_lose_their_index():
+    # WinMM (python-rtmidi on Windows) appends a per-direction index, so a
+    # synth's input and output differ ("Peak 2" / "Peak 3"); macOS doesn't.
+    assert flash.port_key("Peak 2", "win32") == "Peak"
+    assert flash.port_key("Peak Bootloader 3", "win32") == "Peak Bootloader"
+    assert flash.port_key("MIDIIN2 (Peak) 4", "win32") == "MIDIIN2 (Peak)"
+    assert flash.port_key("Peak 2", "darwin") == "Peak 2"

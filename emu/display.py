@@ -207,7 +207,8 @@ class Us2066:
 class DisplayBus:
     """Decodes the SPI2 frames inside each PB11 chip-select window."""
 
-    def __init__(self, clock: Callable[[], float]):
+    def __init__(self, clock: Callable[[], float], cs_pin: int = CS_PIN):
+        self.cs_pin = cs_pin  # PB11 on the Summit, PB12 on the Peak
         self.clock = clock
         self.lcd = Us2066()
         self.selected = False
@@ -222,9 +223,9 @@ class DisplayBus:
         self._lo: Optional[int] = None
 
     def gpiob_bsrr(self, value: int) -> None:
-        if value >> (CS_PIN + 16) & 1:
+        if value >> (self.cs_pin + 16) & 1:
             self.selected, self._start, self._lo = True, None, None
-        elif value >> CS_PIN & 1:
+        elif value >> self.cs_pin & 1:
             if self.selected and self._lo is not None:
                 self.bad_frames += 1
             self.selected = False

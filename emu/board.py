@@ -79,7 +79,7 @@ from unicorn.arm_const import (
 from . import display as display_mod
 from . import panel as panel_mod
 from .fpga import GPIOB_BSRR, SPI1_DR, FpgaBus
-from .machine import CCM_BASE, CCM_SIZE, RETURN_TRAP, SRAM_BASE, SRAM_SIZE, EmulationError, Machine, PeriphAccess
+from .machine import CCM_BASE, CCM_SIZE, IMAGE_BASE, RETURN_TRAP, SRAM_BASE, SRAM_SIZE, EmulationError, Machine, PeriphAccess
 
 SLOT_US = 50
 SLOT_INSTRUCTIONS = 6000
@@ -239,9 +239,11 @@ class Board(Machine):
 
     def __init__(self, image: bytes):
         super().__init__(image)
+        from .target import vector
+        self._isr = {irq: vector(self.image, irq) for irq in (TIM6_IRQ, USART6_IRQ, EXTI15_IRQ)}
         self.regs: Dict[int, int] = {}
         self.time_us = 0
-        self.fpga = FpgaBus(lambda: self.time_us / 1000.0)
+        self.fpga = FpgaBus(lambda: self.time_us / 1000.0, self.target.fpga_single_cs)
         self.flash = {11: DataFlash(), 15: DataFlash()}
         self.din = DinPort()
         self.iser = 0
@@ -270,7 +272,7 @@ class Board(Machine):
         #: They run before the board's own handling (see emu.display, emu.panel).
         self.write_taps: Dict[int, List[Callable[[int], None]]] = collections.defaultdict(list)
         #: The OLED on SPI2 (emu.display) and the panel chain (emu.panel).
-        self.display = display_mod.DisplayBus(lambda: self.time_us / 1000.0)
+        self.display = display_mod.DisplayBus(lambda: self.time_us / 1000.0, self.target.lcd_cs_pin)
         self.panel = panel_mod.PanelChain()
         self.write_taps[display_mod.SPI2_DR].append(self.display.spi_write)
         self.write_taps[GPIOB_BSRR] += [self.display.gpiob_bsrr, self.panel.gpiob_bsrr]
@@ -293,35 +295,38 @@ class Board(Machine):
         Afterwards :meth:`save_state` holds the board at the main-loop head.
         """
         self.boot()
-        if self.run_boot_screen:
-            if self.flash[11].read(FPGA_BUILD_FLASH, 2) == b"\xff\xff":
-                self.flash[11].write(FPGA_BUILD_FLASH, FPGA_BUILD.to_bytes(2, "little"))
+        t = self.target
+        if t.factory_init is None and t.init_patch is not None:
+            self._seed_dataflash()
+        if self.flash[11].read(FPGA_BUILD_FLASH, 2) == b"\xff\xff":
+            self.flash[11].write(FPGA_BUILD_FLASH, t.fpga_build.to_bytes(2, "little"))
+        if self.run_boot_screen and t.boot_fpga_upload is not None:
             self.uc.hook_add(
                 UC_HOOK_CODE,
                 lambda uc, addr, size, user: (
                     self.display.snapshot("boot"),
-                    uc.reg_write(UC_ARM_REG_PC, BOOT_FPGA_UPLOAD_END | 1),
+                    uc.reg_write(UC_ARM_REG_PC, t.boot_fpga_upload_end | 1),
                 ),
-                begin=BOOT_FPGA_UPLOAD,
-                end=BOOT_FPGA_UPLOAD,
+                begin=t.boot_fpga_upload,
+                end=t.boot_fpga_upload,
             )
-        else:
-            self.stub(BOOT_SCREEN, lambda m: None)
+        elif not self.run_boot_screen and t.boot_screen is not None:
+            self.stub(t.boot_screen, lambda m: None)
         self.uc.reg_write(UC_ARM_REG_SP, self.initial_sp)
         self.uc.reg_write(UC_ARM_REG_LR, RETURN_TRAP | 1)
-        self.uc.reg_write(UC_ARM_REG_PC, RESET_CALL_MAIN | 1)
+        self.uc.reg_write(UC_ARM_REG_PC, t.reset_call_main | 1)
         self._main_ctx = self.uc.context_save()
         reached = []
         hooks = [
             self.uc.hook_add(
                 UC_HOOK_CODE,
                 lambda uc, addr, size, user: (reached.append(addr), uc.emu_stop()),
-                begin=MAIN_LOOP_HEAD,
-                end=MAIN_LOOP_HEAD,
+                begin=t.main_loop_head,
+                end=t.main_loop_head,
             )
         ]
-        if self.flash[11].read(GLOBALS_FLASH, 0x30) == b"\xff" * 0x30:
-            hooks.append(self.uc.hook_add(UC_HOOK_CODE, self._factory_init, begin=SETTINGS_LOAD_CALL, end=SETTINGS_LOAD_CALL))
+        if t.factory_init is not None and self.flash[11].read(GLOBALS_FLASH, 0x30) == b"\xff" * 0x30:
+            hooks.append(self.uc.hook_add(UC_HOOK_CODE, self._factory_init, begin=t.settings_load_call, end=t.settings_load_call))
         try:
             while not reached:
                 if self.time_us > max_ms * 1000:
@@ -330,8 +335,30 @@ class Board(Machine):
         finally:
             for h in hooks:
                 self.uc.hook_del(h)
-            self.unstub(DELAY_LOOP)
+            if t.delay_loop is not None:
+                self.unstub(t.delay_loop)
         self.factory_initialised = self._factory_done
+
+    def _seed_dataflash(self) -> None:
+        """Blank DataFlash on a target without a known factory initialise (Peak).
+
+        Seeds what a formatted unit would hold, as far as known: the image's
+        Init Patch in all 512 patch slots (page ((bank - 1) * 128 + slot) << 9,
+        as on the Summit) and neutral globals at 0x300000: TuneCents and
+        Transpose centred (their descriptor ranges 14-114 and 52-76), the rest 0.
+        A stand-in for the firmware's own defaults (inferred, not observed).
+        """
+        flash = self.flash[11]
+        if flash.read(GLOBALS_FLASH, 0x30) != b"\xff" * 0x30:
+            return
+        off = self.target.init_patch - IMAGE_BASE
+        patch = self.image[off:off + 0x200]
+        for slot in range(512):
+            flash.write(slot << 9, patch)
+        g = bytearray(0x200)
+        g[0x0F], g[0x10] = 64, 64
+        flash.write(GLOBALS_FLASH, bytes(g))
+        self._factory_done = True
 
     def _factory_init(self, uc, addr, size, user) -> None:
         """Blank DataFlash: call the firmware's own factory initialise first.
@@ -344,9 +371,10 @@ class Board(Machine):
         if self._factory_done:
             return
         self._factory_done = True
-        self.stub(DELAY_LOOP, lambda m: None)
-        uc.reg_write(UC_ARM_REG_LR, SETTINGS_LOAD_CALL | 1)
-        uc.reg_write(UC_ARM_REG_PC, FACTORY_INIT | 1)
+        t = self.target
+        self.stub(t.delay_loop, lambda m: None)
+        uc.reg_write(UC_ARM_REG_LR, t.settings_load_call | 1)
+        uc.reg_write(UC_ARM_REG_PC, t.factory_init | 1)
 
     def run_us(self, us: int) -> None:
         end = self.time_us + us
@@ -409,15 +437,15 @@ class Board(Machine):
             rx = din.rx_data is not None and cr1 & USART_CR1_RXNEIE
             tx = cr1 & USART_CR1_TXEIE and self.time_us >= din.next_tx_us
             if rx or tx:
-                self.run_isr(USART6_ISR, "usart6")
+                self.run_isr(self._isr[USART6_IRQ], "usart6")
         if self._irq_enabled(EXTI15_IRQ) and self.time_us % EXTI_PERIOD_US == 0:
-            self.run_isr(EXTI15_ISR, "exti15")
+            self.run_isr(self._isr[EXTI15_IRQ], "exti15")
         if (
             self.regs.get(TIM6_CR1, 0) & 1
             and self.regs.get(TIM6_DIER, 0) & 1
             and self._irq_enabled(TIM6_IRQ)
         ):
-            self.run_isr(TIM6_ISR, "tim6")
+            self.run_isr(self._isr[TIM6_IRQ], "tim6")
 
     def run_isr(self, addr: int, name: str = "") -> None:
         """Run a handler to completion on the main thread's stack."""

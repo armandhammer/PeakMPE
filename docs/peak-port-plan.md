@@ -381,10 +381,47 @@ calls go through `voice_dispatch`; the filter sets `parts+0` as stock does;
 pages after MIDI CONTROL without the CH CLASH item; poly pressure on a member
 channel counts as pressure (for the LinnStrument).
 
+**Simulator (2026-11-12): the Peak runs.** `emu/target.py` holds per-image
+addresses (Summit, Peak); the board picks them by reset vector. Peak
+differences in the model: OLED chip select PB12, one FPGA engine on PB6 (PB7
+is held low for something else), every SPI frame reads DR (only `0x8010`
+transfers count as reads), no factory initialise in the Peak application (a
+blank DataFlash is seeded with the Init Patch and neutral globals: inferred
+stand-in). Stock Peak boots to its patch page in 5.6 s simulated; a DIN note
+reaches all 8 voices. `tests/test_peak_sim.py` (4 tests, slow) passes:
+stock boot, stock note, MPE off writes as stock, MPE on: a member-channel
+bend moves exactly one voice by +24 semitones. Upstream quick suite still
+390 passed.
+
+**Simulator tests, round 2 (2026-11-12): 10 of 10 pass** (`tests/test_peak_sim.py`):
+one voice per channel; member pressure reaches only its voice (0x61); member
+Slide reaches only its voice (0x60 = 0x7FFF at CC 74 127) and the stock
+broadcast 0x60 is dropped; a note-off on one channel leaves the same note on
+another channel sounding; the VOICE page shows `MPE Off` and the edit hook
+switches it on; Settings pages 5/28 `MPE` (Zone Off, Members 15) and 6/28
+`MPE BEND RANGE` (Note Bend 48, MasterBend 2); MIDI CONTROL unchanged at 4/28.
+The display model (20×4 characters) matches the user's Peak (observed by the
+user, 2026-11-12).
+
+**LinnStrument tests (2026-11-12): 6 of 6 pass** (16 in `tests/test_peak_sim.py`):
+RPN 6 from both masters sets Lower 2-8 + Upper 9-15 on the one patch; a bend
+on channel 15 moves only its note; poly pressure on a member channel drives
+its voice; RPN 0 = 24 halves the bend; 12 held notes on channels 2-13 keep 8
+voices with unique bindings and all end; 60 overlapping notes cycling through
+15 channels never bind a channel twice and leave nothing sounding; 1 s of
+dense bend/pressure/Slide on 8 channels (6,400 bytes, delivered back to back
+at the DIN line rate) never overflows the firmware's DIN ring and every note
+ends.
+
+**Stock-firmware finding (observed, Peak `usart6_irq` 0x0800EE24):** when the
+256-byte DIN ring fills, the write index lands on the read index, so the ring
+reads as empty: the whole buffered 256 bytes are lost at once (counter at
+`0x20003EAC+0x204`). Not reached in the dense test; the main loop drains fast
+enough in the simulator.
+
 **Not done, in order:**
-1. **Simulator for the Peak** (phase 3): nothing of `patches/peak_mpe` has run
-   yet. Upstream's rule is no flash until the simulator tests pass on that
-   exact build.
+1. Hardware (below). The simulator can't settle: the FPGA's response to
+   per-voice 0x60 (Slide) on build 469, the real CPU timing, real USB input.
 2. Confirm in the simulator: mode byte `0x20011212` stays 0; byte `0x1A2`
    unread; the VOICE item needs the `ui_value_change` hook on the Peak too.
 3. Hardware, step by step (phase 6): recovery first, then

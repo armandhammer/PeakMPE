@@ -64,8 +64,8 @@ def cmd_list(args, say=print):
 
 def cmd_patches(args, say=print):
     from . import params, recipes
-    t = params.load_table()
     cfg = config_mod.load(args.config).validate()
+    t = params.load_table(cfg.product)
     say(f"Base slots: MPE on {cfg.mpe_base}, MPE off {cfg.plain_base} (work/hwrig.toml [patches])")
     for r in recipes.RECIPES.values():
         say(f"  {r.name}  ({r.base} base)  {r.about}")
@@ -100,7 +100,7 @@ def cmd_setup(args, say=print):
     if args.name not in recipes.RECIPES:
         raise ValueError(f"no recipe {args.name!r}; known: {', '.join(recipes.RECIPES)}")
     recipe = recipes.RECIPES[args.name]
-    table = params.load_table()
+    table = params.load_table(cfg.product)
     port_name = resolve_port(cfg, args)
     steps = setup.plan(table, recipe, cfg)
     out = config_mod.RUNS_DIR / time.strftime("%Y-%m-%d_%H%M%S") / f"setup-{recipe.name}"
@@ -112,7 +112,7 @@ def cmd_setup(args, say=print):
     if args.check:
         cfg.notes = [57]
         dev = audio.resolve_device(cfg.audio_device)
-        rec = audio.SoundDeviceRecorder(dev[0], cfg.inputs, cfg.samplerate)
+        rec = audio.SoundDeviceRecorder(dev[0], cfg.inputs, cfg.samplerate, input_delay_s=cfg.input_delay_ms / 1000.0)
         say(f"Then the check, audio from {dev[1]!r} inputs {cfg.inputs}:")
         say(probe.plan_text(cfg, port_name))
     if not confirm_play():
@@ -143,13 +143,13 @@ def cmd_run(args, say=print):
     unknown = [n for n in names if n not in available]
     if unknown:
         raise ValueError(f"unknown checks {unknown}; known: {', '.join(available)}")
-    table = params.load_table()
+    table = params.load_table(cfg.product)
     port_name = resolve_port(cfg, args)
     dev = audio.resolve_device(cfg.audio_device)
     if max(cfg.inputs) > dev[3]:
         raise SystemExit(f"inputs {cfg.inputs}: device {dev[1]!r} has {dev[3]} input channels")
     plan = run.Plan(cfg, table, [available[n] for n in names])
-    rec = audio.SoundDeviceRecorder(dev[0], cfg.inputs, cfg.samplerate)
+    rec = audio.SoundDeviceRecorder(dev[0], cfg.inputs, cfg.samplerate, input_delay_s=cfg.input_delay_ms / 1000.0)
     out = config_mod.RUNS_DIR / time.strftime("%Y-%m-%d_%H%M%S")
     say(f"Audio from {dev[1]!r} (index {dev[0]}), inputs {cfg.inputs}, {cfg.samplerate} Hz")
     rows = run.run(plan, port_name, lambda: midi.RtMidiOut(port_name), rec, confirm_play, out, say=say)
@@ -188,7 +188,7 @@ def cmd_probe(args, say=print):
         raise SystemExit(f"inputs {cfg.inputs}: device {dev[1]!r} has {dev[3]} input channels")
     say(f"Audio from {dev[1]!r} (index {dev[0]}), inputs {cfg.inputs}, {cfg.samplerate} Hz")
     out = config_mod.RUNS_DIR / time.strftime("%Y-%m-%d_%H%M%S") / "probe"
-    rec = audio.SoundDeviceRecorder(dev[0], cfg.inputs, cfg.samplerate)
+    rec = audio.SoundDeviceRecorder(dev[0], cfg.inputs, cfg.samplerate, input_delay_s=cfg.input_delay_ms / 1000.0)
     res = probe.run(cfg, port_name, lambda: midi.RtMidiOut(port_name), rec, confirm_play, out, say=say)
     if res is None:
         return 2

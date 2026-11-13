@@ -5,6 +5,7 @@ offsets. Every send is time-stamped on the audio stream's clock, and the
 first sample's ADC time is known, so a send converts to a sample index: that
 is what the latency and the pre-roll/hold/tail windows are cut from.
 """
+import sys
 import threading
 import time
 import wave
@@ -58,8 +59,15 @@ def resolve_device(spec):
 class SoundDeviceRecorder:
     """Records input channels `inputs` (1-based) of `device` (an index)."""
 
-    def __init__(self, device, inputs, samplerate):
+    def __init__(self, device, inputs, samplerate, frame_clock=None, input_delay_s=0.0):
         self.device, self.inputs, self.sr = device, list(inputs), samplerate
+        #: Constant delay of the input path (audio reaches the stream this much
+        #: after it was played; ~1.54 s on a Scarlett 6i6 under Windows,
+        #: 2026-11-12). Each take records it extra and drops it from the start.
+        self.delay = max(0.0, float(input_delay_s))
+        #: Time events by the samples received instead of the driver's clocks
+        #: (default on Windows, where those disagree).
+        self.frame_clock = sys.platform == "win32" if frame_clock is None else frame_clock
 
     def record(self, duration_s, events):
         """Record `duration_s`, calling each `(at_s, fn)` in `events` at
@@ -68,8 +76,10 @@ class SoundDeviceRecorder:
         import sounddevice as sd
         blocks, first = [], {}
         started = threading.Event()
+        seen = [0]  # frames received so far
 
         def callback(indata, frames, t, status):
+            seen[0] += frames
             if not first:
                 adc = t.inputBufferAdcTime or (t.currentTime - frames / self.sr)
                 first["adc"] = adc
@@ -82,16 +92,27 @@ class SoundDeviceRecorder:
             if not started.wait(5.0):
                 raise RuntimeError("audio input did not start within 5 s")
             t0 = first["adc"]
+            if self.frame_clock:
+                # Windows (MME, WASAPI): the ADC timestamps and stream.time
+                # aren't on one clock (2026-11-12: takes 1.5 s late on WASAPI,
+                # 13 ms long on MME), so the received samples are the clock.
+                def now():
+                    return seen[0] / self.sr
+                t0 = 0.0
+            else:
+                def now():
+                    return stream.time
             stamps = []
             for at_s, fn in sorted(events, key=lambda e: e[0]):
-                while stream.time < t0 + at_s:
-                    time.sleep(min(0.0005, max(0.0, t0 + at_s - stream.time)))
+                while now() < t0 + at_s:
+                    time.sleep(min(0.0005, max(0.0, t0 + at_s - now())))
                 fn()
-                stamps.append(stream.time - t0)
-            while stream.time < t0 + duration_s:
+                stamps.append(now() - t0)
+            while now() < t0 + duration_s + self.delay:
                 time.sleep(0.005)
         audio = np.concatenate(blocks) if blocks else np.zeros((0, nch), np.float32)
-        audio = audio[: int(round(duration_s * self.sr))]
+        skip = int(round(self.delay * self.sr))
+        audio = audio[skip: skip + int(round(duration_s * self.sr))]
         cols = [c - 1 for c in self.inputs]
         return np.ascontiguousarray(audio[:, cols]), stamps
 
