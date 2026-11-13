@@ -349,6 +349,33 @@ oscillator pitch by the table's Diverge offsets.
 .venv/bin/python -I tools/hwrig run --stage 4
 ```
 
+### Stage 5: `hwrig run --stage 5` (LinnStrument patterns)
+
+[`tools/hwrig/checks5.py`](../tools/hwrig/checks5.py): what a LinnStrument
+sends, played from the rig, so it runs over USB without the LinnStrument or
+a DIN interface. Built 2026-11-12 for the Peak port. A LinnStrument split
+in two is two MPE zones set by MCM from both masters, and its Z axis can be
+sent as poly aftertouch on each member channel instead of channel pressure.
+
+| Check | Sound | Stimulus | Rows (pass bounds) |
+|---|---|---|---|
+| `two_zones_bend` | P1 | MCM Upper 0, Lower 7, Upper 7; RPN 0 = 48 on members 2 and 15, 2 on masters 1 and 16; C4 G4 on Lower members 2–3, E5 A5 on Upper members 15–14; then, each followed by its return to centre: Lower member 3 bend +683, Upper member 14 bend −1365, Lower master bend +4096, Upper master bend −4096 | all four notes sound; at each step the moving notes by +400 / −800 / +100 / −100 c (±1 c) and every other note unchanged (±0.5 c); the movers back at 0 (±1 c); silence. Changes the layout: the run restores the configured zone after it |
+| `poly_pressure_right_note` | P2 | as `pressure_right_note`, with poly aftertouch (`An note value`) on the target's member channel | as `pressure_right_note` |
+| `poly_pressure_level_right_note` | P4 | as `pressure_level_right_note`, with poly aftertouch | as `pressure_level_right_note` |
+
+**Tested without hardware** (`tests/test_hwrig_run5.py`): on the fake
+synth every row passes and the run restores the layout; the two-zone check
+fails its "unchanged" rows when a member bend reaches every voice
+(`broadcast_bend`) or a master bend reaches both zones (`master_all_zones`),
+and the moving rows when masters are ignored (`master_ignored`); the poly
+checks fail "single note response" when poly pressure does nothing
+(`poly_ignored`) and the "unchanged" rows when pressure reaches every voice
+(`pressure_all`).
+
+```bash
+.venv/bin/python -I tools/hwrig run --stage 5
+```
+
 ### What stage 3 showed on the synth (2026-11-08, observed)
 
 - **Every check passes over USB.** B1 was not reproduced in 600 trials,

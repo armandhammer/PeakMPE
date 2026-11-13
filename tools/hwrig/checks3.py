@@ -384,4 +384,5 @@ def stage3(b1_trials=60):
 def all_checks(b1_trials=60):
     from .checks import stage2
     from .checks4 import stage4
-    return {c.name: c for c in stage2() + stage3(b1_trials) + stage4()}
+    from .checks5 import stage5
+    return {c.name: c for c in stage2() + stage3(b1_trials) + stage4() + stage5()}

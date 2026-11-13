@@ -9,7 +9,8 @@ tests/test_hwrig_run.py):
   (NRPN 1:0/1:2/1:3), Osc1Level (CC 23), O1Range (CC 3: 65 = an octave up),
   Mode (NRPN 0:2: 1 = MonoLG);
 - RPN 0 (bend ranges), RPN 6 (MCM: zones), NRPN 62:0 (Single/Multi);
-- per-channel bend, pressure, CC 74; the master channel's bend (±2) moves
+- per-channel bend, pressure, CC 74; poly pressure on a channel counts as
+  that channel's pressure (the Peak patch, for the LinnStrument's Z); the master channel's bend (±2) moves
   every voice of its zone; Part B's channel bend moves Part B (±12, the
   Init BendRange);
 - Multi: Part A (MPE) takes the zone, Part B plays on its Part channel; a
@@ -46,6 +47,8 @@ It renders one pure sine per voice (1 ms attack, 5 ms release, then a
   pinned_voice     MPE v1's channel reuse: a note takes over its channel's voice even
                    when it is idle (the same voice every time, L5)
   rotate_in_release  a note on a channel whose voice still releases takes another voice
+  poly_ignored     poly pressure does nothing (stock: no per-note pressure)
+  master_all_zones a master channel's bend moves both zones' voices
   slow_release     releases last 2.25 x as long: P7's (AmpRelease 64) about 0.9 s, as on
                    the synth (2026-11-08)
 
@@ -187,6 +190,9 @@ class FakeMpeSummit:
             self.resegment()
         elif kind == 0xD0:
             self.state["pressure"][ch] = d[1]
+            self.resegment()
+        elif kind == 0xA0 and "poly_ignored" not in self.faults:
+            self.state["pressure"][ch] = d[2]
             self.resegment()
 
     def target_part(self, ch):
@@ -390,7 +396,10 @@ class FakeMpeSummit:
                 b = st["last_bend"] if "broadcast_bend" in self.faults else bends.get(v["bound"], 0)
                 cents += b / 8192.0 * rng * 100.0
             master = 1 if zone == "lower" else 16 if zone == "upper" else None
-            if master and "master_ignored" not in self.faults:
+            if "master_all_zones" in self.faults:
+                for m in (1, 16):
+                    cents += st["bend"].get(m, 0) / 8192.0 * MASTER_RANGE * 100.0
+            elif master and "master_ignored" not in self.faults:
                 cents += st["bend"].get(master, 0) / 8192.0 * MASTER_RANGE * 100.0
             ch = v["bound"]
             pres = max(st["pressure"].values(), default=0) if "pressure_all" in self.faults \

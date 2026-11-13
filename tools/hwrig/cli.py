@@ -142,12 +142,12 @@ def cmd_setup(args, say=print):
 
 
 def cmd_run(args, say=print):
-    from . import audio, checks, checks3, checks4, midi, params, run
+    from . import audio, checks, checks3, checks4, checks5, midi, params, run
     cfg = config_mod.load(args.config).validate()
     available = checks3.all_checks(args.b1_trials)
     stages = {"2": [c.name for c in checks.stage2()], "3": [c.name for c in checks3.stage3()],
-              "4": [c.name for c in checks4.stage4()]}
-    stages["all"] = stages["2"] + stages["3"] + stages["4"]
+              "4": [c.name for c in checks4.stage4()], "5": [c.name for c in checks5.stage5()]}
+    stages["all"] = stages["2"] + stages["3"] + stages["4"] + stages["5"]
     names = args.checks.split(",") if args.checks else stages[args.stage]
     unknown = [n for n in names if n not in available]
     if unknown:
@@ -222,8 +222,8 @@ def main(argv=None):
     gr.add_argument("--port", help="MIDI output port (name or unique substring)")
     gr.add_argument("--din", action="store_true", help="use midi.din_port")
     ru.add_argument("--checks", help="comma-separated subset, e.g. bend_one_note,b1_zone_change")
-    ru.add_argument("--stage", choices=["2", "3", "4", "all"], default="2",
-                    help="which checks (default 2; 4: MPE v1.1 voice rotation)")
+    ru.add_argument("--stage", choices=["2", "3", "4", "5", "all"], default="2",
+                    help="which checks (default 2; 4: MPE v1.1 voice rotation; 5: LinnStrument patterns)")
     ru.add_argument("--b1-trials", type=int, default=60, help="B1 trials per delay (default 60, 5 delays)")
     su = sub.add_parser("setup", help="build a test sound in the edit buffer (asks first)")
     su.add_argument("name", help="recipe: p1 ... p7 (see `patches`)")
