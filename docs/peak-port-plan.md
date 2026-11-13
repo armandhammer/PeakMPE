@@ -436,8 +436,8 @@ enough in the simulator.
    only its note (+199.48 c). Stage 2 in full, the stage 3/4 checks that
    apply, a 600-run stuck-note soak and stage 5 (LinnStrument patterns over
    USB) followed the same night. Stage 5 found a master bend reaching both
-   zones; fixed in `patches/peak_mpe` (image `bc3bf703…`, emulated). Next:
-   flash `bc3bf703…`, re-run `two_zones_bend` and `master_channel`, then the
+   zones; fixed in `patches/peak_mpe` (image `bc3bf703…`), confirmed on
+   hardware 2026-11-13: all 13 applicable checks, 136 pass, 0 fail. Next: the
    LinnStrument itself (step 6; DIN needs an interface: none wired yet). The
    web page patches the Peak with `?synth=peak` (docs/web.md).
 

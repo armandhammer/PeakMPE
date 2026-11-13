@@ -26,8 +26,8 @@ product id `00 7E`).
 **Status:** the parity test builds the Peak descriptor's output byte for byte
 from the official file. The output (`bc3bf703…`) carries the per-zone master
 bend fix found with the rig on 2026-11-12; the image before the fix
-(`c961f3a1…`) was flashed and tested ([hardware log](hardware-log.md)), the
-fixed one is emulated only so far. The page itself has not flashed a Peak yet: the
+(`c961f3a1…`) was flashed and tested, and so was the fixed one on
+2026-11-13 (136 rig rows pass, [hardware log](hardware-log.md)). The page itself has not flashed a Peak yet: the
 flashes so far used `tools/flash.py`. The name the Peak download arrives
 with (`peak-firmware-2108.syx`) is inferred from the Summit's pattern; the
 page checks the file's hash, not its name.
