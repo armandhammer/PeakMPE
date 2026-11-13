@@ -437,8 +437,9 @@ enough in the simulator.
    apply, a 600-run stuck-note soak and stage 5 (LinnStrument patterns over
    USB) followed the same night. Stage 5 found a master bend reaching both
    zones; fixed in `patches/peak_mpe` (image `bc3bf703…`), confirmed on
-   hardware 2026-11-13: all 13 applicable checks, 136 pass, 0 fail. Next: the
-   LinnStrument itself (step 6; DIN needs an interface: none wired yet). The
+   hardware 2026-11-13: all 13 applicable checks, 136 pass, 0 fail. The
+   LinnStrument itself over DIN the same day (step 6, docs/linnstrument.md):
+   all eight steps pass, no stuck note in 4.5 minutes of dense playing. The
    web page patches the Peak with `?synth=peak` (docs/web.md).
 
 **Windows dev notes:** build the image with `scripts/dev --build`, run
