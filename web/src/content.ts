@@ -1,7 +1,7 @@
 // All text on the page. Edit here; main.ts only places it.
 // Strings marked (html) may contain simple markup; everything else is plain text.
-// {synth}, {build}, {backupWhat}, {backupShort}, {other} and {otherId} name the
-// synth (product.ts) and are filled in by contentFor(); the other
+// {synth}, {build}, {backupWhat} and {backupShort} name the synth (product.ts)
+// and are filled in by contentFor(); the other
 // {placeholders} are filled in by main.ts from the patch descriptor.
 
 import type { Product } from "./product";
@@ -16,15 +16,18 @@ export const links = {
 
 const template = {
   title: "{synth} MPE firmware patcher",
+  // Above the title in the header band.
+  kicker: "Novation {synth} · firmware 2.2 (build {build})",
   subtitle: "An unofficial, community-made MPE mod for the {synth} synthesizer, applied in your browser.",
-  // (html) Under the subtitle.
-  otherSynth: "For the {other}, use <a href=\"?synth={otherId}\">the {other} version of this page</a>.",
 
   // (html) Always visible at the top.
   banner:
     "<strong>Unofficial and vibe-coded.</strong> This project and its firmware patch were built with an AI " +
     "coding assistant. It is not affiliated with, endorsed by or supported by Novation or Focusrite. " +
     "“Novation”, “Focusrite” and “{synth}” are their trademarks and are used here only to say which instrument this is for.",
+
+  // (html) Linked from "What this does" when the page knows its source URL.
+  guide: "Playing it from a LinnStrument: <a href=\"{guideUrl}\" rel=\"noopener noreferrer\">step-by-step guide</a>.",
 
   about: {
     heading: "What this does",
@@ -218,10 +221,9 @@ const template = {
 type Deep<T> = { [K in keyof T]: T[K] extends string ? string : Deep<T[K]> };
 
 /** The page text for one synth: the synth placeholders filled in, the rest left for main.ts. */
-export function contentFor(p: Product, other: Product): Deep<typeof template> {
+export function contentFor(p: Product): Deep<typeof template> {
   const vars: Record<string, string> = {
     synth: p.name, build: p.build, backupWhat: p.backupWhat, backupShort: p.backupShort,
-    other: other.name, otherId: other.id,
   };
   const walk = (o: unknown): unknown =>
     typeof o === "string" ? o.replace(/\{(\w+)\}/g, (m, k) => vars[k] ?? m)

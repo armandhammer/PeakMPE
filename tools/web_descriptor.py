@@ -76,7 +76,7 @@ META = {
         "label": "MPE1 Ver 108.469",
         "summary": "Per-note pitch bend, pressure (channel or poly aftertouch) and slide (MPE) on the Peak's "
                    "8 voices, a per-patch MPE switch (VOICE page) and Settings MPE pages; one or two zones. "
-                   "A first version: tested on one Peak with the hardware test rig, not yet with a LinnStrument.",
+                   "A first version, tested on one Peak with the automated hardware test rig and played from a LinnStrument.",
     },
 }
 

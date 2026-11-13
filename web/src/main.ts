@@ -5,10 +5,9 @@ import { identifyFile, patchFirmware, type PatchResult } from "./core/patcher";
 import { FakeSummit } from "./flash/fake";
 import { EXPECTED_FPGA, flash, FlashError, Plan, type MidiBackend, type Phase } from "./flash/protocol";
 import { connectMidi, midiSupport } from "./flash/webmidi";
-import { otherProduct, pickProduct } from "./product";
+import { PAGE_PRODUCT as P } from "./product";
 
-const P = pickProduct(location.search);
-const C = contentFor(P, otherProduct(P));
+const C = contentFor(P);
 const d = parseDescriptor(P.descriptor);
 document.title = C.title;
 
@@ -41,7 +40,16 @@ const btn = "inline-flex items-center justify-center rounded-lg px-4 py-2 font-m
   "disabled:cursor-not-allowed disabled:opacity-40";
 const btnPrimary = `${btn} bg-amber-600 text-white hover:bg-amber-700`;
 const btnSecondary = `${btn} border border-stone-300 hover:bg-stone-100 dark:border-stone-700 dark:hover:bg-stone-800`;
-const heading = (text: string) => h("h2", { class: "mb-3 text-lg font-semibold" }, text);
+/** A card heading; "1. Download ..." gets its number as a round badge. */
+const heading = (text: string) => {
+  const m = /^(\d+)\.\s+(.*)$/.exec(text);
+  if (!m) return h("h2", { class: "mb-3 text-lg font-semibold" }, text);
+  return h("h2", { class: "mb-3 flex items-center gap-3 text-lg font-semibold" },
+    h("span", { class: "flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-600 text-sm font-bold text-white", "aria-hidden": "true" }, m[1]),
+    h("span", {}, m[2]));
+};
+const chip = (text: string) =>
+  h("span", { class: "rounded-full bg-white/15 px-3 py-1 text-xs font-medium ring-1 ring-white/30" }, text);
 const note = (cls = "") => h("p", { class: `mt-3 text-sm ${cls}`, role: "status" });
 const setNote = (el: HTMLElement, text: string, tone: "ok" | "bad" | "info" = "info") => {
   el.textContent = text;
@@ -76,11 +84,15 @@ const main = h("main", { class: "mx-auto max-w-3xl space-y-6 px-4 py-8" });
 app.append(main);
 
 main.append(
-  h("header", {}, h("h1", { class: "text-3xl font-bold tracking-tight" }, C.title),
-    h("p", { class: "mt-1 text-stone-600 dark:text-stone-400" }, C.subtitle),
-    html("p", "mt-1 text-sm text-stone-500", C.otherSynth)),
+  h("header", { class: "rounded-2xl bg-linear-to-br from-amber-500 via-orange-600 to-rose-700 p-6 text-white shadow-lg sm:p-8" },
+    h("p", { class: "text-xs font-semibold uppercase tracking-widest text-white/80" }, C.kicker),
+    h("h1", { class: "mt-2 text-3xl font-bold tracking-tight sm:text-4xl" }, C.title),
+    h("p", { class: "mt-2 max-w-2xl text-white/90" }, C.subtitle),
+    h("div", { class: "mt-5 flex flex-wrap gap-2" }, chip(`${d.title} ${d.version}`), chip(`Boot screen: ${d.label}`),
+      chip("Nothing uploaded: patched in your browser"))),
   html("div", "rounded-xl border-2 border-amber-500 bg-amber-50 p-4 text-sm dark:bg-amber-950/40", C.banner),
-  h("section", { class: card }, heading(C.about.heading), html("div", "prose-lite", fill(C.about.body))),
+  h("section", { class: card }, heading(C.about.heading), html("div", "prose-lite", fill(C.about.body)),
+    ...(links.source ? [html("p", "mt-3 text-sm", fill(C.guide, { guideUrl: `${links.source}/blob/main/docs/linnstrument.md` }))] : [])),
 );
 
 // Disclaimer: an unticked checkbox, then an explicit button.

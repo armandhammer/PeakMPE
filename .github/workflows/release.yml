@@ -1,7 +1,7 @@
 # Release: run by hand (Actions -> Release -> Run workflow). Only people with
 # write access to the repository can run it.
 #
-#   1. checks the version: the form vX.Y, equal to web/patches/mpe.json's
+#   1. checks the version: the form vX.Y, equal to web/patches/peak-mpe.json's
 #      version, not yet a tag or a release; a real release only from main;
 #   2. runs the CI checks (ci.yml) with the firmware required, and builds the
 #      web page with the source link and the commit, as the Pages artifact;
@@ -13,7 +13,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Version to tag, e.g. v1.2 (must match web/patches/mpe.json)
+        description: Version to tag, e.g. v0.1 (must match web/patches/peak-mpe.json)
         required: true
         type: string
       dry_run:
@@ -46,8 +46,8 @@ jobs:
         run: |
           fail() { echo "::error::$*"; exit 1; }
           [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+(\.[0-9]+)?$ ]] || fail "version must look like v1.2, not '$VERSION'"
-          want="v$(jq -r .version web/patches/mpe.json)"
-          [[ "$VERSION" == "$want" ]] || fail "version $VERSION does not match web/patches/mpe.json ($want)"
+          want="v$(jq -r .version web/patches/peak-mpe.json)"
+          [[ "$VERSION" == "$want" ]] || fail "version $VERSION does not match web/patches/peak-mpe.json ($want)"
           if [[ "$DRY_RUN" != true && "$GITHUB_REF" != refs/heads/main ]]; then
             fail "a release runs from main, not $GITHUB_REF (a dry run may use any branch)"
           fi
@@ -61,7 +61,7 @@ jobs:
             if [[ "$DRY_RUN" == true ]]; then echo "### Dry run of $VERSION"; else echo "### Release $VERSION"; fi
             echo
             echo "- commit \`$GITHUB_SHA\` on \`$GITHUB_REF\`"
-            echo "- patched image SHA-256 \`$(jq -r .output.sha256 web/patches/mpe.json)\`"
+            echo "- patched image SHA-256 \`$(jq -r .output.sha256 web/patches/peak-mpe.json)\`"
             if [[ "$DRY_RUN" == true ]]; then
               echo "- dry run: the checks and the page build run; nothing is tagged, released or deployed"
             fi
@@ -101,10 +101,10 @@ jobs:
           fi
           page="$(gh api "repos/$GITHUB_REPOSITORY/pages" --jq .html_url 2>/dev/null || true)"
           cat > "$RUNNER_TEMP/notes.md" <<EOF
-          Summit MPE $VERSION: MPE for the Novation Summit with firmware 2.2 (build 2121) only.
+          Peak MPE $VERSION: MPE for the Novation Peak with firmware 2.2 (build 2108) only.
 
           - Flash it from the web patcher${page:+: $page}. It applies the patch to your own copy of the official firmware, in your browser.
-          - Patched image SHA-256, which the patcher builds and verifies: \`$(jq -r .output.sha256 web/patches/mpe.json)\`
+          - Patched image SHA-256, which the patcher builds and verifies: \`$(jq -r .output.sha256 web/patches/peak-mpe.json)\`
           - Commit: $GITHUB_SHA
 
           No firmware is attached: Novation's firmware is theirs, and you download it from them. Unofficial, and at your own risk: see the README.

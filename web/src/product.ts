@@ -1,5 +1,5 @@
-// The synths this page patches. The page picks one from ?synth=summit|peak
-// (default: the Summit, as before the Peak port).
+// The synths this repository has patch descriptors for. The page itself is
+// for the Peak only (PAGE_PRODUCT).
 
 import summitDescriptor from "../patches/mpe.json";
 import peakDescriptor from "../patches/peak-mpe.json";
@@ -52,11 +52,6 @@ export const PRODUCTS: Record<Product["id"], Product> = {
   },
 };
 
-export function pickProduct(search: string): Product {
-  const id = new URLSearchParams(search).get("synth")?.toLowerCase();
-  return id === "peak" ? PRODUCTS.peak : PRODUCTS.summit;
-}
-
-export function otherProduct(p: Product): Product {
-  return p.id === "peak" ? PRODUCTS.summit : PRODUCTS.peak;
-}
+/** The page is for the Peak (this repository's port). The Summit's entry
+ * stays for the descriptor and parity tests; upstream's page serves it. */
+export const PAGE_PRODUCT: Product = PRODUCTS.peak;
