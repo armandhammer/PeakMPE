@@ -83,6 +83,7 @@ builds them itself (`hwrig setup`, below); each starts from the Init Patch:
 | **P6 sine mono legato** | voice mode mono legato | mono/legato |
 | **P7 sine, Diverge 127** | Diverge 127 (NRPN 0:9), AmpRelease 64 | voice rotation (stage 4): each voice plays a note at its own fixed offset, so the pitch says which voice it is |
 | **M1 Multi** | part A = P1 (MPE), part B = P5 on a channel outside the zone | Multi mode |
+| **LS play sound** | not a test sound: the Init saw (Init's amp envelope), filter half closed (FiltFreq 50, resonance 30), Osc 1 level 90; matrix: ModWheel (Slide, Y) → filter +40, AftTouch (pressure, Z) → filter +20 and → Osc 1 level +30 | playing a LinnStrument ([linnstrument.md](linnstrument.md)); `hwrig setup ls` |
 
 Pitch is measured far more precisely than level (hundredths of a cent
 against tenths of a dB), so pressure and slide route to pitch, with one

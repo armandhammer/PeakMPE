@@ -104,6 +104,11 @@ RECIPES = {r.name: r for r in [
            {**SINE, (0x022, "Mode"): "MonoLG", (0x027, "GlideTime"): 0}),
     Recipe("p7", "mpe", "P7 sine, Diverge 127, release 64: voices told apart by pitch (voice rotation, F1)",
            {**SINE, (0x02B, "Diverge"): 127, (0x095, "AmpRelease"): 64}),
+    # Not a test sound: something to play the LinnStrument with (docs/linnstrument.md).
+    Recipe("ls", "mpe", "LS LinnStrument play sound: the Init saw, filter half closed; Slide (Y) opens "
+           "the filter, pressure (Z) opens it a little and raises the level",
+           {(0x083, "FiltFreq"): 50, (0x082, "FiltResonance"): 30, (0x06F, "Osc1Level"): 90},
+           [(1, "ModWheel", 40, "FiltFreq"), (2, "AftTouch", 20, "FiltFreq"), (3, "AftTouch", 30, "Osc1 Lev")]),
     MultiRecipe("m1", "M1 Multi: Part A = P1 (MPE, Upper Zone 9-15 + master 16), Part B = P5 an octave up "
                 "(MPE off, its Part channel)", "p1", "p5o"),
     MultiRecipe("f5", "F5 Multi: as M1, but Part A on a Lower Zone 2-4 whose master is the global channel 1",
