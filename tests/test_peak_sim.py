@@ -360,3 +360,40 @@ def test_dense_din_stream_loses_nothing(mpe_built):
     b.run_ms(RELEASE_MS)
     assert b.u8(DIN_RING + 0x204) == 0
     assert not _gated(b)
+
+
+# --- MPE premises on the stock Peak (plan section 8, "confirm in the simulator") --
+
+def test_stock_never_reads_the_flag_byte_nor_writes_the_mode_byte():
+    """Patch byte 0x1A2 (the MPE flag) is unread by stock code, and
+    voice_part_mode 0x20011212 is never written (stays 0: one part), through
+    boot, MIDI, program changes and the UI pages. A read of patch+0x22 (voice
+    mode, read by note_off) is the control that the watch fires."""
+    from unicorn import UC_HOOK_MEM_READ, UC_HOOK_MEM_WRITE
+    from emu.board import Board
+    seen = collections.Counter()
+    b = Board(_stock())
+    for addr, kind, hook in ((PATCHES + FLAG, "flag", UC_HOOK_MEM_READ),
+                             (PATCHES + 0x22, "control", UC_HOOK_MEM_READ),
+                             (0x20011212, "mode", UC_HOOK_MEM_WRITE)):
+        b.uc.hook_add(hook, lambda uc, a, s, size, v, u, k=kind: seen.update([k]), begin=addr, end=addr)
+    b.power_on(max_ms=20000)
+    b.run_ms(50)
+    for n in (48, 60, 72):
+        _send(b, 0x90, n, 100, ms=30)
+    for c in range(0, 120, 7):
+        _send(b, 0xB0, c, 64, ms=5)
+    _send(b, 0xE0, 0, 0x60, 0xD0, 90, 0xA0, 60, 80, ms=40)
+    for n in (48, 60, 72):
+        _send(b, 0x80, n, 0, ms=30)
+    _send(b, 0xC0, 1, ms=300)
+    _send(b, 0xC0, 0, ms=300)
+    for mode in range(9):
+        for page in range(6):
+            try:
+                _show(b, mode, page, 0)
+            except Exception:  # a mode without that page
+                pass
+    assert seen["control"] > 0
+    assert seen["flag"] == 0 and seen["mode"] == 0
+    assert b.u8(0x20011212) == 0
