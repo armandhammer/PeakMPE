@@ -76,3 +76,8 @@ address,name,kind,confidence,notes
 0x08018b34,ui_message_active,function,observed,0x20011208+2 nonzero: a message covers the page; same code as Summit 0x0800ebb8
 0x08017edc,ui_current_page,function,observed,menu->pages[menu->cur]; page +5 = selected item; same code as Summit 0x0801c7f8
 0x080168b4,lcd_cursor,function,inferred,matcher pair of Summit 0x08019db4
+0x0800c1ac,image_tag,data,observed,ASCII MAIN after the vector table; literal 0x0801d5b8; as Summit
+0x0800c1b0,fw_version_word,data,emulated,u16 0x2108 one digit per nibble; drives the shown version and the identity reply (tests/test_peak_version_word.py)
+0x0801890c,fw_version,function,observed,return u16 at 0x0800c1b0 (only literal 0x08018914); callers boot_screen 0x0800e568 format_value 0x08017c6e identity_reply 0x0801970e
+0x0800e544,boot_screen,function,observed,prints the boot screen incl. version digits (fw_version) '.' and the FPGA build (0x08018918); called from 0x0800e802
+0x080196ec,identity_reply,function,emulated,(port) 12 template bytes then 4 version nibbles; called from sysex_rx_poll 0x0801a498; DIN reply 02 01 00 08 in the simulator
