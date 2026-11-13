@@ -371,7 +371,8 @@ Local branch `peak` in `gipfel_mpe/` (nothing committed or pushed yet).
 | Peak symbols (≈85, with confidence labels) | `docs/symbols/peak-2.2-2108.csv` |
 | Peak firmware header | `patches/common/peak.h` |
 | Version-string patch (labels only), builds | `patches/peak_version_string.py` |
-| Demo C hook, builds and verifies | `patches/peak_demo_note_hook/` |
+| Version-word patch 2108 -> 2109 (word `0x0800C1B0` + header digits); emulated: Settings `109.469`, DIN identity `02 01 00 09` | `patches/peak_version_word.py`, `tests/test_peak_version_word.py` |
+| Demo C hook, **audible** for hardware: MIDI notes +12 (pointer hooks, note on and off) +7 (five bl hooks on dispatch/release), armed by `patch_init`; boot mark `DEMO Ver`. Emulated: A3 sounds at stock E5 pitch, poly and mono, note-offs end it | `patches/peak_demo_note_hook/`, `tests/test_peak_demo_hook.py` |
 | **MPE patch for the Peak**: builds, all 37 hooks verified, 4,412 B flash, 1,276 B RAM | `patches/peak_mpe/` |
 | Upstream Summit patch still builds byte-identical to its hardware-verified release; quick suite 390 passed | |
 
@@ -422,11 +423,19 @@ enough in the simulator.
 **Not done, in order:**
 1. Hardware (below). The simulator can't settle: the FPGA's response to
    per-voice 0x60 (Slide) on build 469, the real CPU timing, real USB input.
-2. Confirm in the simulator: mode byte `0x20011212` stays 0; byte `0x1A2`
-   unread; the VOICE item needs the `ui_value_change` hook on the Peak too.
-3. Hardware, step by step (phase 6): recovery first, then
-   `peak_version_string` (no code), then the demo hook, then the FPGA
-   experiments (per-voice `0x60` on FPGA 469), then MPE.
+2. Done 2026-11-12 (emulated, `test_stock_never_reads_the_flag_byte_nor_writes_the_mode_byte`):
+   stock code never reads patch byte `0x1A2` and never writes the mode byte
+   `0x20011212` through boot, MIDI, program changes and 54 UI pages; the
+   VOICE item's `ui_value_change` hook is in and tested.
+3. Hardware, step by step (phase 6): recovery, `peak_version_string`,
+   `peak_version_word` (2109 accepted, and the downgrade back to 2108) and the
+   demo hook (probe: A3 and A2 +1900.02 c, all hook kinds run) done
+   2026-11-12. FPGA 469 questions answered by flashing `peak_mpe` itself
+   (2026-11-12, rig run `2026-11-12_210333`, 23 of 23 pass): per-note bend
+   moves only its note (±1 c), Slide (per-voice `0x60`, no broadcast) moves
+   only its note (+199.48 c). Next: the rest of the rig (stage 2 in full,
+   stages 3 and 4: pressure, zones, stress), then the LinnStrument (step 6;
+   DIN needs an interface: none wired yet).
 
 **Windows dev notes:** build the image with `scripts/dev --build`, run
 commands with `MSYS_NO_PATHCONV=1 scripts/dev ...`; the checkout must have LF
