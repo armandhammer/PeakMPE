@@ -504,7 +504,7 @@ def test_envsync_follows_the_tempo(mpe_image):
     b = _boot(mpe_image)
     b.uc.mem_write(PATCHES + CLOCK_RATE, bytes([60]))            # ClockRate 60 -> 120 BPM
     b.uc.mem_write(GLOBALS + G_ENVSYNC, bytes([3]))              # 1/8
-    b.run_ms(1500)
+    b.run_ms(2500)                                               # the setting holds 1 s first
     decay, release = _times(b)
     assert 200 <= decay <= 320 and 200 <= release <= 320, (decay, release)   # 1/8 at 120 BPM = 250 ms
     b.uc.mem_write(PATCHES + CLOCK_RATE, bytes([120]))           # 240 BPM
@@ -518,6 +518,18 @@ def test_envsync_off_leaves_the_envelope_alone(mpe_image):
     before = (b.u8(PATCHES + AMP_DECAY), b.u8(PATCHES + AMP_RELEASE))
     b.uc.mem_write(PATCHES + CLOCK_RATE, bytes([120]))
     b.run_ms(2000)
+    assert (b.u8(PATCHES + AMP_DECAY), b.u8(PATCHES + AMP_RELEASE)) == before
+
+
+def test_envsync_ignores_a_choice_scrolled_past(mpe_image):
+    b = _boot(mpe_image)
+    before = (b.u8(PATCHES + AMP_DECAY), b.u8(PATCHES + AMP_RELEASE))
+    b.uc.mem_write(PATCHES + CLOCK_RATE, bytes([45]))            # 90 BPM
+    b.run_ms(300)
+    for choice in (3, 2, 0):                                     # 1/8, 1/4, Off, 600 ms apart
+        b.uc.mem_write(GLOBALS + G_ENVSYNC, bytes([choice]))
+        b.run_ms(600)
+    b.run_ms(1500)
     assert (b.u8(PATCHES + AMP_DECAY), b.u8(PATCHES + AMP_RELEASE)) == before
 
 

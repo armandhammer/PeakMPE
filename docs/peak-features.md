@@ -306,7 +306,7 @@ Measurements (step 6) can run on the rig while code is written for others.
     envelopes. It syncs durations, not phase, and a matching duration won't
     always feel on the beat.
     **Built (v0.6, `patches/peak_mpe/envsync.c`; emulated, not yet on the synth):**
-    Settings > MPE EXTRAS > EnvSync (Off, 1/2, 1/4, 1/8, 1/16). While on, the amp
+    Settings > MPE EXTRAS > EnvSync (Off, 1/2, 1/4, 1/8, 1/16; v0.7: a changed choice applies only after it has held about 1 s, because v0.6 applied the choices you scrolled past; **measured on the synth 2026-11-14:** 1/8 gives Decay 264 ms and Release 272 ms at 120 BPM, about 514/533 ms at 60). While on, the amp
     Decay and Release go to the value whose measured time to -40 dB is nearest the
     note length at the current tempo, when the tempo or the setting changes (a
     tempo must hold 4 checks of 128 ms and move by 1 BPM). Amp envelope only; the

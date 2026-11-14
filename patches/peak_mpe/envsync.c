@@ -4,7 +4,8 @@
  * 1/8, 1/16). While on, the amp envelope's Decay and Release are set to the
  * value whose measured time (docs/peak-units.md: the time to -40 dB) is
  * nearest that note length at the current tempo, when the tempo or the
- * setting changes. Nothing else is touched, and a knob turn between changes
+ * setting changes (a changed setting after it has held about 1 s,
+ * so scrolling past a choice applies nothing). Nothing else is touched, and a knob turn between changes
  * stays.
  *
  * Tempo (observed in the disassembly; docs/findings/peak-2.2-build2108.md):
@@ -13,7 +14,7 @@
  * FUN_0800F9F8 on every arp_tick; the BPM display reads the same word with
  * external clock too). The word is read as it is, so internal and external
  * tempo are both covered; a changing external tempo is applied only after it
- * has held for 4 checks (about 0.5 s) and moved by 1 BPM or more, so clock
+ * has held for about 0.5 s and moved by 1 BPM or more, so clock
  * jitter doesn't cause constant writes. If the clock stops the word keeps its
  * last value (as the display does).
  *
@@ -29,13 +30,19 @@
 #define WORD_PER_BPM100 17180u        /* 0x1A36E0 / 100 */
 #define CC_AMP_DECAY 0x57
 #define CC_AMP_RELEASE 0x59
-#define CHECK_TICKS 128               /* ms between checks (mod_tick, 1 kHz) */
+/* mpe_mod_update runs 2000 times per second of simulated time (measured in the
+ * simulator 2026-11-14; the docs say 1 kHz, and the real rate is not confirmed on
+ * the synth), so the holds below are 1 s and 0.5 s at that rate. */
+#define CHECK_TICKS 128               /* ticks between checks: 64 ms */
+#define DIV_HOLD_CHECKS 16            /* a changed setting applies after about 1 s */
+#define TEMPO_HOLD_CHECKS 8           /* a changed tempo after about 0.5 s */
 
 /* Note length in quarter-note eighths per setting 1..4: 1/2 = 8, 1/4 = 4, 1/8 = 2, 1/16 = 1. */
 static const uint8_t len_eighths[] = {0, 8, 4, 2, 1};
 
 static uint32_t ticks, last_check;
 static uint32_t pending_bpm100, stable;
+static uint32_t pending_div, div_stable;   /* a changed setting applies once it has held */
 static uint32_t applied_bpm100, applied_div;
 
 void envsync_tick(void)
@@ -76,11 +83,21 @@ void envsync_poll(void)
         return;
     last_check = ticks;
     uint32_t div = globals[MPE_G_ENVSYNC];
-    if (div == 0 || div > 4) {
+    if (div > 4)
+        div = 0;
+    if (div != pending_div) {          /* scrolling past a choice must not apply it */
+        pending_div = div;
+        div_stable = 0;
+    } else if (div_stable < 255) {
+        div_stable++;
+    }
+    if (div == 0) {
         applied_div = 0;
         stable = 0;
         return;
     }
+    if (div_stable < DIV_HOLD_CHECKS)
+        return;
     uint32_t bpm100 = (TEMPO_WORD + WORD_PER_BPM100 / 2) / WORD_PER_BPM100;
     if (bpm100 < 2000 || bpm100 > 50000)   /* no tempo yet, or not a tempo */
         return;
@@ -96,6 +113,6 @@ void envsync_poll(void)
         return;
     }
     uint32_t off = bpm100 > applied_bpm100 ? bpm100 - applied_bpm100 : applied_bpm100 - bpm100;
-    if (off >= 100 && stable >= 4)
+    if (off >= 100 && stable >= TEMPO_HOLD_CHECKS)
         apply(bpm100, div);
 }
