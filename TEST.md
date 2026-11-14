@@ -14,41 +14,6 @@ settings are in [docs/linnstrument.md](docs/linnstrument.md).
 
 ---
 
-## Series C: quick-assign modulation
-
-Image `MPEA Ver` (boot screen). Use any sound; D002 with the `mt` sound is fine.
-Before you start, look at **Mod menu** slots 1 to 3 (Mod button, then Page
-buttons) and tell me what they hold. Empty slots read `Direct`, `Direct`,
-depth 0.
-
-### C1. Hold Mod and move a control
-
-1. Press and **hold** the **Mod** button. The Mod menu appears as usual.
-2. While holding it, move the **Filter Freq** control back and forth. Tell me what the screen
-   says on all four lines, while you move it and after you stop (expected:
-   QUICK ASSIGN, a slot number, `Lfo1+`, `FiltFreq`, nothing mixed in from the
-   normal knob display, and no flicker).
-3. Let go of Mod. Page through the Mod menu to the slot it named. Tell me
-   what Source A, Source B, Depth and Destination show (expected: Lfo1+,
-   Direct, +32, FiltFreq).
-4. Play a note. Tell me whether the filter now moves with LFO 1.
-
-### C2. Choosing the source
-
-1. Hold **Mod** and turn the **encoder**. Tell me what the screen says each
-   click (the source name should change). Stop on **Mod Env 1**.
-2. Still holding Mod, move the **Amp Release** slider. Tell me the slot,
-   source and destination it reports.
-3. Release Mod and check that slot in the Mod menu.
-
-### C3. Edge cases
-
-1. Hold **Mod** and move **Filter Freq** again, twice. Tell me whether it
-   makes a second slot (expected: no).
-2. Hold **Mod** and move **Key Track**. Tell me what the screen says
-   (expected: "No mod destination").
-3. Without holding Mod, move a control and turn the encoder. Tell me whether
-   everything behaves as before (no slot is created, the encoder edits values).
-4. Does moving a control while holding Mod change that control's value?
-   Expected: no, it only selects. Tell me what the Filter Freq value does
-   (look at it after you let go of Mod).
+No open series. Finished so far: A (EnvSync, pressure, DIN playing), B (EnvSync
+at other tempos, Off, hand edits, patch change, Settings Save) and C (quick-assign
+modulation). The next series is **D**.
