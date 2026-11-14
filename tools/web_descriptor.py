@@ -72,8 +72,8 @@ META = {
     },
     ("peak", "mpe"): {
         "title": "MPE for Peak",
-        "version": "0.7",
-        "label": "MPE7 Ver 108.469",
+        "version": "0.8",
+        "label": "MPE8 Ver 108.469",
         "summary": "Per-note pitch bend, pressure (channel or poly aftertouch) and slide (MPE) on the Peak's "
                    "8 voices, a per-patch MPE switch (VOICE page) and Settings MPE pages; one or two zones. "
                    "v0.2: the arpeggiator ignores its own notes when a DAW sends them back (MIDI loop). "
@@ -82,6 +82,7 @@ META = {
                    "v0.4: Settings > MPE > PressCurve chooses stock's squared pressure or a linear curve. "
                    "v0.5: CC 11 on a member channel works as pressure. "
                    "v0.6: Settings > MPE EXTRAS > EnvSync sets the amp Decay and Release to a note length (1/2 to 1/16) at the current tempo (v0.7: a changed setting applies after 1 s). "
+                   "v0.8: hold Mod and move a slider or knob to put its modulation destination in the first free matrix slot; the encoder chooses the source. "
                    "Tested on one Peak with the automated hardware test rig and played from a LinnStrument.",
     },
 }

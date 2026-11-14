@@ -325,6 +325,19 @@ Measurements (step 6) can run on the rig while code is written for others.
     skip empty slots when paging. First check: whether the panel scan
     reports a held menu button while a knob moves (`panel_button_event`
     `0x08016FF0`, button table `0x20000AB8`, observed).
+    **Built (v0.8, `patches/peak_mpe/qassign.c`; emulated, not yet on the
+    synth):** hold **Mod** (panel button 7, `button_table` entry 7: type 3,
+    mode 5, observed in the table; the event read at `0x08016FF4` is hooked and
+    gives press/release), turn the value encoder or press the value buttons to
+    choose the source (default Lfo1+, shown on the OLED for the message time),
+    then move a slider or knob: its destination goes into the first free slot
+    (both sources Direct, depth 0) at depth +32. The same control again does
+    nothing; a control with no destination says so. Control-to-destination
+    table: names matched to the matrix's destination list (inferred; mod
+    destinations without a control are left out). Values go in through the CC
+    setter with the slot's NRPN number (emulated: slots updated). Not built:
+    skipping empty slots when paging, restoring the moved control's value.
+
 13. **Snapshot system, then undo** (M). One level of undo. One knob gesture
     (a continuous turn) is one undo step, and a section paste is one step.
 14. **Parameter lock** (M). Keep chosen parameters (FX, arp, performance

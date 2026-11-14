@@ -541,3 +541,51 @@ def test_envsync_setting_on_the_mpe_page(mpe_built):
     assert b.u8(GLOBALS + G_ENVSYNC) == 3
     rows = _show(b, 8, 6, 1)
     assert any("EnvSync" in r and "1/8" in r for r in rows), rows
+
+
+# --- Quick-assign modulation (hold Mod, move a control) ---------------------------
+
+SLOT_BASE = 0xFC
+MOD_PRESS, MOD_RELEASE = (7 << 8) | 0x01, (7 << 8) | 0xFF
+
+
+def _slots(b):
+    return [tuple(b.u8(PATCHES + SLOT_BASE + 4 * s + k) for k in range(4)) for s in range(16)]
+
+
+def test_quick_assign_puts_a_control_in_the_first_free_slot(mpe_built):
+    b = _boot(mpe_built.patched)
+    blob = mpe_built.blob
+    before = _slots(b)
+    free = next(s for s, v in enumerate(before) if v[0] == 0 and v[1] == 0 and v[2] == 64)
+    _call(b, blob.address("qa_knob"), 0x83)                       # Mod not held: nothing
+    assert _slots(b) == before
+    _call(b, blob.address("qa_button"), MOD_PRESS)
+    _call(b, blob.address("qa_knob"), 0x83)                       # FiltFreq -> destination 18
+    got = _slots(b)
+    assert got[free] == (7, 0, 96, 18), got[free]                 # Lfo1+, Direct, +32, FiltFreq
+    assert got[:free] == before[:free] and got[free + 1:] == before[free + 1:]
+    rows = b.display.lcd.text()
+    assert rows[0].startswith("QUICK ASSIGN") and "FiltFreq" in rows[3], rows
+    _call(b, blob.address("qa_knob"), 0x83)                       # the same control again: no second slot
+    assert _slots(b) == got
+    _call(b, blob.address("qa_knob"), 0x81)                       # FiltKeyTrack has no destination
+    assert _slots(b) == got
+    _call(b, blob.address("qa_button"), MOD_RELEASE)
+    _call(b, blob.address("qa_knob"), 0x92)
+    assert _slots(b) == got                                       # released: nothing
+
+
+def test_quick_assign_encoder_chooses_the_source(mpe_built):
+    b = _boot(mpe_built.patched)
+    blob = mpe_built.blob
+    assert _call(b, blob.address("qa_encoder"), 1) == 0           # Mod not held: the encoder is stock's
+    free = next(s for s, v in enumerate(_slots(b)) if v[0] == 0 and v[1] == 0 and v[2] == 64)
+    _call(b, blob.address("qa_button"), MOD_PRESS)
+    assert _call(b, blob.address("qa_encoder"), 1) == 1           # Lfo1+ (7) -> Lfo1+/- (8)
+    rows = b.display.lcd.text()
+    assert rows[0].startswith("QUICK ASSIGN") and "Source Lfo1+/-" in rows[1], rows
+    _call(b, blob.address("qa_knob"), 0x92)                       # AmpAttack -> destination 22
+    assert _slots(b)[free] == (8, 0, 96, 22), _slots(b)[free]
+    _call(b, blob.address("qa_knob"), 0x9B)                       # ME1Attack -> destination 25
+    assert _slots(b)[free + 1] == (8, 0, 96, 25), _slots(b)[free + 1]

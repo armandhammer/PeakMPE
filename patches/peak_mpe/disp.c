@@ -378,6 +378,7 @@ int disp_knob_overlay(uint32_t id, uint32_t prev, uint32_t cur, uint32_t saved, 
         else
             draw_value_bar(d, cur);
     }
+    qa_knob(id);
     return applied;
 }
 

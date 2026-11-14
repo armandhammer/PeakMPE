@@ -117,6 +117,13 @@ void disp_poll(void);
 void envsync_tick(void);   /* 1 kHz, from mpe_mod_update */
 void envsync_poll(void);   /* main loop, from mpe_ui_poll */
 
+/* --- Quick-assign modulation (qassign.c) -------------------------------- */
+uint32_t qa_panel_read(void);   /* panel_button_event's button read */
+void qa_button(uint32_t ev);
+int qa_held(void);
+int qa_encoder(int32_t delta);  /* 1 = taken (Mod held: chooses the source) */
+void qa_knob(uint32_t id);
+
 /* Internal to the core. */
 void mpe_settings_init(void);
 void mpe_voice_init(void);

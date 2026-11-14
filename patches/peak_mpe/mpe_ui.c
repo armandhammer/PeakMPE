@@ -372,6 +372,8 @@ static void edit_setting(uint16_t index, int32_t delta)
  * Patch value, which is 0 for the flag. */
 void mpe_ui_value_change(int32_t delta)
 {
+    if (qa_encoder(delta))    /* Mod held: the encoder chooses the quick-assign source */
+        return;
     const uint8_t *page = ui_current_page();
     const uint8_t *item = page + 6 + 4 * page[5];
     uint16_t index = (uint16_t)(item[2] | item[3] << 8);
