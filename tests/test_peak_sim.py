@@ -567,8 +567,11 @@ def test_quick_assign_puts_a_control_in_the_first_free_slot(mpe_built):
     assert got[:free] == before[:free] and got[free + 1:] == before[free + 1:]
     rows = b.display.lcd.text()
     assert rows[0].startswith("QUICK ASSIGN") and "FiltFreq" in rows[3], rows
-    _call(b, blob.address("qa_knob"), 0x83)                       # the same control again: no second slot
+    _call(b, LCD_WRITE_CMD, 0x01)                                 # stock redraws over the message
+    _call(b, blob.address("qa_knob"), 0x83)                       # the same control again: no second slot,
     assert _slots(b) == got
+    rows = b.display.lcd.text()                                   # and the message is drawn again
+    assert rows[0].startswith("QUICK ASSIGN") and "FiltFreq" in rows[3], rows
     _call(b, blob.address("qa_knob"), 0x81)                       # FiltKeyTrack has no destination
     assert _slots(b) == got
     _call(b, blob.address("qa_button"), MOD_RELEASE)

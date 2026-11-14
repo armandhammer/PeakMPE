@@ -60,6 +60,7 @@ static const struct { uint8_t offset, dest; } dest_of[] = {
 static uint8_t held;
 static uint8_t source_sel;           /* 0 = the default, Lfo1+ (patch RAM is zero-initialised only) */
 static uint8_t done_id1;             /* the control assigned in this hold, offset + 1 (0 = none) */
+static uint8_t done_slot;            /* ... and the slot it is in */
 
 #define DEFAULT_SOURCE 7
 #define source (source_sel ? source_sel : DEFAULT_SOURCE)
@@ -129,6 +130,15 @@ static void set_slot(uint32_t slot, uint32_t k, uint32_t value)
     param_set_by_id(value, 128 * (slot + 2) + k);   /* NRPN (slot+1):k -> lsb + 128 * msb + 128 */
 }
 
+static void show(int32_t slot, uint32_t dest)
+{
+    char l1[8] = "Slot ";
+    l1[5] = (char)('0' + (slot + 1) / 10);
+    l1[6] = (char)('0' + (slot + 1) % 10);
+    l1[7] = 0;
+    say("QUICK ASSIGN", l1, source_names[source], dest_names[dest]);
+}
+
 /* A control with patch offset id moved while Mod is held. Called after stock drew. */
 void qa_knob(uint32_t id)
 {
@@ -142,8 +152,10 @@ void qa_knob(uint32_t id)
         say("QUICK ASSIGN", "No mod destination", "for this control", "");
         return;
     }
-    if (done_id1 == id + 1)
+    if (done_id1 == id + 1) {      /* stock redraws its overlay on every move: draw ours over it again */
+        show((int32_t)done_slot, dest);
         return;
+    }
     int32_t slot = -1, free_slot = -1;
     for (uint32_t s = 0; s < SLOTS; s++) {
         const uint8_t *p = &patches[SLOT_BASE + 4 * s];
@@ -166,9 +178,6 @@ void qa_knob(uint32_t id)
         set_slot((uint32_t)slot, 2, ASSIGN_DEPTH);
         set_slot((uint32_t)slot, 3, dest);
     }
-    char l1[8] = "Slot ";
-    l1[5] = (char)('0' + (slot + 1) / 10);
-    l1[6] = (char)('0' + (slot + 1) % 10);
-    l1[7] = 0;
-    say("QUICK ASSIGN", l1, source_names[source], dest_names[dest]);
+    done_slot = (uint8_t)slot;
+    show(slot, dest);
 }

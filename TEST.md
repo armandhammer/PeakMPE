@@ -16,7 +16,7 @@ settings are in [docs/linnstrument.md](docs/linnstrument.md).
 
 ## Series C: quick-assign modulation
 
-Image `MPE8 Ver` (boot screen). Use any sound; D002 with the `mt` sound is fine.
+Image `MPE9 Ver` (boot screen). Use any sound; D002 with the `mt` sound is fine.
 Before you start, look at **Mod menu** slots 1 to 3 (Mod button, then Page
 buttons) and tell me what they hold. Empty slots read `Direct`, `Direct`,
 depth 0.
@@ -25,7 +25,9 @@ depth 0.
 
 1. Press and **hold** the **Mod** button. The Mod menu appears as usual.
 2. While holding it, move the **Filter Freq** control. Tell me what the screen
-   says (expected: QUICK ASSIGN, a slot number, `Lfo1+`, `FiltFreq`).
+   says on all four lines, while you move it and after you stop (expected:
+   QUICK ASSIGN, a slot number, `Lfo1+`, `FiltFreq`, nothing mixed in from the
+   normal knob display).
 3. Let go of Mod. Page through the Mod menu to the slot it named. Tell me
    what Source A, Source B, Depth and Destination show (expected: Lfo1+,
    Direct, +32, FiltFreq).
