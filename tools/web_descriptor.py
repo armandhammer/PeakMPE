@@ -72,13 +72,14 @@ META = {
     },
     ("peak", "mpe"): {
         "title": "MPE for Peak",
-        "version": "0.3",
-        "label": "MPE3 Ver 108.469",
+        "version": "0.4",
+        "label": "MPE4 Ver 108.469",
         "summary": "Per-note pitch bend, pressure (channel or poly aftertouch) and slide (MPE) on the Peak's "
                    "8 voices, a per-patch MPE switch (VOICE page) and Settings MPE pages; one or two zones. "
                    "v0.2: the arpeggiator ignores its own notes when a DAW sends them back (MIDI loop). "
                    "v0.3: turning a knob shows envelope times in ms and the filter cutoff in Hz, with a value bar, "
                    "and Pickup shows an arrow and a distance bar. "
+                   "v0.4: Settings > MPE > PressCurve chooses stock's squared pressure or a linear curve. "
                    "Tested on one Peak with the automated hardware test rig and played from a LinnStrument.",
     },
 }

@@ -423,3 +423,39 @@ def test_stock_never_reads_the_flag_byte_nor_writes_the_mode_byte():
     assert seen["control"] > 0
     assert seen["flag"] == 0 and seen["mode"] == 0
     assert b.u8(0x20011212) == 0
+
+
+# --- Pressure curve (Settings > MPE > PressCurve) ------------------------------
+
+GLOBALS, G_CURVE = 0x20014494, 0x34
+
+
+def _pressure_127(image, linear):
+    """Last 0x61 value written for the sounding voice with channel pressure
+    127, MPE off (the stock path), the curve set through globals +0x34."""
+    b = _boot(image)
+    b.uc.mem_write(GLOBALS + G_CURVE, bytes([1 if linear else 0]))
+    _send(b, 0x90, 60, 100, ms=40)
+    b.fpga.reset()
+    _send(b, 0xD0, 127, ms=300)
+    at = _last(b, 0x61)
+    assert at, "no AftTouch write"
+    return max(at.values())
+
+
+def test_pressure_curve_squared_is_stock(mpe_image):
+    assert abs(_pressure_127(mpe_image, False) - 0x7E00) < 0x40   # x*x >> 15 of a settled smoother
+
+
+def test_pressure_curve_linear_reaches_full(mpe_image):
+    assert abs(_pressure_127(mpe_image, True) - 0x7F00) < 0x40    # x itself
+
+
+def test_pressure_curve_setting_on_the_mpe_page(mpe_built):
+    b = _boot(mpe_built.patched)
+    rows = _show(b, 8, 4, 2)                      # Settings MPE page, third item
+    assert any("PressCurve" in r and "Squared" in r for r in rows), rows
+    _call(b, mpe_built.blob.address("mpe_ui_value_change"), 1)
+    assert b.u8(GLOBALS + G_CURVE) == 1
+    rows = _show(b, 8, 4, 2)
+    assert any("PressCurve" in r and "Linear" in r for r in rows), rows

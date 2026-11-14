@@ -89,6 +89,7 @@ void fpga_write(uint8_t target, uint16_t param, int32_t value);
 /* (target, n, value): fpga_write(target, 0x60 + n, value). n 0 ModWheel,
  * 1 AftTouch, 7 pitch; target 0xA = all voices. observed */
 void voice_mod_write(uint8_t target, uint8_t n, int32_t value);
+void part_mod_write(uint8_t n, int32_t value);
 /* (): the part's 1 kHz modulation update: smooths the bend into
  * part_bend_smoothed and sends 0x68/0x69, the wheel (broadcast 0x60 at
  * 0x08010972), 0x62/0x63 and one voice's 0x61. mod_tick calls it first,

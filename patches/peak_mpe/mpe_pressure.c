@@ -20,6 +20,28 @@
 #include "mpe_expr.h"
 
 static uint8_t owned;  /* voices whose slot holds a member value */
+static int32_t last_linear;  /* the voice write's value, for the part write after it */
+
+/* The value mod_update sends for a smoother: stock squares it (x*x >> 15),
+ * Settings "PressCurve" Linear sends x itself (0x7F00 for pressure 127,
+ * stock's 0x7E00). x is mod_update's ubfx #12, #16 of the smoother. */
+static int32_t curve(uint32_t x, int32_t squared)
+{
+    return globals[MPE_G_CURVE] == 1 ? (int32_t)x : squared;
+}
+
+/* mod_update's pressure writes (0x08010A7C, 0x08010A84; patch.py): voice
+ * write, then the part write with the same value. */
+void mpe_pressure_write_voice(uint8_t v, uint8_t n, int32_t value)
+{
+    last_linear = curve(((uint32_t)VOICE_AT_SMOOTH(v) >> 12) & 0xFFFF, value);
+    voice_mod_write(v, n, last_linear);
+}
+
+void mpe_pressure_write_part(uint8_t n, int32_t value)
+{
+    part_mod_write(n, globals[MPE_G_CURVE] == 1 ? last_linear : value);
+}
 
 void mpe_pressure_voice(uint32_t v, int role, int note_on)
 {
@@ -38,6 +60,6 @@ void mpe_pressure_voice(uint32_t v, int role, int note_on)
         int32_t smooth = (VOICE_AT_SLOT(v) >> 4) << 16;
         uint32_t x = ((uint32_t)smooth >> 12) & 0xFFFF;
         VOICE_AT_SMOOTH(v) = smooth;
-        voice_mod_write((uint8_t)v, AFTERTOUCH_N, (int32_t)((x * x >> 15) & 0xFFFF));
+        voice_mod_write((uint8_t)v, AFTERTOUCH_N, curve(x, (int32_t)((x * x >> 15) & 0xFFFF)));
     }
 }

@@ -233,6 +233,23 @@ Measurements (step 6) can run on the rig while code is written for others.
    stock's squared aftertouch, plus CC 11 as pressure on member channels.
    Smoothing for CC 74 and bend. Check that poly aftertouch on member
    channels reaches the right voice under MPE.
+   **Mapped (2026-11-13, observed in the disassembly, image base
+   `0x0800C000`):** the squaring is `mod_update`'s last block. `ubfx r4, r4,
+   #12, #16` (`0x08010A6C`) takes x from the smoother (`voice_state+0x54+4v`),
+   `mul.w r4, r4, r4` (`0x08010A70`) and `ubfx r4, r4, #15, #16`
+   (`0x08010A74`) give x²>>15, then `bl voice_mod_write` (`0x08010A7C`, r0 =
+   voice, r1 = 1, r2 = value) and a `part_mod_write` call just after. x tops
+   out at `0x7F00` for pressure 127, so squared gives `0x7E00`, linear
+   `0x7F00`. Plan: hook both `bl`s to C wrappers that send x instead of x²>>15
+   when the setting is Linear (no asm needed, x is recomputed from the
+   smoother); `mpe_pressure_voice`'s note-on write uses the same helper. The
+   setting is a third item on the Settings MPE page (a new record, display
+   type and `edit_setting` case in `mpe_ui.c`, one globals byte). Open
+   before building: which globals byte is free on the Peak (`+0x34` is read
+   on the Summit), and that Save and Components leave it alone.
+   **Built (v0.4, `mpe_pressure.c`, `mpe_ui.c`; rig unchanged, 136/0):** only
+   the Squared/Linear option; CC 11 pressure and CC 74/bend smoothing are
+   still open. Checked on the synth 2026-11-14: Linear works and persists through Save and a power cycle.
 8. **New per-voice mod values, proof first** (M). Feeding values into the
    matrix is proven: the MPE patch writes each voice's pressure into the
    slots the matrix reads (`voice_state` +0x44, observed on hardware). First

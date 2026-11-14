@@ -11,7 +11,8 @@
  *
  * Settings: two pages after MIDI CONTROL (where the Peak has its MIDI
  * channel), so Settings has 28 pages.
- *   MPE             Zone (Off/Lower/Upper), Members (1-15)
+ *   MPE             Zone (Off/Lower/Upper), Members (1-15),
+ *                   PressCurve (Squared/Linear)
  *   MPE BEND RANGE  Note Bend, MasterBend (semitones, 1-96)
  * The Summit's read-only "Channels" item (CH CLASH) is left out: the Peak has
  * no Multi parts whose channels a zone could take.
@@ -56,14 +57,14 @@ struct mpe_page {
 };
 
 #define STOCK_DESCS 0x22           /* Peak global_param_desc: records 0x00-0x21, then other data */
-#define MPE_DESCS (MPE_G_MASTER_RANGE + 1)
+#define MPE_DESCS (MPE_G_CURVE + 1)
 #define MPE_PAGE_AT 4              /* after MIDI CONTROL (stock page 3) */
 #define MPE_PAGES 2
 #define STOCK_PAGES PEAK_SETTINGS_PAGES
 #define UI_MODE_SETTINGS PEAK_UI_SETTINGS
 #define UI_MODE (ui_state[0])
 
-enum { DISP_ZONE = 0xE0, DISP_MEMBERS, DISP_NOTE, DISP_MASTER, DISP_END };
+enum { DISP_ZONE = 0xE0, DISP_MEMBERS, DISP_NOTE, DISP_MASTER, DISP_CURVE, DISP_END };
 
 #define FIELD 8                    /* value field: columns 11-18, the mark is at 19 */
 
@@ -86,6 +87,7 @@ static const struct mpe_desc new_descs[] = {
     {1, 15, 0x40, 0x2F, DISP_MEMBERS, "Members"},
     {1, MPE_MAX_RANGE, 0x40, 0x30, DISP_NOTE, "Note Bend"},
     {1, MPE_MAX_RANGE, 0x40, 0x31, DISP_MASTER, "MasterBend"},
+    {0, 1, 0x40, 0x32, DISP_CURVE, "PressCurve"},
 };
 
 /* Last drawn per item. Only compared with what would be drawn now, so its
@@ -115,12 +117,13 @@ static void build_tables(void)
         dst[i] = src[i];
     for (uint32_t i = STOCK_DESCS * sizeof(struct mpe_desc) / 4; i < MPE_G_ZONE * sizeof(struct mpe_desc) / 4; i++)
         dst[i] = 0;  /* records 0x22-0x2F: no Settings item uses them */
-    for (uint32_t i = 0; i <= MPE_G_MASTER_RANGE - MPE_G_ZONE; i++)
+    for (uint32_t i = 0; i <= MPE_G_CURVE - MPE_G_ZONE; i++)
         mpe_global_desc[MPE_G_ZONE + i] = new_descs[i];
 
     page_init(&mpe_pages[0], title_zone);
     page_item(&mpe_pages[0], MPE_G_ZONE);
     page_item(&mpe_pages[0], MPE_G_MEMBERS);
+    page_item(&mpe_pages[0], MPE_G_CURVE);
     page_init(&mpe_pages[1], title_bend);
     page_item(&mpe_pages[1], MPE_G_NOTE_RANGE);
     page_item(&mpe_pages[1], MPE_G_MASTER_RANGE);
@@ -243,6 +246,9 @@ static void render_view(const struct mpe_live *v, uint32_t display, char *out)
         else
             put_num3(&p, v->master_range[z]);
         break;
+    case DISP_CURVE:
+        put_str(&p, globals[MPE_G_CURVE] == 1 ? "Linear" : "Squared");
+        break;
     }
     *p = 0;
 }
@@ -316,7 +322,7 @@ void mpe_ui_poll(void)
 
 static void edit_setting(uint16_t index, int32_t delta)
 {
-    if (index > MPE_G_MASTER_RANGE || delta == 0)  /* as stock, no reset for globals */
+    if (index > MPE_G_CURVE || delta == 0)  /* as stock, no reset for globals */
         return;
     mpe_live_to_globals();
     const struct mpe_desc *d = &mpe_global_desc[index];
@@ -330,6 +336,9 @@ static void edit_setting(uint16_t index, int32_t delta)
         break;
     case MPE_G_NOTE_RANGE:
         v = setting(MPE_G_NOTE_RANGE, MPE_MAX_RANGE, MPE_DEFAULT_NOTE_RANGE);
+        break;
+    case MPE_G_CURVE:
+        v = globals[MPE_G_CURVE] == 1;
         break;
     default:
         v = setting(MPE_G_MASTER_RANGE, MPE_MAX_RANGE, MPE_DEFAULT_MASTER_RANGE);

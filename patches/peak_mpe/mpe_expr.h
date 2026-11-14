@@ -27,6 +27,8 @@ static inline int mpe_zone_kind(const struct mpe_zone *z) { return z->master == 
  * at note-on from voice_alloc (note_on = 1), before the osc_pitch calls. */
 void mpe_bend_voice(uint32_t v, int role, const struct mpe_zone *z, int note_on);
 void mpe_pressure_voice(uint32_t v, int role, int note_on);
+void mpe_pressure_write_voice(uint8_t v, uint8_t n, int32_t value);
+void mpe_pressure_write_part(uint8_t n, int32_t value);
 void mpe_slide_voice(uint32_t v, int role, int note_on);
 
 int mpe_bend_stock(uint32_t v);
