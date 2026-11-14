@@ -475,9 +475,57 @@ def test_pressure_curve_linear_reaches_full(mpe_image):
 
 def test_pressure_curve_setting_on_the_mpe_page(mpe_built):
     b = _boot(mpe_built.patched)
-    rows = _show(b, 8, 4, 2)                      # Settings MPE page, third item
+    rows = _show(b, 8, 6, 0)                      # Settings MPE EXTRAS page, first item
     assert any("PressCurve" in r and "Squared" in r for r in rows), rows
     _call(b, mpe_built.blob.address("mpe_ui_value_change"), 1)
     assert b.u8(GLOBALS + G_CURVE) == 1
-    rows = _show(b, 8, 4, 2)
+    rows = _show(b, 8, 6, 0)
     assert any("PressCurve" in r and "Linear" in r for r in rows), rows
+
+
+# --- Tempo-synced envelope times (Settings > MPE > EnvSync) -----------------------
+
+G_ENVSYNC, CLOCK_RATE, AMP_DECAY, AMP_RELEASE = 0x35, 0xED, 0x93, 0x95
+
+
+def _table(name):
+    import re
+    text = (ROOT / "patches" / "peak_mpe" / "disp_tables.h").read_text()
+    body = re.search(name + r"\[\d+\] = \{(.*?)\};", text, re.S).group(1)
+    return [int(x) for x in re.findall(r"\d+", body)]
+
+
+def _times(b):
+    return (_table("disp_decay_ms")[b.u8(PATCHES + AMP_DECAY)],
+            _table("disp_release_ms")[b.u8(PATCHES + AMP_RELEASE)])
+
+
+def test_envsync_follows_the_tempo(mpe_image):
+    b = _boot(mpe_image)
+    b.uc.mem_write(PATCHES + CLOCK_RATE, bytes([60]))            # ClockRate 60 -> 120 BPM
+    b.uc.mem_write(GLOBALS + G_ENVSYNC, bytes([3]))              # 1/8
+    b.run_ms(1500)
+    decay, release = _times(b)
+    assert 200 <= decay <= 320 and 200 <= release <= 320, (decay, release)   # 1/8 at 120 BPM = 250 ms
+    b.uc.mem_write(PATCHES + CLOCK_RATE, bytes([120]))           # 240 BPM
+    b.run_ms(3000)
+    decay, release = _times(b)
+    assert 100 <= decay <= 160 and 100 <= release <= 160, (decay, release)   # 125 ms
+
+
+def test_envsync_off_leaves_the_envelope_alone(mpe_image):
+    b = _boot(mpe_image)
+    before = (b.u8(PATCHES + AMP_DECAY), b.u8(PATCHES + AMP_RELEASE))
+    b.uc.mem_write(PATCHES + CLOCK_RATE, bytes([120]))
+    b.run_ms(2000)
+    assert (b.u8(PATCHES + AMP_DECAY), b.u8(PATCHES + AMP_RELEASE)) == before
+
+
+def test_envsync_setting_on_the_mpe_page(mpe_built):
+    b = _boot(mpe_built.patched)
+    rows = _show(b, 8, 6, 1)                      # Settings MPE EXTRAS page, second item
+    assert any("EnvSync" in r and "Off" in r for r in rows), rows
+    _call(b, mpe_built.blob.address("mpe_ui_value_change"), 3)
+    assert b.u8(GLOBALS + G_ENVSYNC) == 3
+    rows = _show(b, 8, 6, 1)
+    assert any("EnvSync" in r and "1/8" in r for r in rows), rows

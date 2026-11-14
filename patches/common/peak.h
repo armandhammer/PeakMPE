@@ -90,6 +90,11 @@ void fpga_write(uint8_t target, uint16_t param, int32_t value);
  * 1 AftTouch, 7 pitch; target 0xA = all voices. observed */
 void voice_mod_write(uint8_t target, uint8_t n, int32_t value);
 void part_mod_write(uint8_t n, int32_t value);
+
+/* Stock's parameter setter behind a received CC (0x0800F6AC; the receive check is in
+ * the caller): the value, then the CC number. Writes the patch, queues the FPGA
+ * update, arms pickup. observed (disassembly), not yet run on hardware. */
+void param_set_by_id(uint32_t value, uint32_t id);
 /* (): the part's 1 kHz modulation update: smooths the bend into
  * part_bend_smoothed and sends 0x68/0x69, the wheel (broadcast 0x60 at
  * 0x08010972), 0x62/0x63 and one voice's 0x61. mod_tick calls it first,

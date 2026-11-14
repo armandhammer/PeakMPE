@@ -305,6 +305,17 @@ Measurements (step 6) can run on the rig while code is written for others.
     (as stock's flywheel does). With `Repeats` this gives rhythmic looping
     envelopes. It syncs durations, not phase, and a matching duration won't
     always feel on the beat.
+    **Built (v0.6, `patches/peak_mpe/envsync.c`; emulated, not yet on the synth):**
+    Settings > MPE EXTRAS > EnvSync (Off, 1/2, 1/4, 1/8, 1/16). While on, the amp
+    Decay and Release go to the value whose measured time to -40 dB is nearest the
+    note length at the current tempo, when the tempo or the setting changes (a
+    tempo must hold 4 checks of 128 ms and move by 1 BPM). Amp envelope only; the
+    mod envelopes, Attack and Hold are not synced. Tempo is stock's own word at
+    `0x20000264` (1,717,984 per BPM; internal and external clock both), values go
+    in through the setter behind a received CC (`0x0800F6AC`), so the patch, the
+    FPGA update and pickup follow as for a CC. Tests: `test_peak_sim.py`
+    (`test_envsync_*`: 1/8 at 120 BPM picks about 250 ms, at 240 BPM about
+    125 ms; Off changes nothing).
 
 ### 4. Editing
 

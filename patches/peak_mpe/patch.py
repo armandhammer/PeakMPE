@@ -17,7 +17,7 @@ Core:
   bl hook:      settings_save_action's settings_save -> live state to globals
   bl hooks x4:  ui_value_change calls -> the VOICE item writes the flag itself
   byte patches: patch_param_desc[0x1A2] (the MPE flag: 0-1, Off/On, "MPE"),
-                VOICE page 1 item 3 = the flag, version labels "MPE5" (v0.5; "MPE4" = v0.4, "MPE3" = v0.3, "MPE2" = v0.2, "MPE1" = v0.1)
+                VOICE page 1 item 3 = the flag, version labels "MPE6" (v0.6; "MPE5" = v0.5, "MPE4" = v0.4, "MPE3" = v0.3, "MPE2" = v0.2, "MPE1" = v0.1)
 UI (Settings MPE pages):
   bl hook:      main_loop's first settings_load -> builds the relocated tables
   bl hook:      main_loop's sysex_rx_poll -> redraws the MPE values on change
@@ -58,13 +58,14 @@ FLAG_DESC = PATCH_PARAM_DESC + 0x1A2 * 12  # 0x08047D74: {min, max, nrpn msb, nr
 VOICE_PAGE_1 = 0x08048648  # flash initialiser of the VOICE menu's first page (RAM 0x20003438)
 
 PATCHES = [
-    # Version labels: boot screen "MPE5 Ver ...", Settings "MPE5Ver".
+    # Version labels: boot screen "MPE6 Ver ...", Settings "MPE6Ver".
     # MPE1 = v0.1 (first hardware release); MPE2 = v0.2 (arp echo filter);
     # MPE3 = v0.3 (knob display: ms and Hz, bars, pickup arrow);
     # MPE4 = v0.4 (Settings MPE page: PressCurve Squared/Linear);
-    # MPE5 = v0.5 (CC 11 on a member channel is pressure).
-    (0x080452FB, b" Version ", b"MPE5 Ver ", "boot screen label (.data initialiser of RAM 0x200000EB)"),
-    (0x080445E8, b"Version\x00", b"MPE5Ver\x00", "Settings 2/28 SYSTEM item name"),
+    # MPE5 = v0.5 (CC 11 on a member channel is pressure);
+    # MPE6 = v0.6 (Settings MPE EXTRAS: EnvSync, tempo-synced Decay and Release).
+    (0x080452FB, b" Version ", b"MPE6 Ver ", "boot screen label (.data initialiser of RAM 0x200000EB)"),
+    (0x080445E8, b"Version\x00", b"MPE6Ver\x00", "Settings 2/28 SYSTEM item name"),
     # The flag's reserved descriptor: max 0 -> 1, display 0 -> 0x0F (Off/On,
     # as KeySync/FadeSync/Common on the Peak). NRPN stays 255:0. The name
     # pointer is a hook below.
@@ -77,7 +78,7 @@ PATCHES = [
 
 SOURCES = ["mpe_settings.c", "mpe_route.c", "mpe_voice.c", "mpe_ui.c",
            "mpe_expr.c", "mpe_bend.c", "mpe_pressure.c", "mpe_slide.c",
-           "arp_echo.c", "disp.c"]
+           "arp_echo.c", "disp.c", "envsync.c"]
 
 MIDI_CHANNEL_FILTER = 0x0800EED0
 VOICE_DISPATCH = 0x08012984

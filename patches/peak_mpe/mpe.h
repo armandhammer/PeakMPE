@@ -34,6 +34,7 @@
 #define MPE_G_NOTE_RANGE 0x32    /* note bend range, semitones 1-96; 0 or > 96 = 48 */
 #define MPE_G_MASTER_RANGE 0x33  /* master bend range, 1-96; 0 or > 96 = 2 */
 #define MPE_G_CURVE 0x34         /* pressure curve: 0 Squared (stock), 1 Linear */
+#define MPE_G_ENVSYNC 0x35       /* tempo-synced Decay/Release: 0 Off, 1-4 = 1/2 1/4 1/8 1/16 */
 
 #define MPE_DEFAULT_MEMBERS 15
 #define MPE_DEFAULT_NOTE_RANGE 48
@@ -111,6 +112,10 @@ void arp_echo_tick(void);
 /* Once per main-loop pass: restores stock's custom characters once the
  * overlay's message time has run out. */
 void disp_poll(void);
+
+/* --- Tempo-synced envelope times (envsync.c) ---------------------------- */
+void envsync_tick(void);   /* 1 kHz, from mpe_mod_update */
+void envsync_poll(void);   /* main loop, from mpe_ui_poll */
 
 /* Internal to the core. */
 void mpe_settings_init(void);

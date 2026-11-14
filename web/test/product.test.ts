@@ -19,7 +19,7 @@ describe("products", () => {
     expect(p.input.sha256).toBe("f9d50b4268a5c612b71d4cafd45dc01a02ecdf0902aa6e31784ad4d1bc4de26e");
     // MPE for Peak 0.3: 0.2 (a7015456…, flashed and tested on a Peak 2026-11-13,
     // docs/hardware-log.md) plus the knob display (ms and Hz, bars, pickup arrow)
-    expect(p.output.sha256).toBe("855f187bdfcc3e29ea447f64bd2702177e6992abe44a9a7e6b17bbc0543d760a");
+    expect(p.output.sha256).toBe("94629b81ca6333234fe4025380d1302e1e7b1b48a24731a8f0b55396abf7ce36");
     expect(p.title).toBe("MPE for Peak");
   });
 
