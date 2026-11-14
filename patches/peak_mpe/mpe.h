@@ -98,6 +98,19 @@ static inline uint8_t *mpe_patch(void) { return patches; }
 void mpe_member_message(const struct mpe_zone *z, uint8_t ch, const uint8_t *msg);
 void mpe_live_changed(void);
 
+/* --- Arp echo filter (arp_echo.c) --------------------------------------- */
+
+/* 1 = msg is the echo of a note the arp just sent: drop it. */
+int arp_echo_drop(const uint8_t *msg);
+/* Once per mod_tick (1 kHz). */
+void arp_echo_tick(void);
+
+/* --- Knob display (disp.c) ----------------------------------------------- */
+
+/* Once per main-loop pass: restores stock's custom characters once the
+ * overlay's message time has run out. */
+void disp_poll(void);
+
 /* Internal to the core. */
 void mpe_settings_init(void);
 void mpe_voice_init(void);

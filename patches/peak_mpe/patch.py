@@ -17,7 +17,7 @@ Core:
   bl hook:      settings_save_action's settings_save -> live state to globals
   bl hooks x4:  ui_value_change calls -> the VOICE item writes the flag itself
   byte patches: patch_param_desc[0x1A2] (the MPE flag: 0-1, Off/On, "MPE"),
-                VOICE page 1 item 3 = the flag, version labels "MPE1"
+                VOICE page 1 item 3 = the flag, version labels "MPE3" (v0.3; "MPE2" = v0.2, "MPE1" = v0.1)
 UI (Settings MPE pages):
   bl hook:      main_loop's first settings_load -> builds the relocated tables
   bl hook:      main_loop's sysex_rx_poll -> redraws the MPE values on change
@@ -29,6 +29,19 @@ Expression:
   bl hooks x6:  osc_pitch calls in mod_tick and voice_alloc
   bl hook:      mod_update's broadcast 0x60 -> dropped while MPE is on
   bl hook:      mod_tick's mod_update() -> per-voice 0x60 (Slide + wheel)
+Arp echo filter (arp_echo.c; v0.2):
+  bl hooks x2:  arp_step's arp_midi_note_on, arp_step_release's
+                arp_midi_note_off -> remember the notes the arp sends
+  (in mpe_channel_filter) incoming notes matching one within ~100 ms are
+                dropped, so a DAW routing loop can't stop the arp
+
+Knob display (disp.c; v0.3):
+  bl hooks x2:  knob_poll's knob_overlay calls -> disp_knob_overlay
+  bl hooks x2:  knob_overlay's lcd_puts of the pickup label and the row-3 clear -> dropped
+  bl hooks x3:  knob_overlay's format_value calls (pickup row, current, saved
+                val) -> ms / Hz text, nothing, ms / Hz text
+  (and mpe_ui_poll calls disp_poll, which puts stock's custom characters back)
+                value bars on row 3; pickup arrow and distance bar
 
 Summit hooks with no Peak counterpart: note_off's arp-path release (the
 Peak's arp calls its own note-off), ui_page_step's second branch, the tuning
@@ -45,9 +58,11 @@ FLAG_DESC = PATCH_PARAM_DESC + 0x1A2 * 12  # 0x08047D74: {min, max, nrpn msb, nr
 VOICE_PAGE_1 = 0x08048648  # flash initialiser of the VOICE menu's first page (RAM 0x20003438)
 
 PATCHES = [
-    # Version labels: boot screen "MPE1 Ver ...", Settings "MPE1Ver".
-    (0x080452FB, b" Version ", b"MPE1 Ver ", "boot screen label (.data initialiser of RAM 0x200000EB)"),
-    (0x080445E8, b"Version\x00", b"MPE1Ver\x00", "Settings 2/28 SYSTEM item name"),
+    # Version labels: boot screen "MPE3 Ver ...", Settings "MPE3Ver".
+    # MPE1 = v0.1 (first hardware release); MPE2 = v0.2 (arp echo filter);
+    # MPE3 = v0.3 (knob display: ms and Hz, bars, pickup arrow).
+    (0x080452FB, b" Version ", b"MPE3 Ver ", "boot screen label (.data initialiser of RAM 0x200000EB)"),
+    (0x080445E8, b"Version\x00", b"MPE2Ver\x00", "Settings 2/28 SYSTEM item name"),
     # The flag's reserved descriptor: max 0 -> 1, display 0 -> 0x0F (Off/On,
     # as KeySync/FadeSync/Common on the Peak). NRPN stays 255:0. The name
     # pointer is a hook below.
@@ -59,7 +74,8 @@ PATCHES = [
 ]
 
 SOURCES = ["mpe_settings.c", "mpe_route.c", "mpe_voice.c", "mpe_ui.c",
-           "mpe_expr.c", "mpe_bend.c", "mpe_pressure.c", "mpe_slide.c"]
+           "mpe_expr.c", "mpe_bend.c", "mpe_pressure.c", "mpe_slide.c",
+           "arp_echo.c", "disp.c"]
 
 MIDI_CHANNEL_FILTER = 0x0800EED0
 VOICE_DISPATCH = 0x08012984
@@ -79,6 +95,10 @@ OSC_PITCH = 0x08010B60
 PART_BEND_SMOOTHED = 0x2001233E
 VOICE_MOD_WRITE = 0x08010850
 MOD_UPDATE = 0x0801088C
+ARP_MIDI_NOTE_ON = 0x08014EA4
+ARP_MIDI_NOTE_OFF = 0x08014EB4
+KNOB_OVERLAY = 0x08016B14
+LCD_PUTS = 0x0800D260
 
 # (kind, site, expected original, patch symbol, why)
 HOOKS = [
@@ -120,4 +140,15 @@ HOOKS = [
     ("bl", 0x0801265E, OSC_PITCH, "mpe_osc_pitch_alloc", "voice_alloc: osc_pitch(osc3)"),
     ("bl", 0x08010972, VOICE_MOD_WRITE, "mpe_wheel_write", "mod_update: broadcast 0x60 to all voices"),
     ("bl", 0x08010E70, MOD_UPDATE, "mpe_mod_update", "mod_tick -> mod_update(), before the voice loop"),
+    # Arp echo filter.
+    ("bl", 0x08015202, ARP_MIDI_NOTE_ON, "arp_echo_note_on", "arp_step: arp step note on to MIDI"),
+    ("bl", 0x08014EE2, ARP_MIDI_NOTE_OFF, "arp_echo_note_off", "arp_step_release: arp step note off to MIDI"),
+    # Knob-turn display (disp.c).
+    ("bl", 0x08016EF2, KNOB_OVERLAY, "disp_knob_overlay", "knob_poll: 7-bit knob"),
+    ("bl", 0x08016F28, KNOB_OVERLAY, "disp_knob_overlay", "knob_poll: 9-bit knob"),
+    ("bl", 0x08016C2A, LCD_PUTS, "disp_skip_puts", "knob_overlay: the pickup label on row 3"),
+    ("bl", 0x08016C48, LCD_PUTS, "disp_skip_puts", "knob_overlay: the row-3 clear after a pickup"),
+    ("bl", 0x08016C3C, FORMAT_VALUE, "disp_fmt_pick", "knob_overlay: the knob's value on the pickup row"),
+    ("bl", 0x08016C72, FORMAT_VALUE, "disp_fmt_cur", "knob_overlay: the 'current' value"),
+    ("bl", 0x08016C90, FORMAT_VALUE, "disp_fmt_saved", "knob_overlay: the 'saved val' value"),
 ]

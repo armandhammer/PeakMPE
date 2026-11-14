@@ -81,3 +81,33 @@ address,name,kind,confidence,notes
 0x0801890c,fw_version,function,observed,return u16 at 0x0800c1b0 (only literal 0x08018914); callers boot_screen 0x0800e568 format_value 0x08017c6e identity_reply 0x0801970e
 0x0800e544,boot_screen,function,observed,prints the boot screen incl. version digits (fw_version) '.' and the FPGA build (0x08018918); called from 0x0800e802
 0x080196ec,identity_reply,function,emulated,(port) 12 template bytes then 4 version nibbles; called from sysex_rx_poll 0x0801a498; DIN reply 02 01 00 08 in the simulator
+0x0800ef04,held_note_clear,function,observed,(note) clears the held-note bit; called first by note_off
+0x20000640,arp_state_ptr,data,observed,pointer to the arp state: +0x168 keys-held map; +0x178 play map; +0xe8+n velocity; +0x188 played-order list (32 x note/vel); +0x1ca/+0x1cb count; +0x1e1 flags
+0x08014fa8,arp_reset,function,observed,called by arp_note_on when no key is held: new sequence
+0x08014de8,arp_has_notes,function,observed,returns 1 if any bit of the play map (+0x178) is set
+0x080151a0,arp_step,function,observed,(note vel) plays one arp step: MIDI out via arp_midi_note_on when +0x1e1 bits 5-6; voice_dispatch unless byte 0x20003768 is 0 (Local, inferred)
+0x08014ea4,arp_midi_note_on,function,observed,midi_send3(0x90 note vel)
+0x08014eb4,arp_midi_note_off,function,observed,midi_send3(0x80 note vel)
+0x08014ec4,arp_step_release,function,observed,ends an arp step: voice_release and/or 80 nn 40 to MIDI
+0x08015408,arp_step_select,function,observed,picks the next step by arp mode (play-map walk for Up/Down, played-order list otherwise)
+0x08015554,arp_tick,function,observed,rebuilds +0x1e1 from patch +0xf5 +0xf7 +0xf6 and globals+0x13 Arp>MIDI (<<5; observed in global_param_desc); called from 0x0801192c
+0x0801740c,midi_send3,function,observed,(status d1 d2) status OR midi_global_channel 0x20011210; used by the arp and the panel NRPN send 0x08017454
+0x08016b14,knob_overlay,function,observed,"(id prev cur saved hires): the knob-turn overlay and the pickup test; id = patch offset; cur/prev knob values (8-bit; 9-bit with hires); saved = compare-buffer value; 5th arg on the stack. Returns 1 = apply the knob value, 0 = pickup pending. Only caller knob_poll 0x08016ef2 0x08016f28; draws rows 0-2 (3 while pickup is pending); format_value calls at 0x08016c3c (knob value on pickup row) 0x08016c72 (current) 0x08016c90 (saved val)"
+0x08016df4,knob_poll,function,observed,"one knob event from the pot queue (FUN_0800e354: value prev id); resolves the knob's descriptor and calls knob_overlay; also called by main_loop 0x0800d11c-area and panel_button_event"
+0x20014054,pickup_state,data,observed,"u8 per patch offset (0xfb entries): 0 = picked up, nonzero (3 when armed) = the knob has not yet passed the patch value; knob_overlay clears bit 0 when the knob is above it and bit 1 when below, and 0 on crossing"
+0x200111e4,knob_overlay_state,data,observed,"+4 u16 = patch offset of the knob the overlay shows"
+0x20011208,ui_msg_state,data,observed,"+1 changed/redraw flags; +2 message countdown (set to Msg Time + 5 by the overlay's FUN_08018a98 with a value other than 0xff; decremented every 11 ms ticks by FUN_08018adc while nonzero); +3 id of the message shown; +6 redraw flag"
+0x20000b90,str_pickup_label,data,observed,"string 09 00 03 + '   pickup ' (escape 9: cursor to column 0 row 3); flash init 0x08045da0"
+0x20000ba0,str_row3_clear,data,observed,"09 00 03 + 20 spaces; printed by knob_overlay when the pickup has just completed"
+0x20000bb8,str_current_label,data,observed,"'  current '; flash init 0x08045db8; printed at row 1"
+0x20000bc4,str_saved_val_label,data,observed,"'saved val '; flash init 0x08045dc4; printed at row 2"
+0x08016840,lcd_write_cmd,function,observed,"(cmd): CS low (GPIOB BSRR bit 28 = PB12), start byte 0x1f, low nibble, high nibble, CS high; same as Summit 0x08019d40 except the CS pin"
+0x08016868,lcd_write_data,function,observed,"(byte): as lcd_write_cmd with start byte 0x5f; same as Summit 0x08019d68"
+0x08016890,lcd_load_cgram,function,observed,"(): cmd 0x40, then 64 bytes from lcd_cgram_glyphs through lcd_write_data; only caller lcd_init 0x080169e4; same as Summit 0x08019d90"
+0x080168c8,lcd_putc,function,observed,"(code): 0xba -> space; 0xbb-0xbf -> 0x95-code; 0-7 and 0x10-0x7f and 0x1f as is (to DDRAM or CGRAM at the last address); 8 = clear (cmd 1 + delay)"
+0x0800d21c,lcd_putc_esc,function,observed,"(code): lcd_putc with the escape state at 0x0800d25c: 9 starts 'cursor' escape, the next two bytes are column and row (lcd_cursor); lcd_puts calls it"
+0x080169e4,lcd_init,function,observed,"display init: reset pulses, function set, lcd_load_cgram, clear; only caller 0x0800d200"
+0x20000a78,lcd_cgram_glyphs,data,observed,"64 bytes: custom characters 0-7, the eight box-frame pieces; flash init 0x08045c88"
+0x08016aec,pickup_arm_all,function,inferred,"sets pickup_state[0..0xfa] = 3; no direct caller (indirect)"
+0x08016b04,pickup_arm,function,observed,"(id) pickup_state[id] = 3 if id < 0xfb; caller 0x0800f6ac"
+0x08016cc0,pickup_arm_group,function,inferred,"(button) arms the knob group of one of five buttons (0x3a 0x4f 0x64 0x88 0x9a) from tables at 0x08016d40-0x08016d54; caller panel_button_event"

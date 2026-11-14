@@ -47,6 +47,16 @@ void midi_channel_filter(uint32_t src, midi_handler_fn *handler, const uint8_t *
 /* Channel handlers (table order). observed */
 midi_handler_fn note_on, note_off, poly_at, cc, program_change, chan_at, bend;
 
+/* --- Arpeggiator MIDI out ---------------------------------------------- */
+
+/* (note, velocity): midi_send3(0x90 / 0x80, note, velocity), the status
+ * OR midi_global_channel. arp_step calls arp_midi_note_on at 0x08015202 with
+ * the step's note and velocity; arp_step_release calls arp_midi_note_off at
+ * 0x08014EE2 with velocity 0x40. Observed in the decompile (2026-11-13) and
+ * on the rig (arp steps arrive as 90 nn vv / 80 nn 40). */
+void arp_midi_note_on(uint32_t note, uint32_t velocity);
+void arp_midi_note_off(uint32_t note, uint32_t velocity);
+
 /* --- Voices ------------------------------------------------------------ */
 
 /* (note, velocity): routes to voice_trigger by voice_part_mode (0: part 0;
@@ -156,5 +166,38 @@ extern volatile uint16_t voice_env_level[PEAK_VOICES];  /* above 0x200 = still s
 #define VOICE_AT_SLOT(v) (*(volatile uint16_t *)&voice_state[0x44 + 2 * (v)])
 #define VOICE_AT_SMOOTH(v) (*(volatile int32_t *)&voice_state[0x54 + 4 * (v)])
 #define PART_WHEEL (*(volatile int16_t *)&voice_state[0x36])
+
+/* --- Knob overlay and the LCD (observed, docs/findings/peak-2.2-build2108.md) */
+
+/* (id, prev, cur, saved, hires): the knob-turn overlay and pickup test.
+ * id = patch offset; prev/cur the knob's previous and current value (0-127,
+ * 0-255 when hires); saved = the compare buffer's value; hires 0 or 1 (a
+ * stack word). Returns 1 = apply cur, 0 = pickup pending. Draws rows 0-2 (and
+ * the pickup label on row 3) and calls format_value three times, at
+ * 0x08016C3C (cur on the pickup row), 0x08016C72 (current), 0x08016C90 (saved
+ * val). Callers: knob_poll at 0x08016EF2 and 0x08016F28. */
+int knob_overlay(uint32_t id, uint32_t prev, uint32_t cur, uint32_t saved, uint32_t hires);
+/* (col, row): DDRAM address 0x80 | col + row * 32. */
+void lcd_cursor(uint32_t col, uint32_t row);
+/* (cmd), (byte): the LCD's serial command and data writes. */
+void lcd_write_cmd(uint32_t cmd);
+void lcd_write_data(uint32_t byte);
+/* (): CGRAM address 0 and the 64 bytes at 0x20000A78: stock's box frame. */
+void lcd_load_cgram(void);
+/* (code): one character through the escape state machine (9 = cursor). */
+void lcd_putc_esc(uint32_t code);
+
+/* patch_param_desc: 12-byte records by patch offset (RAM 0x200017CC). */
+struct param_desc {
+    uint8_t min, max, nrpn_msb, nrpn_lsb;
+    uint32_t display;       /* low byte: the format_value type */
+    const char *name;
+};
+extern const struct param_desc patch_param_desc[0x1A3];
+/* One byte per patch offset (0xFB): 0 = picked up, nonzero = the knob has
+ * not yet passed the patch value. */
+extern volatile uint8_t pickup_state[0xFB];
+/* 0x20011208: +1 flags, +2 message countdown (nonzero: a message is shown). */
+extern volatile uint8_t ui_msg_state[8];
 
 #endif

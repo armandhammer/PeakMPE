@@ -127,6 +127,7 @@ instructions the AI agent follows in this repository.
 | `patches/mpe/` | The Summit MPE patch (upstream) |
 | `docs/peak-port-plan.md`, `docs/symbols/peak-2.2-2108.csv` | The Peak port: plan, findings, status; the Peak's symbols |
 | `docs/linnstrument.md` | Playing the Peak from a LinnStrument, step by step |
+| `docs/peak-features.md` | Features beyond MPE: what stock 2.2 already does, and the build order |
 | `patches/peak_version_string.py`, `patches/peak_version_word.py`, `patches/peak_demo_note_hook/` (and the Summit's) | Minimal patches that test the toolchain and the bootloader |
 | `tools/patch.py`, `tools/patch_build.py` | Build a patched `.syx` from the official file and a definition ([docs/patch-howto.md](docs/patch-howto.md)) |
 | `tools/flash.py` | Firmware updater (the Components protocol), with a dry run against a simulated synth |

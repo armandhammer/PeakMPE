@@ -90,7 +90,8 @@ confirmed on the Peak yet (inferred). Phase 1 checks each one.
    blank DataFlash makes it copy from arbitrary RAM. Only matters on a
    factory-fresh or wiped chip.
 
-**Improvement ideas** (beyond MPE v1, roughly by value for LinnStrument play):
+**Improvement ideas** (beyond MPE v1, roughly by value for LinnStrument play;
+superseded by the checked and ranked list in [peak-features.md](peak-features.md)):
 
 - **Diagnostics page** in Settings: DIN overflow count, max FPGA queue depth,
   the zone in effect. Cheap, and it turns "a note stuck once" into data.

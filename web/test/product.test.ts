@@ -17,9 +17,9 @@ describe("products", () => {
     expect(s.input.fileName).toBe("summit-firmware-2.2-build2121.syx");
     expect(p.input.fileName).toBe("peak-firmware-2.2-build2108.syx");
     expect(p.input.sha256).toBe("f9d50b4268a5c612b71d4cafd45dc01a02ecdf0902aa6e31784ad4d1bc4de26e");
-    // MPE for Peak 0.1 with the per-zone master bend, flashed and tested on a Peak
-    // 2026-11-13 (docs/hardware-log.md)
-    expect(p.output.sha256).toBe("bc3bf703f94c2791e666edff503a09bd42c30863988ce6dc6fd20c3a2c99532a");
+    // MPE for Peak 0.3: 0.2 (a7015456…, flashed and tested on a Peak 2026-11-13,
+    // docs/hardware-log.md) plus the knob display (ms and Hz, bars, pickup arrow)
+    expect(p.output.sha256).toBe("515359bd47185fda540b438c6649e73b6c61f7e5c97f07e14ad53f5984040351");
     expect(p.title).toBe("MPE for Peak");
   });
 

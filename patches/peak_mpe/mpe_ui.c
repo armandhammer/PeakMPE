@@ -294,6 +294,7 @@ static int on_mpe_page(const uint8_t *page)
 void mpe_ui_poll(void)
 {
     sysex_rx_poll();
+    disp_poll();
     const uint8_t *page = ui_current_page();
     if (!on_mpe_page(page) || ui_message_active())
         return;

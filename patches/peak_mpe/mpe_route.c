@@ -118,6 +118,8 @@ void mpe_channel_filter(uint32_t src, midi_handler_fn *handler, const uint8_t *m
         midi_channel_filter(src, handler, msg);
         return;
     }
+    if (arp_echo_drop(msg))    /* the arp's own note coming back (arp_echo.c) */
+        return;
     uint8_t ch = status & 0x0F, type = status & 0xF0;
     mpe_route_update();
     const struct mpe_zone *z = mpe_zone_of(ch);
