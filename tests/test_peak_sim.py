@@ -567,16 +567,26 @@ def test_quick_assign_puts_a_control_in_the_first_free_slot(mpe_built):
     assert got[:free] == before[:free] and got[free + 1:] == before[free + 1:]
     rows = b.display.lcd.text()
     assert rows[0].startswith("QUICK ASSIGN") and "FiltFreq" in rows[3], rows
-    _call(b, LCD_WRITE_CMD, 0x01)                                 # stock redraws over the message
     _call(b, blob.address("qa_knob"), 0x83)                       # the same control again: no second slot,
-    assert _slots(b) == got
-    rows = b.display.lcd.text()                                   # and the message is drawn again
-    assert rows[0].startswith("QUICK ASSIGN") and "FiltFreq" in rows[3], rows
+    assert _slots(b) == got                                       # and no redraw (it would flicker)
     _call(b, blob.address("qa_knob"), 0x81)                       # FiltKeyTrack has no destination
     assert _slots(b) == got
     _call(b, blob.address("qa_button"), MOD_RELEASE)
     _call(b, blob.address("qa_knob"), 0x92)
     assert _slots(b) == got                                       # released: nothing
+
+
+def test_quick_assign_control_only_selects(mpe_built):
+    b = _boot(mpe_built.patched)
+    blob = mpe_built.blob
+    # Mod not held: stock's overlay path runs (it returns 1 = apply the knob value, or 0 under Pickup).
+    _call(b, blob.address("qa_button"), MOD_PRESS)
+    before = _slots(b)
+    applied = _call(b, blob.address("disp_knob_overlay"), 0x83, 100, 120, 100)
+    assert applied == 0                                           # the control's value is not applied
+    assert _slots(b) != before                                    # but it was assigned
+    rows = b.display.lcd.text()
+    assert rows[0].startswith("QUICK ASSIGN"), rows               # stock drew nothing over it
 
 
 def test_quick_assign_encoder_chooses_the_source(mpe_built):

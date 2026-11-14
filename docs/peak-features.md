@@ -335,8 +335,12 @@ Measurements (step 6) can run on the rig while code is written for others.
     nothing; a control with no destination says so. Control-to-destination
     table: names matched to the matrix's destination list (inferred; mod
     destinations without a control are left out). Values go in through the CC
-    setter with the slot's NRPN number (emulated: slots updated). Not built:
-    skipping empty slots when paging, restoring the moved control's value.
+    setter with the slot's NRPN number (emulated: slots updated). **On the synth
+    (v0.9, 2026-11-14, user):** assign, slot choice, the Mod menu entry and the
+    filter following LFO 1 all worked; stock's knob overlay flickered behind the
+    message and the moved control still changed, so from v0.10 (`MPEA`) a control
+    moved with Mod held draws nothing of stock's and is not applied. Not built:
+    skipping empty slots when paging.
 
 13. **Snapshot system, then undo** (M). One level of undo. One knob gesture
     (a continuous turn) is one undo step, and a section paste is one step.

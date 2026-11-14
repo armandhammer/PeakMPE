@@ -365,6 +365,10 @@ static uint32_t patch_value(uint32_t id, uint32_t hires)
 /* Replaces knob_poll's two calls of knob_overlay (0x08016EF2, 0x08016F28). */
 int disp_knob_overlay(uint32_t id, uint32_t prev, uint32_t cur, uint32_t saved, uint32_t hires)
 {
+    if (qa_held()) {    /* quick-assign: the control only selects (qassign.c); stock draws and applies nothing */
+        qa_knob(id);
+        return 0;
+    }
     ov_id = (uint8_t)id;
     ov_hires = (uint8_t)(hires & 0xFF);
     ov_drawn = 0;
@@ -378,7 +382,6 @@ int disp_knob_overlay(uint32_t id, uint32_t prev, uint32_t cur, uint32_t saved, 
         else
             draw_value_bar(d, cur);
     }
-    qa_knob(id);
     return applied;
 }
 

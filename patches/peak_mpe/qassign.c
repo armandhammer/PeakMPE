@@ -14,11 +14,12 @@
  *    still sees the event and opens the Mod menu as it always did.
  *  - qa_encoder is called first by mpe_ui_value_change: with Mod held it takes
  *    the encoder for the source and returns 1.
- *  - qa_knob is called by disp_knob_overlay after stock drew the knob's
- *    overlay, with the control's patch offset: a table gives its mod
+ *  - qa_knob is called by disp_knob_overlay, instead of stock's knob overlay,
+ *    while Mod is held (the control then only selects: stock draws nothing and the
+ *    control's value is not applied), with the control's patch offset: a table gives its mod
  *    destination (names matched to the matrix's destination list: inferred;
  *    the Peak's own offset-to-destination relation was not found in the
- *    firmware). A control that is moved keeps its own new value as usual.
+ *    firmware). A control moved with Mod held does not change its own value.
  *
  * A slot is free when Source A and B are Direct and Depth is 0 (64). A slot
  * that already has the same source and destination is reused (nothing
@@ -60,6 +61,7 @@ static const struct { uint8_t offset, dest; } dest_of[] = {
 static uint8_t held;
 static uint8_t source_sel;           /* 0 = the default, Lfo1+ (patch RAM is zero-initialised only) */
 static uint8_t done_id1;             /* the control assigned in this hold, offset + 1 (0 = none) */
+static uint8_t shown_id1;            /* the control the message was drawn for, offset + 1 */
 static uint8_t done_slot;            /* ... and the slot it is in */
 
 #define DEFAULT_SOURCE 7
@@ -77,6 +79,7 @@ void qa_button(uint32_t ev)
     if ((ev & 0xFF) && ((ev >> 8) & 0xFF) == BUTTON_MOD) {
         held = (int8_t)(ev & 0xFF) > 0;
         done_id1 = 0;
+        shown_id1 = 0;
     }
 }
 
@@ -144,6 +147,11 @@ void qa_knob(uint32_t id)
 {
     if (!held)
         return;
+    if (shown_id1 == id + 1) {     /* already on the screen: keep it there, no redraw (flicker) */
+        ui_msg_state[2] = (uint8_t)(globals[GLOBAL_MSG_TIME] + 5);
+        return;
+    }
+    shown_id1 = (uint8_t)(id + 1);
     uint32_t dest = DEST_NONE;
     for (uint32_t i = 0; i < sizeof dest_of / sizeof dest_of[0]; i++)
         if (dest_of[i].offset == id)
@@ -152,7 +160,7 @@ void qa_knob(uint32_t id)
         say("QUICK ASSIGN", "No mod destination", "for this control", "");
         return;
     }
-    if (done_id1 == id + 1) {      /* stock redraws its overlay on every move: draw ours over it again */
+    if (done_id1 == id + 1) {      /* the control moved again after another one in this hold */
         show((int32_t)done_slot, dest);
         return;
     }

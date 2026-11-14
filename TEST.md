@@ -16,7 +16,7 @@ settings are in [docs/linnstrument.md](docs/linnstrument.md).
 
 ## Series C: quick-assign modulation
 
-Image `MPE9 Ver` (boot screen). Use any sound; D002 with the `mt` sound is fine.
+Image `MPEA Ver` (boot screen). Use any sound; D002 with the `mt` sound is fine.
 Before you start, look at **Mod menu** slots 1 to 3 (Mod button, then Page
 buttons) and tell me what they hold. Empty slots read `Direct`, `Direct`,
 depth 0.
@@ -24,10 +24,10 @@ depth 0.
 ### C1. Hold Mod and move a control
 
 1. Press and **hold** the **Mod** button. The Mod menu appears as usual.
-2. While holding it, move the **Filter Freq** control. Tell me what the screen
+2. While holding it, move the **Filter Freq** control back and forth. Tell me what the screen
    says on all four lines, while you move it and after you stop (expected:
    QUICK ASSIGN, a slot number, `Lfo1+`, `FiltFreq`, nothing mixed in from the
-   normal knob display).
+   normal knob display, and no flicker).
 3. Let go of Mod. Page through the Mod menu to the slot it named. Tell me
    what Source A, Source B, Depth and Destination show (expected: Lfo1+,
    Direct, +32, FiltFreq).
@@ -49,5 +49,6 @@ depth 0.
    (expected: "No mod destination").
 3. Without holding Mod, move a control and turn the encoder. Tell me whether
    everything behaves as before (no slot is created, the encoder edits values).
-4. Does moving a control while holding Mod change that control's value as
-   well? Tell me what you saw (known: it does, as the control always moves).
+4. Does moving a control while holding Mod change that control's value?
+   Expected: no, it only selects. Tell me what the Filter Freq value does
+   (look at it after you let go of Mod).
