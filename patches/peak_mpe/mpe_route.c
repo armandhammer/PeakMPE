@@ -144,6 +144,8 @@ void mpe_channel_filter(uint32_t src, midi_handler_fn *handler, const uint8_t *m
                 break;
             if (msg[1] == 74)
                 mpe_chan_slide[ch] = msg[2];
+            else if (msg[1] == 11)   /* a controller that sends Z as CC 11: same as pressure (Peak addition) */
+                mpe_chan_pressure[ch] = msg[2];
             mpe_member_message(z, ch, msg);
             return;
         case 0xD0:

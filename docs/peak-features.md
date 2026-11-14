@@ -247,9 +247,12 @@ Measurements (step 6) can run on the rig while code is written for others.
    type and `edit_setting` case in `mpe_ui.c`, one globals byte). Open
    before building: which globals byte is free on the Peak (`+0x34` is read
    on the Summit), and that Save and Components leave it alone.
-   **Built (v0.4, `mpe_pressure.c`, `mpe_ui.c`; rig unchanged, 136/0):** only
-   the Squared/Linear option; CC 11 pressure and CC 74/bend smoothing are
-   still open. Checked on the synth 2026-11-14: Linear works and persists through Save and a power cycle.
+   **Built (v0.4, `mpe_pressure.c`, `mpe_ui.c`; rig unchanged, 136/0):** the
+   Squared/Linear option. **v0.5 (emulated, `test_peak_sim.py`):** CC 11 on a
+   member channel is pressure; poly aftertouch on a member channel reaches
+   only its own voice (checked, no change needed). CC 74 and bend are already
+   smoothed per voice (1/8 and 1/4 of the step per tick, `mpe_slide.c`,
+   `mpe_bend.c`); an adjustable amount is not built. Checked on the synth 2026-11-14: Linear works and persists through Save and a power cycle.
 8. **New per-voice mod values, proof first** (M). Feeding values into the
    matrix is proven: the MPE patch writes each voice's pressure into the
    slots the matrix reads (`voice_state` +0x44, observed on hardware). First

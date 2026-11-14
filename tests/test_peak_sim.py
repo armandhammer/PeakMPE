@@ -166,6 +166,28 @@ def test_mpe_member_pressure_reaches_only_its_voice(mpe_on):
     _send(b, 0xD1, 0, ms=80)
 
 
+def test_mpe_member_poly_aftertouch_reaches_only_its_voice(mpe_on):
+    b, blob = mpe_on
+    v2, v3 = _voice_of(b, blob, 1), _voice_of(b, blob, 2)
+    b.fpga.reset()
+    _send(b, 0xA2, 60, 100, ms=80)      # channel 3 poly pressure on note 60
+    at = _last(b, 0x61)
+    assert at.get(v3, 0) > 0x1000
+    assert at.get(v2, 0) == 0
+    _send(b, 0xA2, 60, 0, ms=80)
+
+
+def test_mpe_member_cc11_is_pressure(mpe_on):
+    b, blob = mpe_on
+    v2, v3 = _voice_of(b, blob, 1), _voice_of(b, blob, 2)
+    b.fpga.reset()
+    _send(b, 0xB1, 11, 100, ms=80)      # channel 2 CC 11
+    at = _last(b, 0x61)
+    assert at.get(v2, 0) > 0x1000
+    assert at.get(v3, 0) == 0
+    _send(b, 0xB1, 11, 0, ms=80)
+
+
 def test_mpe_member_slide_reaches_only_its_voice(mpe_on):
     b, blob = mpe_on
     v2, v3 = _voice_of(b, blob, 1), _voice_of(b, blob, 2)
