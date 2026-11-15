@@ -455,6 +455,11 @@ Measurements (step 6) can run on the rig while code is written for others.
 Only after step 6 has measured the sound-chip write budget, and kept out of
 the earlier modules so their needs don't shape them.
 
+**Design note, 2026-11-15:** [peak-motion-morph.md](peak-motion-morph.md)
+has the findings both need (parameters are applied in 13 update groups, at
+most once per 16 ms; what each group costs) and a proposal for each. Nothing
+built.
+
 21. **Motion recording** (L). Record one knob's movement for 1–4 bars at a
     clock subdivision and loop it, with overdub or replace. Prototype in RAM
     with one lane of 16 steps.

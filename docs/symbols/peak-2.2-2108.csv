@@ -137,3 +137,8 @@ address,name,kind,confidence,notes
 0x0800fb80,tempo_clock_step,function,observed,"adds tempo_word to a 32-bit accumulator at 0x2000461c+0x2c each ms; an overflow is one MIDI clock (1717984 per BPM = 24 per quarter note at 1 kHz)"
 0x08018adc,ui_msg_countdown,function,observed,"main loop: one count off ui_msg_state+2 when the ms counter has advanced by more than 10; redraws the page when it reaches 0"
 0x0800edd8,usart6_isr,function,observed,"DIN MIDI: transmit from the ring at 0x20003eac+4 and receive into +0x104 (256 B each); +0x204 is a one-byte overflow count (ldrb/strb at 0x0800ee2c/0x0800ee32)"
+0x08013014,param_groups_poll,function,observed,"main loop: every 16 ms (ms counter) applies the dirty parameter groups through param_groups_apply 0x08012f68"
+0x08012f68,param_groups_apply,function,observed,"clears the dirty word 0x200043e8 and calls one handler per set bit: 0x0001 0x08016ac8 waves; 0x0002 0x08010348 mod matrix; 0x0004 0x080103ec fixed mod amounts; 0x0008 0x0800fe88 envelopes; 0x0010 voice_params_changed; 0x0020 0x08012104 mixer; 0x0040 0x08012a58 FX; 0x0080 0x080112d0 LFOs; 0x0100 0x0800ffd8 filter; 0x0200 0x080100ac DenseDet; 0x0400 0x08012a20 pan/VCA; 0x1000 0x08012f60 tuning table; 0x0800 0x0801203c FX matrix"
+0x200043e8,param_dirty_groups,data,observed,"u16: update groups with a changed parameter (FUN_0800f658 ORs the parameter's mask in); +2 a changed flag"
+0x08020484,param_group_masks,data,observed,"u16 per patch offset (0x1a3 entries): the update group(s) a parameter belongs to; 0 = none (read at note start)"
+0x20012268,tempo_clock_position,data,observed,"u32 written by tempo_clock_step: MIDI clock count << 16 | fraction (accumulator >> 16)"
