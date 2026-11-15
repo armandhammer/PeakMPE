@@ -99,6 +99,10 @@ void param_set_by_id(uint32_t value, uint32_t id);
 /* panel_button_event's read of the next button event (0x0800DDFC): low byte +1 press /
  * -1 release (0 = none), next byte the button index. observed (disassembly). */
 uint32_t panel_event_read(void);
+
+/* The firmware's byte copy loop (0x0801D736): (dst, src, n), returns nothing (r0 left as dst by
+ * the callers' usage is not relied on here: the patch wrapper returns dst itself). observed. */
+void *fw_memcpy(void *dst, const void *src, uint32_t n);
 /* (): the part's 1 kHz modulation update: smooths the bend into
  * part_bend_smoothed and sends 0x68/0x69, the wheel (broadcast 0x60 at
  * 0x08010972), 0x62/0x63 and one voice's 0x61. mod_tick calls it first,

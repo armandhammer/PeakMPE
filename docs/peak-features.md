@@ -346,6 +346,19 @@ Measurements (step 6) can run on the rig while code is written for others.
     (a continuous turn) is one undo step, and a section paste is one step.
 14. **Parameter lock** (M). Keep chosen parameters (FX, arp, performance
     settings) across patch changes.
+    **Built (v0.11, `patches/peak_mpe/paramlock.c`; emulated, not yet on the
+    synth):** Settings > PARAM LOCK has Lock FX, Lock Arp and Lock Voice (Off/On,
+    saved with the Settings). A locked group keeps its current values when a
+    patch loads: the load is one function (`0x0801AEB8`, traced in the
+    simulator), and its copy into the patch (`0x0801AECC`, the byte loop at
+    `0x0801D736`) is hooked to save the locked ranges and write them back
+    before the push to the sound chip. Ranges (mine, from the parameter table):
+    FX `0xC7-0xEB`, Arp `0xEC-0xFA` (includes the tempo), Voice `0x22-0x2F`
+    (mode, unison, glide, diverge, drift, noise filters). Initialise and
+    Compare loads are covered too (any load into the current patch); the first
+    load after power-up is not. The mod matrix and per-patch MPE flag are not in
+    a group.
+
 15. **Section copy and paste** (M). LFO 1 → LFO 2, Env 2 → Env 3, and so on.
 16. **Diagnostics and MIDI monitor page** (S–M). DIN overflow count, the MPE
     zone in effect, the last incoming messages.

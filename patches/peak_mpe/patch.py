@@ -17,7 +17,7 @@ Core:
   bl hook:      settings_save_action's settings_save -> live state to globals
   bl hooks x4:  ui_value_change calls -> the VOICE item writes the flag itself
   byte patches: patch_param_desc[0x1A2] (the MPE flag: 0-1, Off/On, "MPE"),
-                VOICE page 1 item 3 = the flag, version labels "MPEA" (v0.10; "MPE9" = v0.9, "MPE8" = v0.8, "MPE7" = v0.7, "MPE6" = v0.6, "MPE5" = v0.5, "MPE4" = v0.4, "MPE3" = v0.3, "MPE2" = v0.2, "MPE1" = v0.1)
+                VOICE page 1 item 3 = the flag, version labels "MPEB" (v0.11; "MPEA" = v0.10, "MPE9" = v0.9, "MPE8" = v0.8, "MPE7" = v0.7, "MPE6" = v0.6, "MPE5" = v0.5, "MPE4" = v0.4, "MPE3" = v0.3, "MPE2" = v0.2, "MPE1" = v0.1)
 UI (Settings MPE pages):
   bl hook:      main_loop's first settings_load -> builds the relocated tables
   bl hook:      main_loop's sysex_rx_poll -> redraws the MPE values on change
@@ -58,7 +58,7 @@ FLAG_DESC = PATCH_PARAM_DESC + 0x1A2 * 12  # 0x08047D74: {min, max, nrpn msb, nr
 VOICE_PAGE_1 = 0x08048648  # flash initialiser of the VOICE menu's first page (RAM 0x20003438)
 
 PATCHES = [
-    # Version labels: boot screen "MPEA Ver ...", Settings "MPEAVer".
+    # Version labels: boot screen "MPEB Ver ...", Settings "MPEBVer".
     # MPE1 = v0.1 (first hardware release); MPE2 = v0.2 (arp echo filter);
     # MPE3 = v0.3 (knob display: ms and Hz, bars, pickup arrow);
     # MPE4 = v0.4 (Settings MPE page: PressCurve Squared/Linear);
@@ -67,9 +67,10 @@ PATCHES = [
     # MPE7 = v0.7 (EnvSync applies a changed setting after 1 s, so scrolling past a choice does nothing);
     # MPE8 = v0.8 (quick-assign modulation: hold Mod, move a control);
     # MPE9 = v0.9 (quick-assign message redrawn on every move: stock overwrote it);
-    # MPEA = v0.10 (quick-assign: with Mod held a control only selects, stock draws and applies nothing).
-    (0x080452FB, b" Version ", b"MPEA Ver ", "boot screen label (.data initialiser of RAM 0x200000EB)"),
-    (0x080445E8, b"Version\x00", b"MPEAVer\x00", "Settings 2/28 SYSTEM item name"),
+    # MPEA = v0.10 (quick-assign: with Mod held a control only selects, stock draws and applies nothing);
+    # MPEB = v0.11 (Settings PARAM LOCK: keep FX, Arp or Voice settings through a patch change).
+    (0x080452FB, b" Version ", b"MPEB Ver ", "boot screen label (.data initialiser of RAM 0x200000EB)"),
+    (0x080445E8, b"Version\x00", b"MPEBVer\x00", "Settings 2/28 SYSTEM item name"),
     # The flag's reserved descriptor: max 0 -> 1, display 0 -> 0x0F (Off/On,
     # as KeySync/FadeSync/Common on the Peak). NRPN stays 255:0. The name
     # pointer is a hook below.
@@ -82,7 +83,7 @@ PATCHES = [
 
 SOURCES = ["mpe_settings.c", "mpe_route.c", "mpe_voice.c", "mpe_ui.c",
            "mpe_expr.c", "mpe_bend.c", "mpe_pressure.c", "mpe_slide.c",
-           "arp_echo.c", "disp.c", "envsync.c", "qassign.c"]
+           "arp_echo.c", "disp.c", "envsync.c", "qassign.c", "paramlock.c"]
 
 MIDI_CHANNEL_FILTER = 0x0800EED0
 VOICE_DISPATCH = 0x08012984
@@ -107,6 +108,7 @@ ARP_MIDI_NOTE_ON = 0x08014EA4
 ARP_MIDI_NOTE_OFF = 0x08014EB4
 KNOB_OVERLAY = 0x08016B14
 PANEL_EVENT_READ = 0x0800DDFC
+FW_MEMCPY = 0x0801D736
 LCD_PUTS = 0x0800D260
 
 # (kind, site, expected original, patch symbol, why)
@@ -157,6 +159,7 @@ HOOKS = [
     # Knob-turn display (disp.c).
     ("bl", 0x08016EF2, KNOB_OVERLAY, "disp_knob_overlay", "knob_poll: 7-bit knob"),
     ("bl", 0x08016F28, KNOB_OVERLAY, "disp_knob_overlay", "knob_poll: 9-bit knob"),
+    ("bl", 0x0801AECC, FW_MEMCPY, "plock_copy", "patch load: the copy into the patch (parameter lock)"),
     ("bl", 0x08016FF4, PANEL_EVENT_READ, "qa_panel_read", "panel_button_event: the button event read (Mod held)"),
     ("bl", 0x08016C2A, LCD_PUTS, "disp_skip_puts", "knob_overlay: the pickup label on row 3"),
     ("bl", 0x08016C48, LCD_PUTS, "disp_skip_puts", "knob_overlay: the row-3 clear after a pickup"),

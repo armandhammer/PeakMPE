@@ -9,14 +9,15 @@
  * The four calls of ui_value_change come here, and this item is written
  * directly into the patch. No MIDI echo: the flag has no NRPN.
  *
- * Settings: three pages after MIDI CONTROL (where the Peak has its MIDI
- * channel), so Settings has 29 pages.
+ * Settings: four pages after MIDI CONTROL (where the Peak has its MIDI
+ * channel), so Settings has 30 pages.
  *   MPE             Zone (Off/Lower/Upper), Members (1-15)
  *   MPE BEND RANGE  Note Bend, MasterBend (semitones, 1-96)
  *   MPE EXTRAS      PressCurve (Squared/Linear), EnvSync (Off, 1/2-1/16)
+ *   PARAM LOCK      Lock FX, Lock Arp, Lock Voice (Off/On)
  * The Summit's read-only "Channels" item (CH CLASH) is left out: the Peak has
  * no Multi parts whose channels a zone could take.
- * The items are kind 3 (global settings) with records 0x30-0x35, which stock
+ * The items are kind 3 (global settings) with records 0x30-0x38, which stock
  * global_param_desc doesn't have (0x22 records on the Peak). So the
  * descriptor table and the Settings menu move to patch RAM, filled at boot
  * from the stock RAM copies plus the new entries. The three literals of
@@ -57,14 +58,14 @@ struct mpe_page {
 };
 
 #define STOCK_DESCS 0x22           /* Peak global_param_desc: records 0x00-0x21, then other data */
-#define MPE_DESCS (MPE_G_ENVSYNC + 1)
+#define MPE_DESCS (MPE_G_LOCK_FX + 3)
 #define MPE_PAGE_AT 4              /* after MIDI CONTROL (stock page 3) */
-#define MPE_PAGES 3
+#define MPE_PAGES 4
 #define STOCK_PAGES PEAK_SETTINGS_PAGES
 #define UI_MODE_SETTINGS PEAK_UI_SETTINGS
 #define UI_MODE (ui_state[0])
 
-enum { DISP_ZONE = 0xE0, DISP_MEMBERS, DISP_NOTE, DISP_MASTER, DISP_CURVE, DISP_ENVSYNC, DISP_END };
+enum { DISP_ZONE = 0xE0, DISP_MEMBERS, DISP_NOTE, DISP_MASTER, DISP_CURVE, DISP_ENVSYNC, DISP_LOCK_FX, DISP_LOCK_ARP, DISP_LOCK_VOICE, DISP_END };
 
 #define FIELD 8                    /* value field: columns 11-18, the mark is at 19 */
 
@@ -82,6 +83,7 @@ PATCH_NOINIT struct mpe_page mpe_pages[MPE_PAGES];
 static const char title_zone[] = "MPE";
 static const char title_bend[] = "MPE BEND RANGE";
 static const char title_extra[] = "MPE EXTRAS";
+static const char title_lock[] = "PARAM LOCK";
 
 static const struct mpe_desc new_descs[] = {
     {0, 2, 0x40, 0x2E, DISP_ZONE, "Zone"},
@@ -90,6 +92,9 @@ static const struct mpe_desc new_descs[] = {
     {1, MPE_MAX_RANGE, 0x40, 0x31, DISP_MASTER, "MasterBend"},
     {0, 1, 0x40, 0x32, DISP_CURVE, "PressCurve"},
     {0, 4, 0x40, 0x33, DISP_ENVSYNC, "EnvSync"},
+    {0, 1, 0x40, 0x34, DISP_LOCK_FX, "Lock FX"},
+    {0, 1, 0x40, 0x35, DISP_LOCK_ARP, "Lock Arp"},
+    {0, 1, 0x40, 0x36, DISP_LOCK_VOICE, "Lock Voice"},
 };
 
 /* Last drawn per item. Only compared with what would be drawn now, so its
@@ -119,7 +124,7 @@ static void build_tables(void)
         dst[i] = src[i];
     for (uint32_t i = STOCK_DESCS * sizeof(struct mpe_desc) / 4; i < MPE_G_ZONE * sizeof(struct mpe_desc) / 4; i++)
         dst[i] = 0;  /* records 0x22-0x2F: no Settings item uses them */
-    for (uint32_t i = 0; i <= MPE_G_ENVSYNC - MPE_G_ZONE; i++)
+    for (uint32_t i = 0; i <= MPE_G_LOCK_FX + 2 - MPE_G_ZONE; i++)
         mpe_global_desc[MPE_G_ZONE + i] = new_descs[i];
 
     page_init(&mpe_pages[0], title_zone);
@@ -131,6 +136,10 @@ static void build_tables(void)
     page_init(&mpe_pages[2], title_extra);
     page_item(&mpe_pages[2], MPE_G_CURVE);
     page_item(&mpe_pages[2], MPE_G_ENVSYNC);
+    page_init(&mpe_pages[3], title_lock);
+    page_item(&mpe_pages[3], MPE_G_LOCK_FX);
+    page_item(&mpe_pages[3], MPE_G_LOCK_FX + 1);
+    page_item(&mpe_pages[3], MPE_G_LOCK_FX + 2);
 
     struct mpe_page **stock = (struct mpe_page **)(settings_menu + 4);
     uint32_t n = 0;
@@ -253,6 +262,11 @@ static void render_view(const struct mpe_live *v, uint32_t display, char *out)
     case DISP_CURVE:
         put_str(&p, globals[MPE_G_CURVE] == 1 ? "Linear" : "Squared");
         break;
+    case DISP_LOCK_FX:
+    case DISP_LOCK_ARP:
+    case DISP_LOCK_VOICE:
+        put_str(&p, globals[MPE_G_LOCK_FX + (display - DISP_LOCK_FX)] == 1 ? "On" : "Off");
+        break;
     case DISP_ENVSYNC: {
         static const char *const names[] = {"Off", "1/2", "1/4", "1/8", "1/16"};
         uint8_t n = globals[MPE_G_ENVSYNC];
@@ -301,7 +315,7 @@ static int on_mpe_page(const uint8_t *page)
 {
     return UI_MODE == UI_MODE_SETTINGS &&
            (page == (const uint8_t *)&mpe_pages[0] || page == (const uint8_t *)&mpe_pages[1] ||
-            page == (const uint8_t *)&mpe_pages[2]);
+            page == (const uint8_t *)&mpe_pages[2] || page == (const uint8_t *)&mpe_pages[3]);
 }
 
 /* Replaces main_loop's sysex_rx_poll call (0x0800D1C4), a call made once per
@@ -334,7 +348,7 @@ void mpe_ui_poll(void)
 
 static void edit_setting(uint16_t index, int32_t delta)
 {
-    if (index > MPE_G_ENVSYNC || delta == 0)  /* as stock, no reset for globals */
+    if (index > MPE_G_LOCK_FX + 2 || delta == 0)  /* as stock, no reset for globals */
         return;
     mpe_live_to_globals();
     const struct mpe_desc *d = &mpe_global_desc[index];
@@ -354,6 +368,11 @@ static void edit_setting(uint16_t index, int32_t delta)
         break;
     case MPE_G_ENVSYNC:
         v = globals[MPE_G_ENVSYNC] > 4 ? 0 : globals[MPE_G_ENVSYNC];
+        break;
+    case MPE_G_LOCK_FX:
+    case MPE_G_LOCK_FX + 1:
+    case MPE_G_LOCK_FX + 2:
+        v = globals[index] == 1;
         break;
     default:
         v = setting(MPE_G_MASTER_RANGE, MPE_MAX_RANGE, MPE_DEFAULT_MASTER_RANGE);

@@ -35,6 +35,7 @@
 #define MPE_G_MASTER_RANGE 0x33  /* master bend range, 1-96; 0 or > 96 = 2 */
 #define MPE_G_CURVE 0x34         /* pressure curve: 0 Squared (stock), 1 Linear */
 #define MPE_G_ENVSYNC 0x35       /* tempo-synced Decay/Release: 0 Off, 1-4 = 1/2 1/4 1/8 1/16 */
+#define MPE_G_LOCK_FX 0x36       /* parameter lock: FX, Arp, Voice at +0x36, +0x37, +0x38: 0 Off, 1 On */
 
 #define MPE_DEFAULT_MEMBERS 15
 #define MPE_DEFAULT_NOTE_RANGE 48

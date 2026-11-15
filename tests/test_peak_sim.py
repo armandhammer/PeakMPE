@@ -602,3 +602,45 @@ def test_quick_assign_encoder_chooses_the_source(mpe_built):
     assert _slots(b)[free] == (8, 0, 96, 22), _slots(b)[free]
     _call(b, blob.address("qa_knob"), 0x9B)                       # ME1Attack -> destination 25
     assert _slots(b)[free + 1] == (8, 0, 96, 25), _slots(b)[free + 1]
+
+
+# --- Parameter lock (Settings > PARAM LOCK) -----------------------------------
+
+PATCH_LOAD, INIT_PATCH = 0x0801AEB8, 0x08043160
+G_LOCK_FX = 0x36
+
+
+def test_param_lock_keeps_a_group_through_a_patch_load(mpe_image):
+    b = _boot(mpe_image)
+    for off, v in ((0xCC, 99), (0xF1, 5), (0x24, 77), (0x93, 33)):   # FX, Arp, Voice, and an unlocked envelope
+        b.uc.mem_write(PATCHES + off, bytes([v]))
+    b.uc.mem_write(GLOBALS + G_LOCK_FX, bytes([1, 0, 0]))            # lock FX only
+    _call(b, PATCH_LOAD, INIT_PATCH)                                 # the Initialise patch loads
+    assert b.u8(PATCHES + 0xCC) == 99                                # locked: kept
+    assert b.u8(PATCHES + 0xF1) != 5 and b.u8(PATCHES + 0x24) != 77  # not locked: the new patch's
+    assert b.u8(PATCHES + 0x93) != 33
+    b.uc.mem_write(GLOBALS + G_LOCK_FX, bytes([1, 1, 1]))
+    for off, v in ((0xF1, 5), (0x24, 77)):
+        b.uc.mem_write(PATCHES + off, bytes([v]))
+    _call(b, PATCH_LOAD, INIT_PATCH)
+    assert (b.u8(PATCHES + 0xCC), b.u8(PATCHES + 0xF1), b.u8(PATCHES + 0x24)) == (99, 5, 77)
+    assert b.u8(PATCHES + 0x93) != 33
+
+
+def test_param_lock_off_is_stock(mpe_image):
+    b = _boot(mpe_image)
+    b.uc.mem_write(PATCHES + 0xCC, bytes([99]))
+    _call(b, PATCH_LOAD, INIT_PATCH)
+    assert b.u8(PATCHES + 0xCC) != 99
+
+
+def test_param_lock_settings_page(mpe_built):
+    b = _boot(mpe_built.patched)
+    rows = _show(b, 8, 7, 0)                      # Settings PARAM LOCK page
+    assert rows[0].startswith("PARAM LOCK"), rows
+    text = "\n".join(rows)
+    assert "Lock FX" in text and "Lock Arp" in text and "Lock Voice" in text and "Off" in text, rows
+    _call(b, mpe_built.blob.address("mpe_ui_value_change"), 1)
+    assert b.u8(GLOBALS + G_LOCK_FX) == 1
+    rows = _show(b, 8, 7, 0)
+    assert any("Lock FX" in r and "On" in r for r in rows), rows
