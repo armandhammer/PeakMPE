@@ -72,8 +72,8 @@ META = {
     },
     ("peak", "mpe"): {
         "title": "MPE for Peak",
-        "version": "0.12",
-        "label": "MPEC Ver 108.469",
+        "version": "0.13",
+        "label": "MPED Ver 108.469",
         "summary": "Per-note pitch bend, pressure (channel or poly aftertouch) and slide (MPE) on the Peak's "
                    "8 voices, a per-patch MPE switch (VOICE page) and Settings MPE pages; one or two zones. "
                    "v0.2: the arpeggiator ignores its own notes when a DAW sends them back (MIDI loop). "
@@ -85,6 +85,7 @@ META = {
                    "v0.8: hold Mod and move a slider or knob to put its modulation destination in the first free matrix slot; the encoder chooses the source. "
                    "v0.11: Settings > PARAM LOCK keeps the FX, Arp or Voice settings through a patch change. "
                    "v0.12: Settings > COPY SECTION copies an oscillator, envelope or LFO to another; Mod + Page left/right undoes and redoes the last change; Settings > MIDI MONITOR shows the last message and the DIN overflow count. "
+                   "v0.13: the copy and undo messages stay on screen about 2 s. "
                    "Tested on one Peak with the automated hardware test rig and played from a LinnStrument.",
     },
 }

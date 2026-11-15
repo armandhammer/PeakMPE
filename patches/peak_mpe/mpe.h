@@ -128,6 +128,7 @@ int qa_held(void);
 int qa_encoder(int32_t delta);  /* 1 = taken (Mod held: chooses the source) */
 void qa_knob(uint32_t id);
 void ui_say(const char *l0, const char *l1, const char *l2, const char *l3);  /* four rows for the message time */
+void ui_say_hold(void);   /* keep that message up for at least about 2 s */
 
 /* --- Section copy and undo (section.c), MIDI monitor (diag.c) ---------- */
 uint32_t mpe_ticks(void);        /* envsync.c: 2000 per second in the simulator */

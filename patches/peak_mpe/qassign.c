@@ -108,6 +108,16 @@ void ui_say(const char *l0, const char *l1, const char *l2, const char *l3)
     ui_msg_state[2] = (uint8_t)(globals[GLOBAL_MSG_TIME] + 5);
 }
 
+/* Keeps the message just drawn up for at least 35 counts. On the synth the stock Msg
+ * Time + 5 lasted about 0.3 s (user report 2026-11-15, Copy section), about 60 ms per
+ * count, so 35 is about 2 s (the simulator counts down much faster: its timing is not
+ * the synth's). */
+void ui_say_hold(void)
+{
+    if (ui_msg_state[2] < 35)
+        ui_msg_state[2] = 35;
+}
+
 static void text(char *out, const char *a, const char *b)
 {
     while (*a)

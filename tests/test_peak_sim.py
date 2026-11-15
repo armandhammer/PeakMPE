@@ -708,3 +708,16 @@ def test_copy_section_page(mpe_built):
     _call(b, mpe_built.blob.address("mpe_ui_value_change"), 1)    # Section: first copy
     rows = _show(b, 8, 8, 0)
     assert any("Section" in r and "Osc1>2" in r for r in rows), rows
+
+
+def test_do_it_message_is_not_redrawn_over(mpe_built):
+    b = _boot(mpe_built.patched)
+    _call(b, mpe_built.blob.address("section_edit"), G_SECT, 7)   # Amp>E1
+    _show(b, 8, 8, 1)                                             # the Do it row
+    _call(b, mpe_built.blob.address("mpe_ui_value_change"), 1)    # one click on the encoder
+    b.run_ms(1)
+    rows = b.display.lcd.text()
+    assert rows[0].startswith("COPY SECTION") and "Done:" in rows[1], rows
+    assert b.u8(0x20011208 + 2) >= 30      # held for 35 counts; Msg Time 0 alone is 5 (about 0.3 s on the synth)
+    b.run_ms(2500)
+    assert "Done:" not in "\n".join(b.display.lcd.text())         # and it does go away

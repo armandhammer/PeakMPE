@@ -130,7 +130,8 @@ int edit_button(uint32_t ev)
     }
     swap();
     undone = (uint8_t)back;
-    ui_say(back ? "UNDO" : "REDO", back ? "Back one change" : "Change restored", "Mod + Page left: undo", "Mod + Page right: redo");
+    ui_say(back ? "UNDO" : "REDO", back ? "Back one change" : "Change restored", "Mod+Page left: undo", "Mod+Page right: redo");
+    ui_say_hold();
     return 1;
 }
 
@@ -151,5 +152,6 @@ void section_edit(uint32_t index, int32_t delta)
     undo_capture();
     for (uint32_t k = 0; k < ops[op].len; k++)
         put(ops[op].dst + k, patches[ops[op].src + k]);
-    ui_say("COPY SECTION", "Done:", ops[op].name, "Undo: Mod + Page left");
+    ui_say("COPY SECTION", "Done:", ops[op].name, "Undo: Mod+Page left");
+    ui_say_hold();
 }

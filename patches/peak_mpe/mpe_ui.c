@@ -384,7 +384,8 @@ static void edit_setting(uint16_t index, int32_t delta)
     if (index >= MPE_G_SECT) {         /* COPY SECTION (section.c); the monitor items are read-only */
         if (index <= MPE_G_DOIT) {
             section_edit(index, delta);
-            ui_draw_values();
+            if (index == MPE_G_SECT)   /* "Do it" draws its own message; a redraw would wipe it */
+                ui_draw_values();
         }
         return;
     }
