@@ -54,7 +54,7 @@ address,name,kind,confidence,notes
 0x20002e90,menus,data,observed,11 menu pointers by UI mode; [6] VOICE [8] Settings
 0x20002ee8,settings_menu,data,observed,26 pages: SYSTEM SYSTEM SYNTH MIDI CONTROL MIDI ENABLE PEDAL SW SENSE PEDAL SW MODE MISC MISC BACKUP TUNINGTABLE 1-16; init 0x080480f8
 0x20003438,voice_page_1,data,observed,VOICE page 1: Unison (0x23) UniDetune (0x24) + 2 free items; init 0x08048648
-0x20004650,voice_state,data,observed,SoA: +9 voice loop index; +0x30 bend acc; +0x34 wheel acc (s16 at +0x36); +0x40 AT round robin; +0x44+2v aftertouch slot; +0x54+4v smoothed AT; +0xac tick request; +0x1e6 last alloc; +0x1f4+v gate
+0x20004650,voice_state,data,observed,SoA: +9 voice loop index; +0x30 bend acc; +0x34 wheel acc (s16 at +0x36); +0x40 AT round robin; +0x44+2v aftertouch slot; +0x54+4v smoothed AT; +0x74+4v glide pitch (16.16); +0xac tick request; +0x1e6 last alloc; +0x1e8 timer value at the last envelope read; +0x1f4+v gate; +0x1fc+3v+env envelope command counters; +0x214 note counter; +0x218+4v start stamp (u32); +0x23c+v held by the sustain pedal with the key up; +0x244+v held by the sostenuto pedal; +0x24e phrase-start flag; +0x250+v unison group
 0x20011200,ui_state,data,observed,[0] UI mode (8 Settings 5/7/9 other modes)
 0x20011210,midi_global_channel,data,observed,read by midi_channel_filter
 0x20011212,voice_part_mode,data,observed,0 one part 1 split 2 layer; read by voice_dispatch voice_alloc voice_release mod_tick; no direct store found (inferred: stays 0)
@@ -117,3 +117,15 @@ address,name,kind,confidence,notes
 0x0800ddfc,panel_event_read,function,observed,"() next panel button event: low byte +1 press / -1 release (0 none), next byte the button_table index; called once at the top of panel_button_event 0x08016ff4"
 0x0801d736,fw_memcpy,function,observed,"(dst src n) byte copy loop; patch load calls it at 0x0801aecc with n = 0x201 into the patch (0x20012340) or, when 0x20011213 is nonzero, into 0x200129c4"
 0x0801aeb8,patch_load,function,observed,"(src) memcpy 0x201 bytes into the patch (or 0x200129c4 when 0x20011213 is nonzero), then arp reset 0x08014db8, 0x08018b44, 0x08011d34, 0x08011ea0, 0x0800e00c, 0x080117f8(1); callers: Initialise 0x08013104, 0x08015948, patch select 0x0801a80c, 0x08019520 area"
+0x080119d8,env_command_stamp,function,observed,"(voice env cmd): env_command; voice 10 = all 8; on (env 0, cmd 0) stores the note counter voice_state+0x214 in the voice's start stamp +0x218+4v and counts it up; callers voice_alloc voice_release_part and the pedal releases"
+0x08011964,voice_gate_set,function,observed,"(voice): voice_state+0x1f4+v = 1, then FUN_0800dcd8(v + 0x10) (the voice's LED, inferred); caller voice_alloc"
+0x08011a20,voices_all_release,function,observed,"(flags): release command to all 8 voices' three envelopes; clears gate, pedal-held and sostenuto-held flags; callers 0x08011e54 0x08011e90 0x08011ea0 (patch load)"
+0x08011f2c,sustain_pedal,function,observed,"(value): 0x200127d4+0x1cd = 4 when value >= 0x40; on pedal up sustain_release 0x08011ed0 releases the voices with the pedal-held flag; callers cc 0x0800f124 and the pedal inputs"
+0x08011fec,sostenuto_pedal,function,observed,"(value): pedal down marks every gated voice sostenuto-held (0x08011f6c); pedal up (0x08011f90) clears the marks and releases those voices whose pedal-held flag is 0"
+0x08012024,phrase_start,function,observed,"sets voice_state+0x24e = 1 (cleared at the end of voice_trigger): the note starts a phrase (no other key held), so MonoLG does not glide and every envelope restarts; callers held_note_add path 0x0800f338 arp_step panel_button_event"
+0x200127c0,cand_release,data,observed,"voice_candidates: the quietest voice in envelope state 3 (release or idle), 0x0f = none; voice_alloc's first choice"
+0x20012294,cand_held,data,observed,"voice_candidates: the quietest voice in envelope state 1 or 2, 0x0f = none; second choice"
+0x200127ac,cand_attack,data,observed,"voice_candidates: the state-0 voice with the largest start stamp (the newest), 0x0f = none; third choice"
+0x20012cf0,cand_same,data,observed,"voice_candidates: among the voices in the caller's mask the loudest above level 0x200 (Poly2 same note; mono modes), 0x0f = none"
+0x20012334,cand_sorted_voice,data,observed,"8 x u8: the state-3 voices in scan order then sorted by level (levels 8 x u16 at 0x2001279c); used for unison and to avoid the voice taken last"
+0x200002f4,alloc_state,data,observed,"+0x2e0+part the part's last pick (scan starts one after it); +0x2e4+v the note each voice was given (Poly2 compares it); +0x2ec the voice taken last; +0xc8+3v+osc Diverge table"

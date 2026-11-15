@@ -8,7 +8,7 @@ llvm-objdump disassembly (`scripts/disasm.sh`), not a decompiler.
 | Landmark | Address | Confidence | Notes |
 |---|---|---|---|
 | Reset handler | `0x0801D6C4` | observed | `.bss` zero loop, then `.data` copy |
-| 8-voice "oldest voice" search | fn `0x08011B70`, loop `0x08011C0A–0x08011C90` | inferred | Iterates `r2 = 0..7`, keeps the voice with the largest 16-bit age counter: voice-stealing candidate |
+| 8-voice candidate search (`voice_candidates`) | fn `0x08011B70`, loop `0x08011C0A–0x08011C90` | observed | Ranks the 8 voices by the sound chip's envelope state and level, not by age: see [Voice allocation and stealing](#voice-allocation-and-stealing-2026-11-15) |
 | MIDI byte stream → USB-MIDI packets | `0x0801D484` | observed | `status >> 4 − 8` indexes a data-length table; builds 4-byte `[CIN, status, d1, d2]` packets; handles running status and SysEx |
 | USB-MIDI packet → TX FIFO | `0x0801D440` | inferred | Writes 4 bytes to an endpoint FIFO: MIDI **out** / thru path, not input |
 | SysEx receive state machine | `0x08019114` | observed | Matches the Novation header, `0x7F` command byte |
@@ -170,6 +170,99 @@ strings read from the image (`.data` is copied from flash `0x08045210` to RAM
   test calls `knob_overlay` directly with the arguments above, as `knob_poll`
   does.
 
+## Voice allocation and stealing (2026-11-15)
+
+From the Ghidra decompile, the literal pools read from the image, and the
+simulator (`tests/test_peak_voice_steal.py`, `work/_a1_alloc.py`). The code is
+the Summit's allocator with one engine
+([Summit findings, "Voice allocation reads the FPGA"](summit-2.2-build2121.md#the-fpga-bus-spi1)).
+Code structure is **observed**; what the sound chip (FPGA) replies on a real
+Peak is **inferred** (the simulator models the replies, it does not emulate
+the chip).
+
+**Stock is already tail-aware.** A new note takes the quietest voice that is
+in its release before it touches a held one. Plan step 18 as written
+("prefer an idle voice, then one in release") is what stock does.
+
+- **Call chain.** `note_on` `0x0800F53C` → `voice_dispatch` `0x08012984` →
+  `voice_trigger` `0x080128C0` (one `voice_alloc` per unison voice; patch
+  `+0x23` 0–3 = 1–4 voices, 4 = 8) → `voice_alloc` `0x080122B0`
+  `(note, vel, part, voice, unison)` → `voice_candidates` `0x08011B70`
+  `(start, mask, unison)` → `voice_env_read` `0x0801162C`.
+- **Voice mode** is patch `+0x22`: 0 Mono, 1 MonoLG, 2 Mono2, 3 Poly, 4 Poly2
+  (the names stand in this order from `0x0804396C`, 8 bytes each; the code agrees: 0/1 keep
+  one voice and 1 skips the envelope restart when legato, 2 is a strict
+  round robin `(last + 1) & 7` that reads nothing, 4 looks for the voice
+  already playing the note).
+- **What is read from the sound chip, on every allocation** (not in mode 2,
+  not with a forced voice): `voice_env_read` waits until the timer
+  `FUN_0800E6F4` has advanced by 2 since the last read (`voice_state+0x1E8`;
+  at most 10,000 passes), then makes three reads `fpga_write(8, 0x10, n)`,
+  n = 1, 2, 0. The nine reply words give a 16-bit **level** per voice
+  (`voice_env_level` `0x20012774`) and 2 bits of **envelope state** per
+  voice (`voice_env_state` `0x2001228C`).
+- **The ranking** (`voice_candidates`, voices scanned in the order
+  `(start + i) & 7`, `start` = the part's last pick `0x200002F4+0x2E0` + 1):
+
+  | State | Kept | Candidate byte (`0x0F` = none) |
+  |---|---|---|
+  | 3 (release; idle is 3 at level 0) | lowest level, first in scan order on a tie | `0x200127C0` |
+  | 1 or 2 (held: decay, sustain) | lowest level, first in scan order on a tie | `0x20012294` |
+  | 0 (attack) | **largest** start stamp, so the newest note | `0x200127AC` |
+  | any, voice in `mask` | highest level above `0x200` (Poly2's same note; the mono modes) | `0x20012CF0` |
+
+  For unison the state-3 voices are also listed and sorted by level
+  (voices `0x20012334`, levels `0x2001279C`).
+- **The choice** (`voice_alloc`, Poly, unison 1): the state-3 candidate; if
+  that is the voice taken last (`0x200002F4+0x2EC`), the second quietest of
+  the sorted list; with no state-3 voice the state-1/2 candidate; then the
+  state-0 candidate; then voice 0.
+- **A steal sends no release.** The taken voice gets only the three
+  envelope start commands (`0x3F`, `0x42`, `0x45`, state 0) and its new
+  pitch and velocity (emulated: the FPGA writes of a stealing note-on are
+  those of any note-on). Whether the chip restarts the envelope from zero
+  or from its current level is inside the chip (unknown).
+- **Per-voice state on the MCU** (`voice_state` `0x20004650`, observed):
+
+  | Field | Address | Meaning |
+  |---|---|---|
+  | gate | `+0x1F4+v` | 1 from the note start (`FUN_08011964`) until the release command (`voice_clear_at` `0x08011980`); stays 1 while a pedal holds the note |
+  | pedal-held | `+0x23C+v` | 1 = key is up, the sustain pedal holds the note (`voice_release_part` sets it when `0x200127D4+0x1CD` is nonzero; `FUN_08011ED0` releases those voices at pedal up) |
+  | sostenuto-held | `+0x244+v` | 1 = held by the sostenuto pedal (`FUN_08011F6C` marks the gated voices at pedal down, `FUN_08011F90` clears at pedal up) |
+  | start stamp | `+0x218+4v` (u32) | a note counter (`+0x214`), stored at each envelope start by `FUN_080119D8(voice, 0, 0)`. Larger = newer. Stock uses it only for state-0 voices |
+  | envelope command counters | `+0x1FC+3v+env` | 6 bits, sent with each command (`env_command` `0x080119A4`: `fpga_write(voice, {0x3F, 0x42, 0x45}[env], cmd + counter × 4)`, cmd 0 = start, 3 = release) |
+  | unison group | `+0x250+v` | which note-on the voice belongs to (`parts+0x13`) |
+  | note | `voice_note` `0x20012794+v`; `0x200002F4+0x2E4+v` | the note; the second copy is what Poly2 compares |
+
+  The MCU keeps **no release time and no level**. The only "how loud is this
+  voice" it ever has is the chip's reply at the moment of an allocation.
+- **Emulated results** (stock image, replies modelled: a held voice reads
+  state 2 at a fixed level, a released one state 3 falling to 0 over 1 s):
+  - 8 held, one let go, then a 9th note: the 9th takes the released voice.
+    No held note is cut.
+  - Two voices releasing: the one released earlier (quieter) goes first.
+  - 8 held at one level, 9th note: the voice after the last pick is cut.
+    After eight notes taken in turn that is the first note played (the
+    user's A6 observation on the synth, 2026-11-14). It is rotation order,
+    not age: with a pick in the middle (a released voice taken), the next
+    steal cuts the voice after it although older notes are held.
+  - Sustain pedal down, 8 notes played and let go, 9th note: as "8 held"
+    (the chip isn't told about the pedal; the MCU's pedal-held flag is not
+    used in the ranking).
+  - 8 voices still in state 0 (attack), 9th and 10th note: each takes the
+    **newest** voice, so the 10th cuts the 9th.
+- **Where a patch could do better than stock** (ideas, nothing built): a
+  tie between held voices could go to the oldest by start stamp instead of
+  rotation order; a note the pedal holds with its key up could go before a
+  note whose key is down; the lowest held note could be protected. All
+  three use MCU state only. Whether held voices tie on a real Peak (equal
+  levels at full sustain) is not known: the levels have never been read on
+  hardware.
+- **Possible stock quirk, from the code only (inferred, not run):** at
+  sostenuto pedal up, `FUN_08011F90` releases every sostenuto-held voice
+  whose pedal-held flag is 0, with no check that its key is still down, so a
+  key held through the sostenuto pedal's release would stop sounding.
+
 ## Dead ends
 
 - `cmp r4, #0xf0` hits at `0x08011CA4` and `0x0801258C` are literal pools
@@ -178,5 +271,6 @@ strings read from the image (`.data` is copied from flash `0x08045210` to RAM
 
 ## Open
 
-- MIDI **input** dispatch (note on/off, bend, channel pressure, CC).
-- Note-on → voice allocation call chain; per-voice struct layout.
+- What the sound chip really replies to the allocator's reads on a Peak:
+  the state of a held voice over time (when 0 becomes 1 or 2), the level's
+  scale, and whether held voices at full sustain read exactly equal.

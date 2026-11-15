@@ -396,6 +396,15 @@ Measurements (step 6) can run on the rig while code is written for others.
     then one in release, then the least disruptive. First check: what stock
     does (the search at `0x08011B70` keeps the largest age counter, inferred
     oldest-voice), measured on the rig. Kept only if it measurably helps.
+    **Traced 2026-11-15: stock already does this.** The allocator reads each
+    voice's envelope state and level from the sound chip on every note-on and
+    takes the quietest voice in its release first, then the quietest held
+    voice, then the newest still in its attack (code observed; the chip's
+    replies inferred; emulated in `tests/test_peak_voice_steal.py`). The search
+    is not by age. Details and what a patch could still add (oldest on a tie,
+    pedal-held notes before key-held, keep the lowest note) are in the
+    [findings](findings/peak-2.2-build2108.md#voice-allocation-and-stealing-2026-11-15).
+    Open: one rig check that the synth behaves as the code reads.
 19. **Per-note glide in MPE** (M). Scope still open. With channel rotation
     (the LinnStrument's default) a member channel's previous note is
     unrelated to its next one, so seeding glide per channel would glide from
