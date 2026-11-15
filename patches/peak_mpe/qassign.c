@@ -93,10 +93,14 @@ uint32_t qa_panel_read(void)
     return ev;
 }
 
+static uint8_t holding;              /* ui_say_hold: the message is being kept up */
+static uint32_t hold_until;
+
 /* Four rows on the page for the message time. */
 void ui_say(const char *l0, const char *l1, const char *l2, const char *l3)
 {
     const char *rows[4] = {l0, l1, l2, l3};
+    holding = 0;
     for (uint32_t r = 0; r < 4; r++) {
         lcd_cursor(0, r);
         uint32_t n = 0;
@@ -108,14 +112,31 @@ void ui_say(const char *l0, const char *l1, const char *l2, const char *l3)
     ui_msg_state[2] = (uint8_t)(globals[GLOBAL_MSG_TIME] + 5);
 }
 
-/* Keeps the message just drawn up for at least 35 counts. On the synth the stock Msg
- * Time + 5 lasted about 0.3 s (user report 2026-11-15, Copy section), about 60 ms per
- * count, so 35 is about 2 s (the simulator counts down much faster: its timing is not
- * the synth's). */
+/* Keeps the message just drawn up for 2 s, timed by the 1 kHz modulation tick rather
+ * than by stock's countdown: how long one count of that lasts on the synth is not
+ * known (at least 11 ms from the code, FUN_08018ADC; about 23 ms if the guide's "Msg
+ * Time 127 is approx. 3 seconds" is exact; findings, "Timers and the 1 kHz tick").
+ * v0.13 set 35 counts, which is 0.4 to 0.8 s. ui_hold_poll keeps the countdown from
+ * running out until the 2 s are over; another ui_say ends the hold. */
+#define HOLD_TICKS 2000
+#define HOLD_MIN_COUNTS 5
 void ui_say_hold(void)
 {
-    if (ui_msg_state[2] < 35)
-        ui_msg_state[2] = 35;
+    holding = 1;
+    hold_until = mpe_ticks() + HOLD_TICKS;
+    if (ui_msg_state[2] < HOLD_MIN_COUNTS)
+        ui_msg_state[2] = HOLD_MIN_COUNTS;
+}
+
+/* Main-loop pass (mpe_ui_poll). */
+void ui_hold_poll(void)
+{
+    if (!holding)
+        return;
+    if ((int32_t)(hold_until - mpe_ticks()) <= 0 || !ui_msg_state[2])
+        holding = 0;
+    else if (ui_msg_state[2] < HOLD_MIN_COUNTS)
+        ui_msg_state[2] = HOLD_MIN_COUNTS;
 }
 
 static void text(char *out, const char *a, const char *b)

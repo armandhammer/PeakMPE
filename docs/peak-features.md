@@ -96,6 +96,13 @@ These apply to every module in the combined definition.
   voice has since been stolen or released. Panic, patch change, MPE channel
   reuse and sustain release clear the queue. In place before strum and
   ratchets.
+- **Times in the patch are counted in modulation ticks, 1000 per second**
+  (`mpe_ticks()`). The Peak's TIM6 runs at 10 kHz and requests a tick every
+  10th interrupt ([findings](findings/peak-2.2-build2108.md#timers-and-the-1-khz-tick-2026-11-15)).
+  Until 2026-11-15 the simulator ran the Peak's timers twice too fast, and
+  v0.6 to v0.13 carried tick counts twice too large (EnvSync's holds, the
+  undo gesture window); stock's message countdown is not used for timing,
+  its count length on the synth is not known.
 - **Timing budget, checked for every combined image:**
   - note latency (MIDI in to sound) under combined load: dense MPE
     expression while changing patches, paging the screen and receiving
@@ -333,7 +340,12 @@ Measurements (step 6) can run on the rig while code is written for others.
     then move a slider or knob: its destination goes into the first free slot
     (both sources Direct, depth 0) at depth +32. The same control again does
     nothing; a control with no destination says so. Control-to-destination
-    table: names matched to the matrix's destination list (inferred; mod
+    table: names matched to the matrix's destination list (checked
+    2026-11-15: for all 47 entries the control's own name in
+    `patch_param_desc` and the destination's name in the matrix list
+    `0x080464E0` agree, e.g. `O1Shape` → `Osc1Shpe`; the firmware has no
+    table of its own from control to destination, searched for in
+    destination order at five record sizes; mod
     destinations without a control are left out). Values go in through the CC
     setter with the slot's NRPN number (emulated: slots updated). **On the synth
     (v0.9, 2026-11-14, user):** assign, slot choice, the Mod menu entry and the
@@ -382,8 +394,9 @@ Measurements (step 6) can run on the rig while code is written for others.
     **Built (v0.12, `patches/peak_mpe/diag.c`; emulated, not yet on the synth):**
     Settings > MIDI MONITOR (read-only): the last channel message in hex, the
     message count since power-up, and the DIN overflow counter (a byte at
-    `0x20003EAC+0x204`, address from the earlier DIN tests, counter size
-    inferred). The MPE zone in effect is on the Settings MPE page already.
+    `0x20003EAC+0x204`, address from the earlier DIN tests; **one byte,
+    observed 2026-11-15** in the USART6 interrupt's `ldrb`/`strb`, so it
+    wraps after 255). The MPE zone in effect is on the Settings MPE page already.
 
 ### 5. Playing
 
@@ -412,6 +425,25 @@ Measurements (step 6) can run on the rig while code is written for others.
     bend. The useful case is likely a mono or legato lead played in MPE.
     First check: decide the musical use with the LinnStrument before
     building.
+    **Traced and built 2026-11-15 (emulated, not yet on the synth):** stock
+    keeps one glide pitch per voice and never resets it, so in Poly (and in
+    MPE, where each note gets its own voice) a note glides from whatever its
+    voice played last, the guide's "unpredictable"; after power-on from
+    middle C ([findings, "Glide"](findings/peak-2.2-build2108.md#glide-2026-11-15)).
+    Settings > MPE EXTRAS > **Glide** chooses where a poly glide starts:
+    `Stock`; `LastNote`, from where the previous note's pitch is now,
+    whichever voice or member channel played it; `Legato`, the same but only
+    while another note is held, a detached note starting on pitch (what
+    MonoLG does with its one voice, here with a voice per note, so per-note
+    bend, Slide and pressure keep working). It only moves the start: the
+    patch's Glide On and Glide Time decide whether and how fast, PreGlide
+    still wins when it is not 0, and the mono modes are untouched. The
+    start is the previous note's unbent pitch (a per-note bend is added
+    after the glide). Code: `mpe_voice.c` (`glide_start`, in the existing
+    hook on `voice_alloc`'s `voice_glide` call); tests
+    `tests/test_peak_glide.py`. Musical success to check by ear: a legato
+    line on the LinnStrument glides note to note as a mono lead would, and
+    chords no longer swoop in from unrelated pitches.
 20. **Strum** (S–M as an arp/Chord mode; M–L for incoming MIDI). MIDI sends
     a chord as separate notes, so strumming live input needs a short
     chord-detection window and care with note-offs, sustain and expression

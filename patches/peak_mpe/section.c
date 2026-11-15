@@ -24,7 +24,7 @@
 #include "mpe.h"
 
 #define PARAMS 0x1A2
-#define TICKS_PER_GESTURE 4000   /* about 2 s at the 2 kHz tick envsync.c measured in the simulator */
+#define TICKS_PER_GESTURE 2000   /* 2 s at the 1 kHz tick (mpe_ticks) */
 
 static const struct { const char *name; uint8_t src, dst, len; } ops[] = {
     {"-", 0, 0, 0},

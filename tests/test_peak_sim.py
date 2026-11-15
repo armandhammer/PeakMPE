@@ -159,46 +159,46 @@ def test_mpe_member_pressure_reaches_only_its_voice(mpe_on):
     b, blob = mpe_on
     v2, v3 = _voice_of(b, blob, 1), _voice_of(b, blob, 2)
     b.fpga.reset()
-    _send(b, 0xD1, 100, ms=80)          # channel 2 pressure; 0x61 is round-robin, 8 ms per voice
+    _send(b, 0xD1, 100, ms=160)          # channel 2 pressure; 0x61 is round-robin, 8 ms per voice
     at = _last(b, 0x61)
     assert at.get(v2, 0) > 0x1000
     assert at.get(v3, 0) == 0
-    _send(b, 0xD1, 0, ms=80)
+    _send(b, 0xD1, 0, ms=160)
 
 
 def test_mpe_member_poly_aftertouch_reaches_only_its_voice(mpe_on):
     b, blob = mpe_on
     v2, v3 = _voice_of(b, blob, 1), _voice_of(b, blob, 2)
     b.fpga.reset()
-    _send(b, 0xA2, 60, 100, ms=80)      # channel 3 poly pressure on note 60
+    _send(b, 0xA2, 60, 100, ms=160)      # channel 3 poly pressure on note 60
     at = _last(b, 0x61)
     assert at.get(v3, 0) > 0x1000
     assert at.get(v2, 0) == 0
-    _send(b, 0xA2, 60, 0, ms=80)
+    _send(b, 0xA2, 60, 0, ms=160)
 
 
 def test_mpe_member_cc11_is_pressure(mpe_on):
     b, blob = mpe_on
     v2, v3 = _voice_of(b, blob, 1), _voice_of(b, blob, 2)
     b.fpga.reset()
-    _send(b, 0xB1, 11, 100, ms=80)      # channel 2 CC 11
+    _send(b, 0xB1, 11, 100, ms=160)      # channel 2 CC 11
     at = _last(b, 0x61)
     assert at.get(v2, 0) > 0x1000
     assert at.get(v3, 0) == 0
-    _send(b, 0xB1, 11, 0, ms=80)
+    _send(b, 0xB1, 11, 0, ms=160)
 
 
 def test_mpe_member_slide_reaches_only_its_voice(mpe_on):
     b, blob = mpe_on
     v2, v3 = _voice_of(b, blob, 1), _voice_of(b, blob, 2)
     b.fpga.reset()
-    _send(b, 0xB1, 74, 127, ms=60)      # channel 2 CC 74 full
+    _send(b, 0xB1, 74, 127, ms=120)      # channel 2 CC 74 full
     wheel = _last(b, 0x60)
     assert wheel.get(v2) == 0x7FFF
     assert wheel.get(v3, 0) == 0
     broadcast = [e for e in b.fpga.events if not e.read and e.target == 0x1A and e.param == 0x60]
     assert not broadcast                 # the stock broadcast 0x60 is dropped while MPE is on
-    _send(b, 0xB1, 74, 0, ms=60)
+    _send(b, 0xB1, 74, 0, ms=120)
 
 
 def test_mpe_note_off_releases_only_its_channel(mpe_on):
@@ -459,7 +459,7 @@ def _pressure_127(image, linear):
     b.uc.mem_write(GLOBALS + G_CURVE, bytes([1 if linear else 0]))
     _send(b, 0x90, 60, 100, ms=40)
     b.fpga.reset()
-    _send(b, 0xD0, 127, ms=300)
+    _send(b, 0xD0, 127, ms=600)         # the smoother needs about 0.5 s to settle at the 1 kHz tick
     at = _last(b, 0x61)
     assert at, "no AftTouch write"
     return max(at.values())
@@ -718,6 +718,7 @@ def test_do_it_message_is_not_redrawn_over(mpe_built):
     b.run_ms(1)
     rows = b.display.lcd.text()
     assert rows[0].startswith("COPY SECTION") and "Done:" in rows[1], rows
-    assert b.u8(0x20011208 + 2) >= 30      # held for 35 counts; Msg Time 0 alone is 5 (about 0.3 s on the synth)
-    b.run_ms(2500)
+    b.run_ms(1500)                         # held for 2 s by the patch's own clock; Msg Time 0 alone is 5 counts
+    assert "Done:" in b.display.lcd.text()[1]
+    b.run_ms(1000)
     assert "Done:" not in "\n".join(b.display.lcd.text())         # and it does go away

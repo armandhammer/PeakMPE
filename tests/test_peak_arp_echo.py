@@ -117,10 +117,11 @@ def test_filter_keeps_the_arp_playing(built):
 
 
 def test_filter_clock_counts_milliseconds(built):
-    """ECHO_WINDOW is in mod_tick ticks. Measured against the arp, not the
-    simulator's clock: on the Peak a 16th at 120 BPM is 125 ms (rig,
-    2026-11-13), and the simulator runs the Peak's timers at twice its own
-    ms (62.5 sim-ms per step), so ticks per arp step is the check."""
+    """ECHO_WINDOW is in mod_tick ticks. Measured against the arp: on the
+    Peak a 16th at 120 BPM is 125 ms (rig, 2026-11-13), so 125 ticks per arp
+    step means a tick is a millisecond. (Until 2026-11-15 the simulator ran
+    the Peak's timers 2x fast, 62.5 sim-ms per step; ticks per step did not
+    depend on that.)"""
     b = _boot(built.patched)
     b.uc.mem_write(PATCHES + ARP_ON, b"\x01")
     b.uc.mem_write(GLOBALS + ARP_MIDI, b"\x01")

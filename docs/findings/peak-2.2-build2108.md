@@ -91,9 +91,10 @@ how the code uses them.
 - **Simulator notes:** the seeded DataFlash has CC/NRPN = 0 (Disabled), so
   CCs sent to the simulator change nothing until `globals+0x14` is set to 3;
   writing patch bytes in RAM doesn't reach the oscillators (they are
-  recomputed only on a parameter change); and the simulator runs the Peak's
-  timers at twice its own milliseconds (arp step 62.5 sim-ms vs 125 ms on
-  hardware).
+  recomputed only on a parameter change). Until 2026-11-15 the simulator ran
+  the Peak's timers at twice its own milliseconds (arp step 62.5 sim-ms vs
+  125 ms on hardware); fixed, see
+  [Timers and the 1 kHz tick](#timers-and-the-1-khz-tick-2026-11-15).
 
 ## The knob overlay, pickup and the LCD (2026-11-13)
 
@@ -262,6 +263,112 @@ in its release before it touches a held one. Plan step 18 as written
   sostenuto pedal up, `FUN_08011F90` releases every sostenuto-held voice
   whose pedal-held flag is 0, with no check that its key is still down, so a
   key held through the sostenuto pedal's release would stop sounding.
+
+## Glide (2026-11-15)
+
+From the decompile and the simulator (`work/_b1_glide.py`; stock image).
+Code **observed**, behaviour **emulated**.
+
+- **Parameters** (patch offsets, names from `patch_param_desc`): `+0x27`
+  `GlideTime` 0–127, `+0x28` `PreGlide` 52–76 (64 = 0, in semitones), `+0x29`
+  an unnamed 0/1 switch (the panel's Glide On; the code treats 0 as glide
+  off).
+- **State per voice:** target pitch `voice_pitch` `0x200127C4+2v` (u16,
+  1/256 semitone, from the tuning table `0x20012CF4`), glide pitch
+  `voice_state+0x74+4v` (s32, 16.16), rate `0x200127B0+2v` (u16), PreGlide
+  offset `0x2001255C+v` (s8, semitones, used once), output
+  `voice_pitch_out` `0x20012544+2v` (the glide pitch's high word).
+- **`voice_glide`** `0x08010A9C`, once per voice per tick and once in
+  `voice_alloc`: if the PreGlide offset is nonzero, the glide pitch jumps to
+  target + offset and the offset is cleared; then the glide pitch moves
+  toward the target by `rate × difference` plus a constant `0x4000` step;
+  with the switch `+0x29` at 0 it is set to the target.
+- **Rates:** `FUN_08012D80` (voice parameters changed) computes the patch's
+  rate from `GlideTime` into `0x2001256C` (the zero-time rate if the switch
+  is off) and the zero-time rate into `0x20012564` (`FUN_08011240`).
+  `voice_alloc` gives the voice the patch's rate and the PreGlide offset;
+  only MonoLG at the start of a phrase (`voice_state+0x24E`, set by
+  `phrase_start` `0x08012024` when no other key is held) gets the zero-time
+  rate and no PreGlide.
+- **Where a glide starts (emulated):**
+  - **Poly:** from the pitch **that voice** last had. Nothing moves the
+    glide pitch between notes, and `voice_alloc` does not reset it. With
+    notes rotating through eight voices the start is the note played eight
+    notes ago on that voice (the guide's "unpredictable with chords").
+  - After power-on every voice's glide pitch is note 60, so the first eight
+    notes glide from middle C.
+  - **Mono:** one voice, so always from the last note, legato or not.
+  - **MonoLG:** from the last note when legato; a detached note starts on
+    pitch.
+  - **PreGlide** nonzero overrides all of these: the note starts at its own
+    pitch plus the offset.
+- **MPE.** The patch binds a member channel to a voice in a hook on
+  `voice_alloc`'s `voice_glide` call (`0x08012640`) and leaves glide alone.
+  So with MPE on, a note glides from its voice's last pitch as in Poly;
+  when a channel takes over its own still-sounding voice (channel reuse),
+  that is the channel's previous note. The per-note bend is added in
+  `osc_pitch`, after the glide, and does not enter the glide pitch.
+
+## Timers and the 1 kHz tick (2026-11-15)
+
+Why the simulator ran the Peak twice as fast as the synth, and what the
+real rates are. Register values **observed** in the image; the 60 MHz timer
+clock **inferred** as on the Summit; the result agrees with a time measured
+on the synth.
+
+- **Clock tree:** the same values as the Summit's `clock_init`:
+  `RCC_PLLCFGR = 0x05401E03`, `RCC_CFGR = 0x00409402` (literals at
+  `0x0800DAA4`, `0x0800DAAC`): SYSCLK 120 MHz, TIM6 clock 60 MHz (inferred,
+  [Summit findings](summit-2.2-build2121.md#modulation-tick-mod_update-call-rate)).
+- **TIM6** (`FUN_0800E414`): PSC 59, **ARR 99** (the Summit: ARR 49). So
+  60 MHz / 6000 = **10 kHz**, half the Summit's 20 kHz.
+- **TIM6 interrupt** (`0x0800E470`, vector 70): every 10th interrupt (the
+  Summit: every 20th) it requests a modulation tick (`FUN_08010E40`,
+  `voice_state+0xAC`), counts the millisecond counter `0x20003AD0+0x1C0`
+  (low 16 bits at `+0xD2`, read by `FUN_0800E4FC`), scans the panel
+  and steps the tempo clock (`FUN_0800FB80`). So the **modulation tick
+  (`mod_tick`, and the patch's `mpe_mod_update`) is 1 kHz** and the counter
+  counts milliseconds.
+- **The tempo clock confirms 1 kHz:** `FUN_0800FB80` adds the tempo word
+  (`0x20000264`, 1,717,984 per BPM) to a 32-bit accumulator on each of those
+  ticks, and each overflow is one MIDI clock. 2³² × 24 / 60 / 1000 =
+  1,717,987: the constant is 24 clocks per quarter note at a 1 kHz tick
+  (observed in the code). On the synth an arp step at 120 BPM measured
+  125 ms (observed, 2026-11-13), so the tick there is 1 kHz.
+- **The simulator's error:** it raised TIM6 in every 50 µs slot, the
+  Summit's rate, whatever the firmware programmed. On the Peak that made
+  every firmware timer run twice as fast as simulated time: 2000
+  modulation ticks per simulated second, an arp step in 62.5 ms. Fixed
+  2026-11-15: `emu/board.py` takes the period from TIM6's PSC and ARR
+  (`Board.tim6_period_us`). Summit timing is unchanged.
+- **Message time** (`FUN_08018ADC`, main loop): the countdown
+  `ui_msg_state+2` loses one count on a main-loop pass that finds the
+  millisecond counter advanced by more than 10 since the last count, so one
+  count is **at least 11 ms** (observed in the code; 11 ms in the corrected
+  simulator, 5.5 simulated ms before). A knob message starts at `Msg Time` +
+  5 counts (`FUN_08018A98`); `Msg Time` is 0–127, initial value 64 (guide).
+  **Not settled:** the guide says 127 "is equivalent to approx. 3 seconds",
+  which is about 23 ms per count, twice the code's minimum. Either the
+  guide's figure is loose or main-loop passes on the synth are long enough
+  to stretch each count; the time has not been measured on the synth (test
+  F3 in `TEST.md`). The earlier note "about 60 ms per count" came from a
+  `Done:` message seen for about 0.3 s on v0.12 and assumed `Msg Time` 0;
+  that message was more likely wiped by the page redraw fixed in v0.13.
+- **Consequences for the patch as flashed in v0.13** (constants written for
+  the simulator's 2 kHz): EnvSync applied a changed choice after about 2 s
+  (meant 1 s) and a tempo change after about 1 s (meant 0.5 s); the undo
+  gesture window was about 4 s (meant 2 s); and the "hold" of the Do it and
+  undo messages, 35 counts, was 0.4 to 0.8 s (meant 2 s). Corrected in the
+  source 2026-11-15 (the hold is now timed by the patch's own 1 kHz tick,
+  not by stock's countdown), not yet flashed.
+- **DIN receive ring and its overflow counter** (`0x20003EAC`, USART6
+  interrupt `0x0800EDD8`, observed): `+0` receive write index, `+1` receive
+  read index, `+2`/`+3` transmit read/write index (all u8), `+4` transmit
+  ring (256 bytes), `+0x104` receive ring (256 bytes), **`+0x204` overflow
+  counter: one byte** (`ldrb.w r2, [r3, #0x204]` at `0x0800EE2C`, `adds`,
+  `strb.w` at `0x0800EE32`), counted up when the write index catches the
+  read index. It wraps after 255; no other code reads or writes it (the
+  diagnostics page of the patch shows it).
 
 ## Dead ends
 

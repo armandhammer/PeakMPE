@@ -30,10 +30,11 @@
 #define WORD_PER_BPM100 17180u        /* 0x1A36E0 / 100 */
 #define CC_AMP_DECAY 0x57
 #define CC_AMP_RELEASE 0x59
-/* mpe_mod_update runs 2000 times per second of simulated time (measured in the
- * simulator 2026-11-14; the docs say 1 kHz, and the real rate is not confirmed on
- * the synth), so the holds below are 1 s and 0.5 s at that rate. */
-#define CHECK_TICKS 128               /* ticks between checks: 64 ms */
+/* mpe_mod_update runs 1000 times per second (TIM6 at 10 kHz, a tick every 10th
+ * interrupt; docs/findings/peak-2.2-build2108.md, "Timers and the 1 kHz tick"). Up to
+ * v0.13 these counts were twice as large, written for a simulator that ran the
+ * Peak's timers 2x fast, so on the synth the holds were 2 s and 1 s. */
+#define CHECK_TICKS 64                /* ticks between checks: 64 ms */
 #define DIV_HOLD_CHECKS 16            /* a changed setting applies after about 1 s */
 #define TEMPO_HOLD_CHECKS 8           /* a changed tempo after about 0.5 s */
 

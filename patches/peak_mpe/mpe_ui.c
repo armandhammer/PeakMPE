@@ -13,7 +13,8 @@
  * channel), so Settings has 30 pages.
  *   MPE             Zone (Off/Lower/Upper), Members (1-15)
  *   MPE BEND RANGE  Note Bend, MasterBend (semitones, 1-96)
- *   MPE EXTRAS      PressCurve (Squared/Linear), EnvSync (Off, 1/2-1/16)
+ *   MPE EXTRAS      PressCurve (Squared/Linear), EnvSync (Off, 1/2-1/16),
+ *                   Glide (Stock/LastNote/Legato)
  *   PARAM LOCK      Lock FX, Lock Arp, Lock Voice (Off/On)
  * The Summit's read-only "Channels" item (CH CLASH) is left out: the Peak has
  * no Multi parts whose channels a zone could take.
@@ -58,14 +59,15 @@ struct mpe_page {
 };
 
 #define STOCK_DESCS 0x22           /* Peak global_param_desc: records 0x00-0x21, then other data */
-#define MPE_DESCS (MPE_G_DIAG + 3)
+#define MPE_G_LAST MPE_G_GLIDE      /* the last record of new_descs */
+#define MPE_DESCS (MPE_G_LAST + 1)
 #define MPE_PAGE_AT 4              /* after MIDI CONTROL (stock page 3) */
 #define MPE_PAGES 6
 #define STOCK_PAGES PEAK_SETTINGS_PAGES
 #define UI_MODE_SETTINGS PEAK_UI_SETTINGS
 #define UI_MODE (ui_state[0])
 
-enum { DISP_ZONE = 0xE0, DISP_MEMBERS, DISP_NOTE, DISP_MASTER, DISP_CURVE, DISP_ENVSYNC, DISP_LOCK_FX, DISP_LOCK_ARP, DISP_LOCK_VOICE, DISP_SECT, DISP_DOIT, DISP_DLAST, DISP_DCOUNT, DISP_DOVF, DISP_END };
+enum { DISP_ZONE = 0xE0, DISP_MEMBERS, DISP_NOTE, DISP_MASTER, DISP_CURVE, DISP_ENVSYNC, DISP_LOCK_FX, DISP_LOCK_ARP, DISP_LOCK_VOICE, DISP_SECT, DISP_DOIT, DISP_DLAST, DISP_DCOUNT, DISP_DOVF, DISP_GLIDE, DISP_END };
 
 #define FIELD 8                    /* value field: columns 11-18, the mark is at 19 */
 
@@ -102,6 +104,7 @@ static const struct mpe_desc new_descs[] = {
     {0, 0, 0xFF, 0x00, DISP_DLAST, "Last msg"},
     {0, 0, 0xFF, 0x00, DISP_DCOUNT, "Msg count"},
     {0, 0, 0xFF, 0x00, DISP_DOVF, "DIN ovfl"},
+    {0, 2, 0x40, 0x37, DISP_GLIDE, "Glide"},          /* record 0x3E: stored in the globals again */
 };
 
 /* Last drawn per item. Only compared with what would be drawn now, so its
@@ -131,7 +134,7 @@ static void build_tables(void)
         dst[i] = src[i];
     for (uint32_t i = STOCK_DESCS * sizeof(struct mpe_desc) / 4; i < MPE_G_ZONE * sizeof(struct mpe_desc) / 4; i++)
         dst[i] = 0;  /* records 0x22-0x2F: no Settings item uses them */
-    for (uint32_t i = 0; i <= MPE_G_DIAG + 2 - MPE_G_ZONE; i++)
+    for (uint32_t i = 0; i <= MPE_G_LAST - MPE_G_ZONE; i++)
         mpe_global_desc[MPE_G_ZONE + i] = new_descs[i];
 
     page_init(&mpe_pages[0], title_zone);
@@ -143,6 +146,7 @@ static void build_tables(void)
     page_init(&mpe_pages[2], title_extra);
     page_item(&mpe_pages[2], MPE_G_CURVE);
     page_item(&mpe_pages[2], MPE_G_ENVSYNC);
+    page_item(&mpe_pages[2], MPE_G_GLIDE);
     page_init(&mpe_pages[3], title_lock);
     page_item(&mpe_pages[3], MPE_G_LOCK_FX);
     page_item(&mpe_pages[3], MPE_G_LOCK_FX + 1);
@@ -301,6 +305,12 @@ static void render_view(const struct mpe_live *v, uint32_t display, char *out)
         put_str(&p, names[n > 4 ? 0 : n]);
         break;
     }
+    case DISP_GLIDE: {
+        static const char *const names[] = {"Stock", "LastNote", "Legato"};
+        uint8_t n = globals[MPE_G_GLIDE];
+        put_str(&p, names[n > 2 ? 0 : n]);
+        break;
+    }
     }
     *p = 0;
 }
@@ -358,6 +368,7 @@ void mpe_ui_poll(void)
     sysex_rx_poll();
     disp_poll();
     envsync_poll();
+    ui_hold_poll();
     const uint8_t *page = ui_current_page();
     if (!on_mpe_page(page) || ui_message_active())
         return;
@@ -379,9 +390,9 @@ void mpe_ui_poll(void)
 
 static void edit_setting(uint16_t index, int32_t delta)
 {
-    if (index > MPE_G_DIAG + 2 || delta == 0)  /* as stock, no reset for globals */
+    if (index > MPE_G_LAST || delta == 0)  /* as stock, no reset for globals */
         return;
-    if (index >= MPE_G_SECT) {         /* COPY SECTION (section.c); the monitor items are read-only */
+    if (index >= MPE_G_SECT && index <= MPE_G_DIAG + 2) {  /* COPY SECTION (section.c); the monitor items are read-only */
         if (index <= MPE_G_DOIT) {
             section_edit(index, delta);
             if (index == MPE_G_SECT)   /* "Do it" draws its own message; a redraw would wipe it */
@@ -407,6 +418,9 @@ static void edit_setting(uint16_t index, int32_t delta)
         break;
     case MPE_G_ENVSYNC:
         v = globals[MPE_G_ENVSYNC] > 4 ? 0 : globals[MPE_G_ENVSYNC];
+        break;
+    case MPE_G_GLIDE:
+        v = globals[MPE_G_GLIDE] > 2 ? 0 : globals[MPE_G_GLIDE];
         break;
     case MPE_G_LOCK_FX:
     case MPE_G_LOCK_FX + 1:

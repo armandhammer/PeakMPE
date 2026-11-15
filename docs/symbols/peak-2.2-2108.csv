@@ -64,7 +64,7 @@ address,name,kind,confidence,notes
 0x20012340,patches,data,observed,current patch; +0x22 voice mode +0x23 unison +0xf5 arp on
 0x20012544,voice_pitch_out,data,observed,u16 per voice; sent as 0x67 - 0x3c00
 0x20012794,voice_note,data,observed,8 x u8
-0x200127c4,voice_pitch,data,inferred,matcher pair of Summit 0x200149a8
+0x200127c4,voice_pitch,data,observed,"8 x u16: the note pitch of each voice in 1/256 semitone from the tuning table 0x20012cf4 (voice_alloc); the glide target"
 0x2001228c,voice_env_state,data,observed,8 x u8 from voice_env_read
 0x20012774,voice_env_level,data,observed,8 x u16 from voice_env_read
 0x20014494,globals,data,observed,512 B = ext flash 0x300000; +0x30-0x40 unused by stock code (static scan)
@@ -129,3 +129,11 @@ address,name,kind,confidence,notes
 0x20012cf0,cand_same,data,observed,"voice_candidates: among the voices in the caller's mask the loudest above level 0x200 (Poly2 same note; mono modes), 0x0f = none"
 0x20012334,cand_sorted_voice,data,observed,"8 x u8: the state-3 voices in scan order then sorted by level (levels 8 x u16 at 0x2001279c); used for unison and to avoid the voice taken last"
 0x200002f4,alloc_state,data,observed,"+0x2e0+part the part's last pick (scan starts one after it); +0x2e4+v the note each voice was given (Poly2 compares it); +0x2ec the voice taken last; +0xc8+3v+osc Diverge table"
+0x200127b0,voice_glide_rate,data,observed,"8 x u16: the glide rate voice_alloc gave each voice (patch rate 0x2001256c or the zero-time rate 0x20012564 for MonoLG at a phrase start)"
+0x2001255c,voice_preglide,data,observed,"8 x s8: PreGlide offset in semitones (patch +0x28 - 64), applied once by voice_glide and cleared"
+0x08012d80,voice_params_changed,function,observed,"recomputes the voice-section values from the patch: Diverge, Drift, noise filters and the glide rates (FUN_08011240 of GlideTime +0x27, or of 0 when the Glide switch +0x29 is off)"
+0x0800e414,tim6_init,function,observed,"TIM6: PSC 59 ARR 99 update interrupt on: 10 kHz at the inferred 60 MHz timer clock"
+0x0800e470,tim6_isr,function,observed,"vector 70: every 10th interrupt requests a modulation tick (0x08010e40), counts the ms counter 0x20003ad0+0x1c0 (low 16 bits +0xd2), scans the panel and steps the tempo clock 0x0800fb80"
+0x0800fb80,tempo_clock_step,function,observed,"adds tempo_word to a 32-bit accumulator at 0x2000461c+0x2c each ms; an overflow is one MIDI clock (1717984 per BPM = 24 per quarter note at 1 kHz)"
+0x08018adc,ui_msg_countdown,function,observed,"main loop: one count off ui_msg_state+2 when the ms counter has advanced by more than 10; redraws the page when it reaches 0"
+0x0800edd8,usart6_isr,function,observed,"DIN MIDI: transmit from the ring at 0x20003eac+4 and receive into +0x104 (256 B each); +0x204 is a one-byte overflow count (ldrb/strb at 0x0800ee2c/0x0800ee32)"

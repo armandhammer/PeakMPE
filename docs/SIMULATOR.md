@@ -11,7 +11,8 @@ it skip when `firmware/` is absent.
 ## What runs
 
 The firmware's own `main`: the reset path, main's initialisation, then the
-endless main loop. TIM6 (20 kHz: the 1 kHz modulation tick and the FPGA
+endless main loop. TIM6 (at the rate the firmware programs: 20 kHz on the
+Summit, 10 kHz on the Peak; the 1 kHz modulation tick and the Summit's FPGA
 queue drain), USART6 (DIN MIDI) and EXTI15 interrupt it, on a virtual clock:
 50 µs slots of 6000 instructions, so 120 MHz at one instruction per cycle.
 

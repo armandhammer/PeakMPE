@@ -175,6 +175,14 @@ extern volatile uint8_t voice_state[0x200];
 extern volatile uint8_t voice_env_state[PEAK_VOICES];   /* 3 = release or idle */
 extern volatile uint16_t voice_env_level[PEAK_VOICES];  /* above 0x200 = still sounding */
 
+/* Glide, per voice (findings, "Glide"): the note's pitch in 1/256 semitone
+ * (voice_alloc writes it before its voice_glide call), and voice_glide's
+ * output, the high word of the 16.16 glide pitch at voice_state+0x74+4v. A
+ * new note glides from wherever its voice's glide pitch was left. observed */
+extern volatile uint16_t voice_pitch[PEAK_VOICES];
+extern volatile uint16_t voice_pitch_out[PEAK_VOICES];
+#define VOICE_GLIDE_PITCH(v) (*(volatile int32_t *)&voice_state[0x74 + 4 * (v)])
+
 #define voice_loop_index (voice_state[9])
 #define VOICE_GATE(v) (voice_state[0x1F4 + (v)])
 #define VOICE_AT_SLOT(v) (*(volatile uint16_t *)&voice_state[0x44 + 2 * (v)])
