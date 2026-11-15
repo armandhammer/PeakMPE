@@ -35,6 +35,9 @@
 #define MPE_G_MASTER_RANGE 0x33  /* master bend range, 1-96; 0 or > 96 = 2 */
 #define MPE_G_CURVE 0x34         /* pressure curve: 0 Squared (stock), 1 Linear */
 #define MPE_G_ENVSYNC 0x35       /* tempo-synced Decay/Release: 0 Off, 1-4 = 1/2 1/4 1/8 1/16 */
+#define MPE_G_SECT 0x39          /* Settings records, not stored in the globals: COPY SECTION choice, "Do it", */
+#define MPE_G_DOIT 0x3A          /* and the three read-only MIDI MONITOR items */
+#define MPE_G_DIAG 0x3B
 #define MPE_G_LOCK_FX 0x36       /* parameter lock: FX, Arp, Voice at +0x36, +0x37, +0x38: 0 Off, 1 On */
 
 #define MPE_DEFAULT_MEMBERS 15
@@ -124,6 +127,19 @@ void qa_button(uint32_t ev);
 int qa_held(void);
 int qa_encoder(int32_t delta);  /* 1 = taken (Mod held: chooses the source) */
 void qa_knob(uint32_t id);
+void ui_say(const char *l0, const char *l1, const char *l2, const char *l3);  /* four rows for the message time */
+
+/* --- Section copy and undo (section.c), MIDI monitor (diag.c) ---------- */
+uint32_t mpe_ticks(void);        /* envsync.c: 2000 per second in the simulator */
+void undo_capture(void);
+void undo_clear(void);
+void undo_knob(uint32_t id);
+int edit_button(uint32_t ev);    /* Mod held: Page left/right = undo/redo; 1 = taken */
+const char *section_name(uint32_t i);
+uint32_t section_op(void);
+void section_edit(uint32_t index, int32_t delta);
+void diag_note(const uint8_t *msg);
+void diag_text(uint32_t which, char *out);
 
 /* Internal to the core. */
 void mpe_settings_init(void);

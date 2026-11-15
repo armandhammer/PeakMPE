@@ -344,6 +344,15 @@ Measurements (step 6) can run on the rig while code is written for others.
 
 13. **Snapshot system, then undo** (M). One level of undo. One knob gesture
     (a continuous turn) is one undo step, and a section paste is one step.
+    **Built (v0.12, `patches/peak_mpe/section.c`; emulated, not yet on the
+    synth):** one level, no separate snapshot system. The parameters (0x1A2
+    bytes) are saved before a section paste, a quick-assign and the first move
+    of a control after about 2 s of stillness (one gesture is one step; a
+    different control starts a new one); **Mod + Page left** undoes, **Mod + Page
+    right** redoes, written back through the CC setter for the parameters that
+    differ. Not recorded: value-button and encoder edits, and parameters
+    without a CC/NRPN number. A patch load clears it.
+
 14. **Parameter lock** (M). Keep chosen parameters (FX, arp, performance
     settings) across patch changes.
     **Built (v0.11, `patches/peak_mpe/paramlock.c`; emulated, not yet on the
@@ -360,8 +369,21 @@ Measurements (step 6) can run on the rig while code is written for others.
     a group.
 
 15. **Section copy and paste** (M). LFO 1 → LFO 2, Env 2 → Env 3, and so on.
+    **Built (v0.12, `section.c`; emulated, not yet on the synth):** Settings >
+    COPY SECTION: "Section" picks one of 14 copies (Osc 1>2, 1>3, 2>1, 2>3, 3>1,
+    3>2; Amp>E1, E1>Amp, Amp>E2, E2>Amp, E1>E2, E2>E1; LFO 1>2, 2>1), "Do it" set to
+    Yes performs it. Blocks (patch offsets): oscillators `0x30/0x45/0x5A` (19
+    bytes), envelopes `0x92/0x9B/0xA3` (8 bytes), LFOs `0xAC/0xBA` (12 bytes).
+    Parameters without a CC or NRPN number are skipped. Setter ids come from
+    the descriptors (msb 252-254 CC, 255 none, else NRPN).
+
 16. **Diagnostics and MIDI monitor page** (S–M). DIN overflow count, the MPE
     zone in effect, the last incoming messages.
+    **Built (v0.12, `patches/peak_mpe/diag.c`; emulated, not yet on the synth):**
+    Settings > MIDI MONITOR (read-only): the last channel message in hex, the
+    message count since power-up, and the DIN overflow counter (a byte at
+    `0x20003EAC+0x204`, address from the earlier DIN tests, counter size
+    inferred). The MPE zone in effect is on the Settings MPE page already.
 
 ### 5. Playing
 

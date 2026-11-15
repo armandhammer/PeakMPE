@@ -50,6 +50,11 @@ void envsync_tick(void)
     ticks++;
 }
 
+uint32_t mpe_ticks(void)
+{
+    return ticks;
+}
+
 /* The table index whose time is nearest ms (ratio, so a log scale). */
 static uint32_t nearest(const uint16_t *table, uint32_t ms)
 {

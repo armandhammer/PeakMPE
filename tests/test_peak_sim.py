@@ -644,3 +644,67 @@ def test_param_lock_settings_page(mpe_built):
     assert b.u8(GLOBALS + G_LOCK_FX) == 1
     rows = _show(b, 8, 7, 0)
     assert any("Lock FX" in r and "On" in r for r in rows), rows
+
+
+# --- Section copy, undo and the MIDI monitor ------------------------------------
+
+G_SECT, G_DOIT = 0x39, 0x3A
+UNDO_LEFT, UNDO_RIGHT = (34 << 8) | 1, (33 << 8) | 1
+
+
+def _lfo(b, base):
+    return [b.u8(PATCHES + base + k) for k in range(12)]
+
+
+def test_section_copy_undo_and_redo(mpe_built):
+    b = _boot(mpe_built.patched)
+    blob = mpe_built.blob
+    for k, v in enumerate((77, 0, 3, 0, 40, 20, 90, 1, 1, 1, 1, 0)):
+        b.uc.mem_write(PATCHES + 0xAC + k, bytes([v]))
+    old = _lfo(b, 0xBA)
+    assert old != _lfo(b, 0xAC)
+    _call(b, blob.address("section_edit"), G_SECT, 13)            # "LFO1>2"
+    assert b.u8(PATCHES + 0xBA) == old[0]                         # choosing copies nothing
+    _call(b, blob.address("section_edit"), G_DOIT, 1)             # Do it
+    new = _lfo(b, 0xBA)
+    assert new[0] == 77 and new[4] == 40 and new[5] == 20 and new[6] == 90, new   # the settable ones follow
+    _call(b, blob.address("qa_button"), MOD_PRESS)                # Mod held
+    assert _call(b, blob.address("edit_button"), UNDO_LEFT) == 1  # Page left: undo
+    assert _lfo(b, 0xBA) == old
+    assert _call(b, blob.address("edit_button"), UNDO_RIGHT) == 1 # Page right: redo
+    assert _lfo(b, 0xBA) == new
+    assert _call(b, blob.address("edit_button"), UNDO_RIGHT) == 1 # nothing more to redo
+    assert _lfo(b, 0xBA) == new
+    assert "Nothing to redo" in "\n".join(b.display.lcd.text())
+
+
+def test_undo_takes_a_knob_gesture_as_one_step(mpe_built):
+    b = _boot(mpe_built.patched)
+    blob = mpe_built.blob
+    b.uc.mem_write(PATCHES + 0x93, bytes([50]))
+    for v in (60, 70, 80):                                        # one gesture: three events on one control
+        _call(b, blob.address("undo_knob"), 0x93)                 # what disp_knob_overlay does first
+        b.uc.mem_write(PATCHES + 0x93, bytes([v]))                # knob_poll applies the value afterwards
+    _call(b, blob.address("qa_button"), MOD_PRESS)
+    _call(b, blob.address("edit_button"), UNDO_LEFT)
+    assert b.u8(PATCHES + 0x93) == 50                             # all three moves undone together
+
+
+def test_midi_monitor_page(mpe_built):
+    b = _boot(mpe_built.patched)
+    _send(b, 0x90, 60, 100, ms=40)
+    rows = _show(b, 8, 9, 0)                                      # Settings MIDI MONITOR page
+    text = "\n".join(rows)
+    assert rows[0].startswith("MIDI MONITOR") and "Last msg" in text and "90 3C 64" in text, rows
+    assert "Msg count" in text and "DIN ovfl" in text, rows
+
+
+def test_copy_section_page(mpe_built):
+    b = _boot(mpe_built.patched)
+    rows = _show(b, 8, 8, 0)
+    assert rows[0].startswith("COPY SECTION"), rows
+    text = "\n".join(rows)
+    assert "Section" in text and "Do it" in text and "Off" in text, rows
+    _call(b, mpe_built.blob.address("mpe_ui_value_change"), 1)    # Section: first copy
+    rows = _show(b, 8, 8, 0)
+    assert any("Section" in r and "Osc1>2" in r for r in rows), rows

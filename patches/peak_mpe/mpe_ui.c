@@ -58,14 +58,14 @@ struct mpe_page {
 };
 
 #define STOCK_DESCS 0x22           /* Peak global_param_desc: records 0x00-0x21, then other data */
-#define MPE_DESCS (MPE_G_LOCK_FX + 3)
+#define MPE_DESCS (MPE_G_DIAG + 3)
 #define MPE_PAGE_AT 4              /* after MIDI CONTROL (stock page 3) */
-#define MPE_PAGES 4
+#define MPE_PAGES 6
 #define STOCK_PAGES PEAK_SETTINGS_PAGES
 #define UI_MODE_SETTINGS PEAK_UI_SETTINGS
 #define UI_MODE (ui_state[0])
 
-enum { DISP_ZONE = 0xE0, DISP_MEMBERS, DISP_NOTE, DISP_MASTER, DISP_CURVE, DISP_ENVSYNC, DISP_LOCK_FX, DISP_LOCK_ARP, DISP_LOCK_VOICE, DISP_END };
+enum { DISP_ZONE = 0xE0, DISP_MEMBERS, DISP_NOTE, DISP_MASTER, DISP_CURVE, DISP_ENVSYNC, DISP_LOCK_FX, DISP_LOCK_ARP, DISP_LOCK_VOICE, DISP_SECT, DISP_DOIT, DISP_DLAST, DISP_DCOUNT, DISP_DOVF, DISP_END };
 
 #define FIELD 8                    /* value field: columns 11-18, the mark is at 19 */
 
@@ -84,6 +84,8 @@ static const char title_zone[] = "MPE";
 static const char title_bend[] = "MPE BEND RANGE";
 static const char title_extra[] = "MPE EXTRAS";
 static const char title_lock[] = "PARAM LOCK";
+static const char title_sect[] = "COPY SECTION";
+static const char title_mon[] = "MIDI MONITOR";
 
 static const struct mpe_desc new_descs[] = {
     {0, 2, 0x40, 0x2E, DISP_ZONE, "Zone"},
@@ -95,6 +97,11 @@ static const struct mpe_desc new_descs[] = {
     {0, 1, 0x40, 0x34, DISP_LOCK_FX, "Lock FX"},
     {0, 1, 0x40, 0x35, DISP_LOCK_ARP, "Lock Arp"},
     {0, 1, 0x40, 0x36, DISP_LOCK_VOICE, "Lock Voice"},
+    {0, 0, 0xFF, 0x00, DISP_SECT, "Section"},         /* records 0x39-0x3D follow the globals' numbers; not stored */
+    {0, 0, 0xFF, 0x00, DISP_DOIT, "Do it"},
+    {0, 0, 0xFF, 0x00, DISP_DLAST, "Last msg"},
+    {0, 0, 0xFF, 0x00, DISP_DCOUNT, "Msg count"},
+    {0, 0, 0xFF, 0x00, DISP_DOVF, "DIN ovfl"},
 };
 
 /* Last drawn per item. Only compared with what would be drawn now, so its
@@ -124,7 +131,7 @@ static void build_tables(void)
         dst[i] = src[i];
     for (uint32_t i = STOCK_DESCS * sizeof(struct mpe_desc) / 4; i < MPE_G_ZONE * sizeof(struct mpe_desc) / 4; i++)
         dst[i] = 0;  /* records 0x22-0x2F: no Settings item uses them */
-    for (uint32_t i = 0; i <= MPE_G_LOCK_FX + 2 - MPE_G_ZONE; i++)
+    for (uint32_t i = 0; i <= MPE_G_DIAG + 2 - MPE_G_ZONE; i++)
         mpe_global_desc[MPE_G_ZONE + i] = new_descs[i];
 
     page_init(&mpe_pages[0], title_zone);
@@ -140,6 +147,13 @@ static void build_tables(void)
     page_item(&mpe_pages[3], MPE_G_LOCK_FX);
     page_item(&mpe_pages[3], MPE_G_LOCK_FX + 1);
     page_item(&mpe_pages[3], MPE_G_LOCK_FX + 2);
+    page_init(&mpe_pages[4], title_sect);
+    page_item(&mpe_pages[4], MPE_G_SECT);
+    page_item(&mpe_pages[4], MPE_G_DOIT);
+    page_init(&mpe_pages[5], title_mon);
+    page_item(&mpe_pages[5], MPE_G_DIAG);
+    page_item(&mpe_pages[5], MPE_G_DIAG + 1);
+    page_item(&mpe_pages[5], MPE_G_DIAG + 2);
 
     struct mpe_page **stock = (struct mpe_page **)(settings_menu + 4);
     uint32_t n = 0;
@@ -262,6 +276,20 @@ static void render_view(const struct mpe_live *v, uint32_t display, char *out)
     case DISP_CURVE:
         put_str(&p, globals[MPE_G_CURVE] == 1 ? "Linear" : "Squared");
         break;
+    case DISP_SECT:
+        put_str(&p, section_name(section_op()));
+        break;
+    case DISP_DOIT:
+        put_str(&p, "Off");        /* set to Yes: copies, shows a message, goes back to Off */
+        break;
+    case DISP_DLAST:
+    case DISP_DCOUNT:
+    case DISP_DOVF: {
+        char buf[16];
+        diag_text(display - DISP_DLAST, buf);
+        put_str(&p, buf);
+        break;
+    }
     case DISP_LOCK_FX:
     case DISP_LOCK_ARP:
     case DISP_LOCK_VOICE:
@@ -313,9 +341,12 @@ void mpe_ui_format(uint32_t display, uint32_t value)
 
 static int on_mpe_page(const uint8_t *page)
 {
-    return UI_MODE == UI_MODE_SETTINGS &&
-           (page == (const uint8_t *)&mpe_pages[0] || page == (const uint8_t *)&mpe_pages[1] ||
-            page == (const uint8_t *)&mpe_pages[2] || page == (const uint8_t *)&mpe_pages[3]);
+    if (UI_MODE != UI_MODE_SETTINGS)
+        return 0;
+    for (uint32_t k = 0; k < MPE_PAGES; k++)
+        if (page == (const uint8_t *)&mpe_pages[k])
+            return 1;
+    return 0;
 }
 
 /* Replaces main_loop's sysex_rx_poll call (0x0800D1C4), a call made once per
@@ -348,8 +379,15 @@ void mpe_ui_poll(void)
 
 static void edit_setting(uint16_t index, int32_t delta)
 {
-    if (index > MPE_G_LOCK_FX + 2 || delta == 0)  /* as stock, no reset for globals */
+    if (index > MPE_G_DIAG + 2 || delta == 0)  /* as stock, no reset for globals */
         return;
+    if (index >= MPE_G_SECT) {         /* COPY SECTION (section.c); the monitor items are read-only */
+        if (index <= MPE_G_DOIT) {
+            section_edit(index, delta);
+            ui_draw_values();
+        }
+        return;
+    }
     mpe_live_to_globals();
     const struct mpe_desc *d = &mpe_global_desc[index];
     int32_t v;

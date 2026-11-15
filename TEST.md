@@ -14,47 +14,49 @@ settings are in [docs/linnstrument.md](docs/linnstrument.md).
 
 ---
 
-## Series D: parameter lock
+## Series E: section copy, undo and the MIDI monitor
 
-Image `MPEB Ver` (boot screen). You need two patches that sound different, with
-different FX and arp settings. Use D002 and any other patch.
+Image `MPEC Ver` (boot screen). Use D002 (or any patch you don't mind
+changing; nothing is saved until you press Save).
 
-### D1. The settings page
+### E1. Copy a section
 
-1. Open **Settings** and find the page **PARAM LOCK**. Tell me the page number
-   (it comes after MPE EXTRAS).
-2. It should list **Lock FX**, **Lock Arp** and **Lock Voice**, all **Off**.
-   Tell me what it shows.
+1. Set **LFO 1** to something obvious (rate, waveform, phase). Note LFO 2's
+   rate.
+2. Settings > **COPY SECTION**. Item **Section**: turn the value to **LFO1>2**.
+   Tell me what it shows for each click (expected: `-`, `Osc1>2`, `Osc1>3`,
+   `Osc2>1`, `Osc2>3`, `Osc3>1`, `Osc3>2`, `Amp>E1`, `E1>Amp`, `Amp>E2`, `E2>Amp`,
+   `E1>E2`, `E2>E1`, `LFO1>2`, `LFO2>1`).
+3. Move to item **Do it** and turn it up once. Tell me what the screen says
+   (expected: COPY SECTION, `Done:`, `LFO1>2`, `Undo: Mod + Page left`).
+4. Open the LFO 2 pages and tell me whether LFO 2 now matches LFO 1 (rate,
+   waveform, phase, fade).
+5. Try one oscillator copy (`Osc1>2`) and one envelope copy (`Amp>E1`) the
+   same way and tell me whether the target now matches.
 
-### D2. Lock FX
+### E2. Undo and redo
 
-1. On D002, set the FX to something obvious: raise the **Delay** level and the
-   **Reverb** level (or the Chorus level) clearly.
-2. Settings > PARAM LOCK > **Lock FX** = **On**.
-3. Select the other patch. Tell me whether the FX levels stayed (the delay and
-   reverb you set on D002 should still be there on the other patch).
-4. Select D002 again. Tell me whether D002's own saved FX levels are back or
-   the ones you set (expected: the ones you set; nothing is stored in D002
-   until you Save).
-5. **Lock FX** = **Off**, select the other patch, and tell me whether it now
-   has its own FX again.
+1. After a copy: **hold Mod** and press **Page left**. Tell me what the screen
+   says (expected: UNDO, `Back one change`) and whether the section is back as
+   it was.
+2. Hold **Mod** and press **Page right**. Expected: REDO, `Change restored`,
+   the copy is back.
+3. Press **Page right** again. Expected: `Nothing to redo`.
+4. Move a knob or slider (for example Filter Freq) a long way in one go, then
+   wait about three seconds. Hold **Mod** and press **Page left**. Tell me
+   whether the whole move is undone in one step.
+5. Move Filter Freq, then move Resonance right away. Undo once and tell me which
+   one goes back (expected: Resonance only).
+6. Select another patch, then try the undo. Expected: `Nothing to undo`.
+7. Does Mod + Page still work as page buttons in the Mod menu when you press
+   Page without anything to undo? (Expected: while Mod is held the Page buttons
+   only undo or redo; release Mod and they page again.)
 
-### D3. Lock Arp
+### E3. MIDI monitor
 
-1. Set the arp tempo to **140 BPM** on D002 and turn the arp on.
-2. Settings > PARAM LOCK > **Lock Arp** = **On**.
-3. Select the other patch. Tell me the arp tempo and whether the arp is on.
-4. **Lock Arp** = **Off**.
-
-### D4. Lock Voice
-
-1. On D002 set the voice **Mode** to **Mono** (VOICE page).
-2. **Lock Voice** = **On**. Select the other patch. Tell me whether it plays
-   mono (expected: yes).
-3. **Lock Voice** = **Off**.
-
-### D5. Saved with the Settings
-
-1. Set **Lock FX** = **On**. Press the panel **Save** while inside Settings.
-2. Power-cycle the Peak and check that **Lock FX** is still **On**. Set it back
-   to **Off** and Save again.
+1. Settings > **MIDI MONITOR**. Play a note on the LinnStrument. Tell me what
+   **Last msg** shows (expected: a status byte and two data bytes in hex, for
+   example `91 3C 64`) and how **Msg count** changes.
+2. Bend a note. Tell me what Last msg shows (expected an `E` status).
+3. **DIN ovfl** should be 0. Play something dense for a minute and tell me
+   whether it changes.

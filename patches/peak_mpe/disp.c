@@ -369,6 +369,7 @@ int disp_knob_overlay(uint32_t id, uint32_t prev, uint32_t cur, uint32_t saved, 
         qa_knob(id);
         return 0;
     }
+    undo_knob(id);      /* the first move of a gesture saves the patch (section.c) */
     ov_id = (uint8_t)id;
     ov_hires = (uint8_t)(hires & 0xFF);
     ov_drawn = 0;

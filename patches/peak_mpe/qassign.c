@@ -88,11 +88,13 @@ uint32_t qa_panel_read(void)
 {
     uint32_t ev = panel_event_read();
     qa_button(ev);
+    if (held && edit_button(ev))   /* Mod + Page left/right: undo / redo (section.c) */
+        return 0;
     return ev;
 }
 
 /* Four rows on the page for the message time. */
-static void say(const char *l0, const char *l1, const char *l2, const char *l3)
+void ui_say(const char *l0, const char *l1, const char *l2, const char *l3)
 {
     const char *rows[4] = {l0, l1, l2, l3};
     for (uint32_t r = 0; r < 4; r++) {
@@ -124,7 +126,7 @@ int qa_encoder(int32_t delta)
     source_sel = (uint8_t)(s < 1 ? SOURCES - 1 : s >= SOURCES ? 1 : s);
     char l1[24];
     text(l1, "Source ", source_names[source]);
-    say("QUICK ASSIGN", l1, "Hold Mod and move a", "slider or knob");
+    ui_say("QUICK ASSIGN", l1, "Hold Mod and move a", "slider or knob");
     return 1;
 }
 
@@ -139,7 +141,7 @@ static void show(int32_t slot, uint32_t dest)
     l1[5] = (char)('0' + (slot + 1) / 10);
     l1[6] = (char)('0' + (slot + 1) % 10);
     l1[7] = 0;
-    say("QUICK ASSIGN", l1, source_names[source], dest_names[dest]);
+    ui_say("QUICK ASSIGN", l1, source_names[source], dest_names[dest]);
 }
 
 /* A control with patch offset id moved while Mod is held. Called after stock drew. */
@@ -157,7 +159,7 @@ void qa_knob(uint32_t id)
         if (dest_of[i].offset == id)
             dest = dest_of[i].dest;
     if (dest == DEST_NONE) {
-        say("QUICK ASSIGN", "No mod destination", "for this control", "");
+        ui_say("QUICK ASSIGN", "No mod destination", "for this control", "");
         return;
     }
     if (done_id1 == id + 1) {      /* the control moved again after another one in this hold */
@@ -177,10 +179,11 @@ void qa_knob(uint32_t id)
     done_id1 = (uint8_t)(id + 1);
     if (slot < 0) {
         if (free_slot < 0) {
-            say("QUICK ASSIGN", "No free slot", "", "");
+            ui_say("QUICK ASSIGN", "No free slot", "", "");
             return;
         }
         slot = free_slot;
+        undo_capture();
         set_slot((uint32_t)slot, 0, source);
         set_slot((uint32_t)slot, 1, 0);
         set_slot((uint32_t)slot, 2, ASSIGN_DEPTH);
