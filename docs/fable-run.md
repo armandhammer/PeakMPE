@@ -3,18 +3,24 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** read the result of the Peak regression rerun on the corrected
-simulator clock (`scripts/dev python -m pytest -q -n auto tests/test_peak_*.py
-tests/test_mod_tick.py`; it must be all green before an image is built), then
-build v0.14 with `scripts/build-image.sh patches/peak_mpe` (bump the boot label
-to `MPEE` in `patches/peak_mpe/patch.py` first), dump the MPE EXTRAS screen
-from the simulator and write `TEST.md` series F.
+**Next step:** wait for the user: (1) **GO F0** to run `work/steal_check.py`
+on the current image, (2) the flash of v0.14, then series F in `TEST.md`
+(`work/glide_check.py --label stock|lastnote|legato` for F2, `tools/hwrig run
+--stage all --yes` for F6), then a row in `docs/hardware-log.md`. With nothing
+from the user, the next unblocked work is D3: the merged-tick counter on the
+MIDI MONITOR page ([peak-motion-morph.md](peak-motion-morph.md), "Order").
+
+**v0.14 is built and verified, not flashed:**
+`work/flash/peak-firmware-2.2-build2108+mpe-06be5529753f.syx`, SHA-256
+`06be5529753f67073d8be8d6fa2380f61d6ca2a03e793a367ceb95efa37e4925`, boot label
+`MPEE`. `scripts/check` before it: pytest 650 passed, 9 skipped; web 34 passed;
+both descriptors equal (log `work/build-v14.log`).
 
 **Waiting for the user (nothing was sent to the synth):**
-- OK to run `work/steal_check.py` (A4) and `work/glide_check.py` (B): notes and
-  CCs over USB to the edit buffer, about 1 minute each, Ableton closed.
-- The Msg Time value on their Peak and how long a knob message lasts (C4).
-- Whether to build any of the steal refinements (A4).
+- GO for the rig runs (F0, F2, F6): notes and CCs over USB, Ableton closed.
+- The flash, and the readings of series F (Msg Time value and message time).
+- Whether to build any of the steal refinements (A4) or fix the sostenuto
+  quirk.
 
 ## Items
 
@@ -32,22 +38,17 @@ from the simulator and write `TEST.md` series F.
 | C3 DIN overflow counter size | done | `aea1d4d` | One byte: `ldrb.w`/`strb.w [r3, #0x204]` at `0x0800EE2C`/`0x0800EE32` in the USART6 interrupt; wraps after 255 | observed |
 | C4 Message countdown rate | cause found; one reading open | `aea1d4d` | The simulator counted 2x fast (same TIM6 error). A count is at least 11 ms by the code; the guide's "Msg Time 127 is approx. 3 seconds" would be 23 ms. The old "60 ms per count" assumed Msg Time 0. The 2 s message hold now uses the patch's own 1 kHz tick (`ui_hold_poll`) | code observed; synth time not measured (TEST.md F3) |
 | C5 Patch timing constants (found through C1) | done in the simulator | `aea1d4d` | EnvSync check interval 128 -> 64 ticks, undo gesture 4000 -> 2000 ticks, message hold by ticks. On the synth v0.13 has the first two twice too long and the hold too short | emulated |
-| D1 Findings for steps 21, 22 | done | (this commit) | Parameter changes are applied by 13 update groups, at most once per 16 ms (`FUN_08013014`); a group costs 5-40 chip writes, a waveform change about 1,290 with voices sounding (`work/_d_param_cost.py`); knob events and the tempo clock position are reachable without new hooks | code observed, counts emulated; bus time on the synth not measured |
-| D2 Design note | done | (this commit) | [peak-motion-morph.md](peak-motion-morph.md): one-lane 32-step motion recorder; morph between the stored and the edited patch from the mod wheel; order and risks | proposal, nothing built |
+| D1 Findings for steps 21, 22 | done | `6d22ee9` | Parameter changes are applied by 13 update groups, at most once per 16 ms (`FUN_08013014`); a group costs 5-40 chip writes, a waveform change about 1,290 with voices sounding (`work/_d_param_cost.py`); knob events and the tempo clock position are reachable without new hooks | code observed, counts emulated; bus time on the synth not measured |
+| D2 Design note | done | `6d22ee9` | [peak-motion-morph.md](peak-motion-morph.md): one-lane 32-step motion recorder; morph between the stored and the edited patch from the mod wheel; order and risks | proposal, nothing built |
 | D3 Build | not started | | first the merged-tick counter on the diagnostics page (design note, "Order") | |
 
 ## Verified so far
 
-- `tests/test_peak_glide.py`: 6 pass. `tests/test_peak_voice_steal.py`: 4 pass
-  (before the clock fix; in the rerun).
-- First regression run on the corrected clock (before the constants and the
-  Glide option went in): 72 pass, 5 fail, all five settle times that were
-  too short at the true tick rate (pressure and Slide smoothing); their
-  waits are doubled in `tests/test_peak_sim.py`. **The rerun with everything
-  in was not finished when this was committed.**
-- Not run yet: the full suite (`scripts/check`), the web tests, the image
-  build. The Summit tests should be unaffected (TIM6 period 50 us as
-  before) but have not been rerun.
+- Peak simulator tests on the corrected clock, everything in: 83 passed
+  (`tests/test_peak_*.py`, `tests/test_mod_tick.py`).
+- Full `scripts/check` for the v0.14 build: pytest 650 passed, 9 skipped
+  (Summit and Peak), web 34 passed, descriptors equal.
+- Not verified: anything on the synth.
 
 ## Stock firmware quirks found (not fixed)
 
