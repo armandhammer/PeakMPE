@@ -3,12 +3,16 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** bump the label to `MPEG` (v0.16) in `patches/peak_mpe/patch.py`
-and `tools/web_descriptor.py`, re-export `web/patches/peak-mpe.json`, re-pin the
-hash in `web/test/parity.test.ts` and `product.test.ts`, run
-`scripts/build-image.sh patches/peak_mpe/patch.py` (log to `work/build-v16.log`),
-dump the `MOTION` screen from the simulator (`work/_f_screens.py` pattern) and
-write series H in `TEST.md`; then the user flashes.
+**Next step:** the user flashes v0.16
+(`work/flash/peak-firmware-2.2-build2108+mpe-0f262ad9edb9.syx`, SHA-256
+`0f262ad9edb94932cc9ec60eecbc7ef83201e2e01696c332014f84f347169e78`, boot label
+`MPEG`; built and verified, log `work/build-v16.log`); then read the flash log,
+add a hardware-log row, take the user's results for series H in `TEST.md`
+(H1 to H4, incl. the `LateTicks` readings) and run `tools/hwrig run --stage all
+--yes` on the user's GO (H5). After that: "Smooth" for the recorder if the
+user hears steps, then the morph (design note), using `LateTicks` as the
+measure. With nothing from the user there is no unblocked hardware-free item
+left in the brief.
 
 **State on the synth:** v0.15 (`dee61e50…`, boot `MPEF`, commit `ed02aa9`),
 flashed 2026-11-15 21:22. Rig 136 pass, 0 fail, 5 info (run
@@ -38,7 +42,7 @@ in a slow attack) and whether to fix the sostenuto quirk.
 | C5 Patch timing constants (found through C1) | done, on the synth in v0.14/v0.15 | `aea1d4d` | EnvSync check interval 128 -> 64 ticks, undo gesture 4000 -> 2000 ticks, message hold by ticks. On the synth v0.13 has the first two twice too long and the hold too short | emulated |
 | D1 Findings for steps 21, 22 | done | `6d22ee9` | Parameter changes are applied by 13 update groups, at most once per 16 ms (`FUN_08013014`); a group costs 5-40 chip writes, a waveform change about 1,290 with voices sounding (`work/_d_param_cost.py`); knob events and the tempo clock position are reachable without new hooks | code observed, counts emulated; bus time on the synth not measured |
 | D2 Design note | done | `6d22ee9` | [peak-motion-morph.md](peak-motion-morph.md): one-lane 32-step motion recorder; morph between the stored and the edited patch from the mod wheel; order and risks | proposal, nothing built |
-| D3 Motion recorder | done in the simulator | (this commit) | `motion.c`: Mod + Animate 1 arms, the next control moved is recorded for 32 steps and loops; replace while playing; stop restores the value. Settings > MOTION: Length 1/2/4 bars, state, `LateTicks` (late-tick counter, `diag.c`). `tests/test_peak_motion.py` 10 pass; Peak regression 95 pass | emulated; not on the synth |
+| D3 Motion recorder | done in the simulator | `b1e4e9f` | `motion.c`: Mod + Animate 1 arms, the next control moved is recorded for 32 steps and loops; replace while playing; stop restores the value. Settings > MOTION: Length 1/2/4 bars, state, `LateTicks` (late-tick counter, `diag.c`). `tests/test_peak_motion.py` 10 pass; Peak regression 95 pass | emulated; not on the synth |
 | D4 Smooth, morph | not started | | after the recorder and `LateTicks` have been on the synth | |
 
 ## Verified so far

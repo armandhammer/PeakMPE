@@ -72,8 +72,8 @@ META = {
     },
     ("peak", "mpe"): {
         "title": "MPE for Peak",
-        "version": "0.15",
-        "label": "MPEF Ver 108.469",
+        "version": "0.16",
+        "label": "MPEG Ver 108.469",
         "summary": "Per-note pitch bend, pressure (channel or poly aftertouch) and slide (MPE) on the Peak's "
                    "8 voices, a per-patch MPE switch (VOICE page) and Settings MPE pages; one or two zones. "
                    "v0.2: the arpeggiator ignores its own notes when a DAW sends them back (MIDI loop). "
@@ -88,6 +88,7 @@ META = {
                    "v0.13: the copy and undo messages stay on screen about 2 s. "
                    "v0.14: Settings > MPE EXTRAS > Glide starts a poly glide from the previous note (LastNote), or only while another note is held (Legato), instead of from the voice's own last pitch; EnvSync and undo timings corrected. "
                    "v0.15: the patch's messages always clear and stay 3 s; Msg Time 127 now lasts about 3 s (stock: 1.5 s). "
+                   "v0.16: motion recording: hold Mod and press Animate 1, move a slider or knob, and its movement over one bar loops in time with the tempo (Settings > MOTION sets 1, 2 or 4 bars). "
                    "Tested on one Peak with the automated hardware test rig and played from a LinnStrument.",
     },
 }
