@@ -3,14 +3,15 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** wait for the user: (1) **GO F0** to run `work/steal_check.py`
-on the current image, (2) the flash of v0.14, then series F in `TEST.md`
-(`work/glide_check.py --label stock|lastnote|legato` for F2, `tools/hwrig run
---stage all --yes` for F6), then a row in `docs/hardware-log.md`. With nothing
-from the user, the next unblocked work is D3: the merged-tick counter on the
-MIDI MONITOR page ([peak-motion-morph.md](peak-motion-morph.md), "Order").
+**Next step:** with the user's GO, run in this order and add the results to the
+v0.14 row of `docs/hardware-log.md`: `tools/hwrig run --stage all --yes` (F6;
+expect 136 pass, 0 fail, 5 info), `work/steal_check.py` (F0),
+`work/glide_check.py --label stock|lastnote|legato` (F2, the user sets the
+Glide item before each). Then the user's panel steps F1, F3, F4, F5, F7. With
+nothing from the user, the next unblocked work is D3: the merged-tick counter
+on the MIDI MONITOR page ([peak-motion-morph.md](peak-motion-morph.md), "Order").
 
-**v0.14 is built and verified, not flashed:**
+**v0.14 was flashed by the user 2026-11-15 19:13** (log `work/flash-06be5529-2026-11-15.log`: full transfer, identity `02 01 00 08`; row in `docs/hardware-log.md`). No rig run or series F step yet. The image:
 `work/flash/peak-firmware-2.2-build2108+mpe-06be5529753f.syx`, SHA-256
 `06be5529753f67073d8be8d6fa2380f61d6ca2a03e793a367ceb95efa37e4925`, boot label
 `MPEE`. `scripts/check` before it: pytest 650 passed, 9 skipped; web 34 passed;
