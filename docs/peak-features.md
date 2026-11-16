@@ -495,6 +495,23 @@ built.
     resonance, mix, wavetable position, FX levels) between two snapshots,
     from the mod wheel or pressure; discrete settings switch at an
     endpoint. Interpolate times and frequencies in a perceptual scale.
+    **Built (v0.18, `patches/peak_mpe/morph.c`; emulated, not yet on the
+    synth):** Settings > MORPH > `Morph` = `ModWheel`. The mod wheel (CC 1
+    on the zone's master channel with MPE on, on the synth's channel
+    without) blends the patch as you have edited it (wheel at 0) towards
+    the patch as it is stored (wheel at 127): load a patch, turn some
+    knobs, and the wheel takes the changes out and brings them back. No
+    second snapshot and nothing new to store. 126 continuous controls
+    move (levels, amounts, times, rates, the filter, FX amounts, the
+    depths of the mod matrix); switches, waves, ranges, sync settings and
+    the arp stay as edited, so nothing switches halfway. A matrix slot
+    routed by hand fades to zero depth. A knob turned with the wheel up
+    still sets the edited value, and what sounds and shows is its blend.
+    Values are written through stock's setter, 16 per 16 ms at most; a
+    wheel jump becomes a ramp of about 130 ms. The page also shows the
+    `Position` in effect and `Differ`, the number of controls that differ.
+    Save stores what sounds. Not built: pressure or a pedal as the source,
+    a second snapshot. Tests: `tests/test_peak_morph.py`.
 
 ### Later
 

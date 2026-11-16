@@ -337,6 +337,51 @@ morph.
    intended, not like parameters switching. The midpoint switches are the
    weak spot; "leave discrete settings at B" may be the better default.
 
+**Built 2026-11-16 as v0.18 (emulated, `tests/test_peak_morph.py`, 16
+tests; not on the synth).** As proposed, with these points settled or
+changed:
+
+- **Direction: the wheel at 0 is the patch as edited, at 127 the stored
+  patch** (the proposal had 127 = edited). A wheel rests at 0, so switching
+  the morph on changes nothing, and every edit is heard as made; with the
+  proposal's direction a knob turned at wheel 0 would have done nothing
+  audible.
+- **Risk 2 settled: there is no compare buffer to map.** The "saved val" of
+  the knob overlay is read from the patch memory each time
+  (`saved_value_read` `0x080190F8`: record (bank - 1) × 128 + number from
+  `patch_select` `0x20002D14` +4/+5, 512 bytes a record, byte k = patch
+  offset k; observed). The morph reads the whole record once with
+  `ext_flash_read` `0x0800E978` whenever the wheel leaves 0, and takes B
+  from the patch at the same moment; back at 0 with every value restored
+  it lets go. So a Save or an edit made at wheel 0 needs no bookkeeping.
+- **Discrete settings are left at B**, not switched at the midpoint (risk 4).
+- **Rate:** one pass over the 126 controls per 16 ms slot, at most 16
+  setter calls a slot, the rest in the next slots (not "three groups a
+  slot": on the synth a lane writing 60 values a second cost no ticks, and
+  a count is simpler than a group map). The position follows the wheel by
+  at most 16 per slot.
+- **Knobs with the wheel up** work in blend space: the control's position
+  is B, stock's overlay is given the blended values (so it shows what
+  sounds and Pickup compares like with like), and the blend is written by
+  the patch because stock's `knob_poll` would write the control's own
+  position (the hook returns 0). Such a move sends no CC to MIDI out. Any
+  other change of a morphed value (a menu, a received CC, a motion lane) is
+  seen within a slot and becomes B.
+- **A matrix slot** whose sources or destination differ between A and B
+  counts as absent in A: its depth morphs to 64 (zero).
+- **Found on the way:** stock's setter refuses the coarse byte 14-27 of the
+  three oscillator Fine controls (it holds the byte against the pair's
+  range 28-228; findings, "The parameter setter and 9-bit controls"), so a
+  low fine tune could not have been restored. `param_put` now writes such
+  bytes past the range check, which also mends section copy, undo and
+  motion lanes for those three controls.
+- Skipped as proposed: amp Decay and Release while EnvSync is on, the
+  groups PARAM LOCK holds (asked on every pass, so switching a lock during
+  a morph takes effect at once). Not done: the undo step before a morph, a
+  `MORPH nn` note on the patch page (Settings > MORPH shows `Position`).
+- **Not tried:** the Compare button during a morph; the cost of a wheel
+  sweep with many controls differing (series J reads `LateTicks`).
+
 ## Order
 
 1. The merged-tick counter on the diagnostics page (risk 1): small, and

@@ -371,11 +371,15 @@ int disp_knob_overlay(uint32_t id, uint32_t prev, uint32_t cur, uint32_t saved, 
     }
     undo_knob(id);      /* the first move of a gesture saves the patch (section.c) */
     motion_knob(id, cur, hires & 0xFF);   /* motion recording takes or follows the control (motion.c) */
+    uint32_t raw = cur;
+    int morphed = morph_knob(id, &prev, &cur);   /* wheel up: prev and cur become the blended values (morph.c) */
     ov_id = (uint8_t)id;
     ov_hires = (uint8_t)(hires & 0xFF);
     ov_drawn = 0;
     ov_cur = cur;
     int applied = knob_overlay(id, prev, cur, saved, hires & 0xFF);
+    if (morphed >= 0 && applied)
+        morph_applied(morphed, raw, cur);    /* the blend goes into the patch here */
     if (ov_drawn && id < 0x1A3) {
         const struct param_desc *d = &patch_param_desc[id];
         load_glyphs();
@@ -384,7 +388,7 @@ int disp_knob_overlay(uint32_t id, uint32_t prev, uint32_t cur, uint32_t saved, 
         else
             draw_value_bar(d, cur);
     }
-    return applied;
+    return morphed >= 0 ? 0 : applied;       /* morphed: stock must not write the control's own position */
 }
 
 /* Once per main-loop pass (from mpe_ui_poll). Puts stock's characters back

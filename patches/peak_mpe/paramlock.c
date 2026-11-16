@@ -48,6 +48,7 @@ void *plock_copy(void *dst, const void *src, uint32_t n)
     if (dst == (void *)patches) {
         undo_clear();
         motion_clear();
+        morph_clear();
         seen = 1;
         k = 0;
         for (uint32_t g = 0; g < GROUPS; g++) {

@@ -147,3 +147,8 @@ address,name,kind,confidence,notes
 0x0800ed0c,lcd_spi_init,function,observed,"(): RCC_APB1ENR |= SPI2EN; SPI2 CR1 = 0x3af (master, LSB first, PCLK1/64), CR2 = 4, enable; only caller lcd_init"
 0x0800ed64,lcd_spi_tx,function,observed,"(byte): waits for TXE (SPI2_SR 0x40003808 bit 1), writes SPI2_DR 0x4000380c; callers lcd_write_cmd, lcd_write_data"
 0x0800ed7c,lcd_spi_wait,function,observed,"(): waits for TXE, then for BSY clear (SPI2_SR bit 7)"
+0x0800e978,ext_flash_read,function,observed,"(addr buf len): DataFlash command 3 (continuous read), 3 address bytes, one dummy transfer, then len bytes into buf; callers ext_flash_read_page 0x0800ea64 and five others"
+0x0800ea64,ext_flash_read_page,function,observed,"(addr len): ext_flash_read of at most 0x200 bytes into the shared buffer 0x20003ca4, which it returns; patch load reads record << 9 with it"
+0x080190f8,saved_value_read,function,observed,"(id): ext_flash_read_page(id + record * 0x200, 2) with record = (patch_select+4 - 1) * 0x80 + patch_select+5: the stored value behind the overlay's saved val row; caller 0x08016df4"
+0x20002d14,patch_select,data,observed,"+4 bank (1-based), +5 number of the loaded patch as saved_value_read uses them; the rest not traced"
+0x0800f658,param_write,function,observed,"(value id): the write inside param_set_by_id, no range check: looks the patch offset up from the id (0x0800f614), writes the byte if it differs, ORs the offset's group mask into param_dirty_groups, mark_changed; callers param_set_by_id and 0x08017488"

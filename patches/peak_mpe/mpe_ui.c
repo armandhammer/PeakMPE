@@ -18,6 +18,8 @@
  *   PARAM LOCK      Lock FX, Lock Arp, Lock Voice (Off/On)
  *   COPY SECTION, MIDI MONITOR (section.c, diag.c)
  *   MOTION          Length (1, 2, 4 bars); read-only: the recorder's state, LateTicks
+ *   MORPH           Morph (Off/ModWheel); read-only: the position, the number of
+ *                   controls that differ (morph.c)
  * The Summit's read-only "Channels" item (CH CLASH) is left out: the Peak has
  * no Multi parts whose channels a zone could take.
  * The items are kind 3 (global settings) with records 0x30-0x38, which stock
@@ -61,15 +63,15 @@ struct mpe_page {
 };
 
 #define STOCK_DESCS 0x22           /* Peak global_param_desc: records 0x00-0x21, then other data */
-#define MPE_G_LAST MPE_G_LATE       /* the last record of new_descs */
+#define MPE_G_LAST MPE_G_MORPH_N       /* the last record of new_descs */
 #define MPE_DESCS (MPE_G_LAST + 1)
 #define MPE_PAGE_AT 4              /* after MIDI CONTROL (stock page 3) */
-#define MPE_PAGES 7
+#define MPE_PAGES 8
 #define STOCK_PAGES PEAK_SETTINGS_PAGES
 #define UI_MODE_SETTINGS PEAK_UI_SETTINGS
 #define UI_MODE (ui_state[0])
 
-enum { DISP_ZONE = 0xE0, DISP_MEMBERS, DISP_NOTE, DISP_MASTER, DISP_CURVE, DISP_ENVSYNC, DISP_LOCK_FX, DISP_LOCK_ARP, DISP_LOCK_VOICE, DISP_SECT, DISP_DOIT, DISP_DLAST, DISP_DCOUNT, DISP_DOVF, DISP_GLIDE, DISP_MLEN, DISP_MSTATE, DISP_LATE, DISP_END };
+enum { DISP_ZONE = 0xE0, DISP_MEMBERS, DISP_NOTE, DISP_MASTER, DISP_CURVE, DISP_ENVSYNC, DISP_LOCK_FX, DISP_LOCK_ARP, DISP_LOCK_VOICE, DISP_SECT, DISP_DOIT, DISP_DLAST, DISP_DCOUNT, DISP_DOVF, DISP_GLIDE, DISP_MLEN, DISP_MSTATE, DISP_LATE, DISP_MORPH, DISP_MPOS, DISP_MDIFF, DISP_END };
 
 #define FIELD 8                    /* value field: columns 11-18, the mark is at 19 */
 
@@ -91,6 +93,7 @@ static const char title_lock[] = "PARAM LOCK";
 static const char title_sect[] = "COPY SECTION";
 static const char title_mon[] = "MIDI MONITOR";
 static const char title_motion[] = "MOTION";
+static const char title_morph[] = "MORPH";
 
 static const struct mpe_desc new_descs[] = {
     {0, 2, 0x40, 0x2E, DISP_ZONE, "Zone"},
@@ -109,8 +112,11 @@ static const struct mpe_desc new_descs[] = {
     {0, 0, 0xFF, 0x00, DISP_DOVF, "DIN ovfl"},
     {0, 2, 0x40, 0x37, DISP_GLIDE, "Glide"},          /* records 0x3E, 0x3F: stored in the globals again */
     {0, 2, 0x40, 0x38, DISP_MLEN, "Length"},
-    {0, 0, 0xFF, 0x00, DISP_MSTATE, "Motion"},        /* records 0x40, 0x41: read-only, not stored */
+    {0, 1, 0x40, 0x39, DISP_MORPH, "Morph"},          /* record 0x40: the last one stored in the globals */
+    {0, 0, 0xFF, 0x00, DISP_MSTATE, "Motion"},        /* records 0x41-0x44: read-only, not stored */
     {0, 0, 0xFF, 0x00, DISP_LATE, "LateTicks"},
+    {0, 0, 0xFF, 0x00, DISP_MPOS, "Position"},
+    {0, 0, 0xFF, 0x00, DISP_MDIFF, "Differ"},
 };
 
 /* Last drawn per item. Only compared with what would be drawn now, so its
@@ -168,6 +174,10 @@ static void build_tables(void)
     page_item(&mpe_pages[6], MPE_G_MOTION_LEN);
     page_item(&mpe_pages[6], MPE_G_MOTION_STATE);
     page_item(&mpe_pages[6], MPE_G_LATE);
+    page_init(&mpe_pages[7], title_morph);
+    page_item(&mpe_pages[7], MPE_G_MORPH);
+    page_item(&mpe_pages[7], MPE_G_MORPH_POS);
+    page_item(&mpe_pages[7], MPE_G_MORPH_N);
 
     struct mpe_page **stock = (struct mpe_page **)(settings_menu + 4);
     uint32_t n = 0;
@@ -324,6 +334,15 @@ static void render_view(const struct mpe_live *v, uint32_t display, char *out)
     case DISP_MSTATE:
         put_str(&p, motion_state_name());
         break;
+    case DISP_MORPH:
+        put_str(&p, globals[MPE_G_MORPH] == 1 ? "ModWheel" : "Off");
+        break;
+    case DISP_MPOS:
+        put_num3(&p, morph_position());
+        break;
+    case DISP_MDIFF:
+        put_num3(&p, morph_differ());
+        break;
     case DISP_LATE: {
         char buf[16];
         diag_late_text(buf);
@@ -397,6 +416,7 @@ void mpe_ui_poll(void)
     envsync_poll();
     ui_hold_poll();
     motion_poll();
+    morph_poll();
     const uint8_t *page = ui_current_page();
     if (!on_mpe_page(page) || ui_message_active())
         return;
@@ -418,7 +438,7 @@ void mpe_ui_poll(void)
 
 static void edit_setting(uint16_t index, int32_t delta)
 {
-    if (index > MPE_G_MOTION_LEN || delta == 0)  /* as stock, no reset for globals; the last two records are read-only */
+    if (index > MPE_G_MORPH || delta == 0)  /* as stock, no reset for globals; the records after Morph are read-only */
         return;
     if (index >= MPE_G_SECT && index <= MPE_G_DIAG + 2) {  /* COPY SECTION (section.c); the monitor items are read-only */
         if (index <= MPE_G_DOIT) {
@@ -456,6 +476,7 @@ static void edit_setting(uint16_t index, int32_t delta)
     case MPE_G_LOCK_FX:
     case MPE_G_LOCK_FX + 1:
     case MPE_G_LOCK_FX + 2:
+    case MPE_G_MORPH:
         v = globals[index] == 1;
         break;
     default:

@@ -95,6 +95,12 @@ void part_mod_write(uint8_t n, int32_t value);
  * the caller): the value, then the CC number. Writes the patch, queues the FPGA
  * update, arms pickup. observed (disassembly), not yet run on hardware. */
 void param_set_by_id(uint32_t value, uint32_t id);
+/* The write inside param_set_by_id (0x0800F658): the same arguments, no range
+ * check, no pickup. Writes the patch byte if it differs, queues the FPGA
+ * update, mark_changed. observed (decompile) */
+void param_write(uint32_t value, uint32_t id);
+/* pickup_state[offset] = 3 for offset < 0xFB (0x08016B04). observed */
+void pickup_arm(uint32_t offset);
 
 /* panel_button_event's read of the next button event (0x0800DDFC): low byte +1 press /
  * -1 release (0 = none), next byte the button index. observed (disassembly). */
@@ -103,6 +109,9 @@ uint32_t panel_event_read(void);
 /* The firmware's byte copy loop (0x0801D736): (dst, src, n), returns nothing (r0 left as dst by
  * the callers' usage is not relied on here: the patch wrapper returns dst itself). observed. */
 void *fw_memcpy(void *dst, const void *src, uint32_t n);
+/* (addr, buf, len): reads the external DataFlash (command 3). The patches are
+ * 512-byte records from address 0, record (bank - 1) * 128 + number. observed */
+void ext_flash_read(uint32_t addr, uint8_t *buf, uint32_t len);
 /* (): the part's 1 kHz modulation update: smooths the bend into
  * part_bend_smoothed and sends 0x68/0x69, the wheel (broadcast 0x60 at
  * 0x08010972), 0x62/0x63 and one voice's 0x61. mod_tick calls it first,

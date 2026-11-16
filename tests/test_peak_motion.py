@@ -207,8 +207,8 @@ def test_motion_page_and_late_ticks(mpe_built):
     _call(b, blob.address("mpe_ui_value_change"), 5)
     assert b.u8(GLOBALS + G_MOTION_LEN) == 2
     assert "4 bars" in _show(b, 8, MOTION_PAGE, 0)[1]
-    rows = _show(b, 8, MOTION_PAGE + 1, 0)               # the stock page after ours is still there
-    assert rows[0].startswith("MIDI ENABLE"), rows
+    rows = _show(b, 8, MOTION_PAGE + 1, 0)               # the next page is the patch's MORPH page
+    assert rows[0].startswith("MORPH"), rows
 
 
 def test_late_ticks_row_is_a_latched_reading(mpe_built):

@@ -41,8 +41,11 @@
 #define MPE_G_LOCK_FX 0x36       /* parameter lock: FX, Arp, Voice at +0x36, +0x37, +0x38: 0 Off, 1 On */
 #define MPE_G_GLIDE 0x3E         /* where a poly glide starts: 0 Stock (the voice's last pitch), 1 LastNote, 2 Legato */
 #define MPE_G_MOTION_LEN 0x3F    /* motion recording loop: 0 = 1 bar, 1 = 2 bars, 2 = 4 bars */
-#define MPE_G_MOTION_STATE 0x40  /* Settings records, not stored: the recorder's state, */
-#define MPE_G_LATE 0x41          /* and the late-tick count (diag.c) */
+#define MPE_G_MORPH 0x40         /* patch morph: 0 Off, 1 ModWheel (morph.c) */
+#define MPE_G_MOTION_STATE 0x41  /* Settings records, not stored: the recorder's state, */
+#define MPE_G_LATE 0x42          /* the late-tick count (diag.c), */
+#define MPE_G_MORPH_POS 0x43     /* the morph position in effect and the number of controls */
+#define MPE_G_MORPH_N 0x44       /* that differ between the stored and the edited patch */
 
 #define MPE_DEFAULT_MEMBERS 15
 #define MPE_DEFAULT_NOTE_RANGE 48
@@ -156,6 +159,15 @@ void motion_knob(uint32_t id, uint32_t cur, uint32_t hires);
 void motion_poll(void);          /* main loop, from mpe_ui_poll */
 void motion_clear(void);         /* a patch load */
 const char *motion_state_name(void);
+
+/* morph.c */
+void morph_cc(uint32_t value);
+void morph_clear(void);
+void morph_poll(void);
+int morph_knob(uint32_t id, uint32_t *prev, uint32_t *cur);
+void morph_applied(int index, uint32_t raw, uint32_t blended);
+uint32_t morph_position(void);
+uint32_t morph_differ(void);
 void diag_note(const uint8_t *msg);
 void diag_text(uint32_t which, char *out);
 

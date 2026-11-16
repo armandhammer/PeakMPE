@@ -56,11 +56,23 @@ uint32_t param_id_of(uint32_t offset)
     return d->nrpn_lsb + 128u * d->nrpn_msb + 128u;
 }
 
+/* Sets a patch byte as a received CC would. The coarse byte of a 9-bit pair
+ * (NRPN msb 254) goes past the setter's range check: the descriptor holds the
+ * pair's range (O1Fine: 28-228), the setter holds the 7-bit byte against it,
+ * and so refuses the bytes 14-27 that the lowest fine tunings need (stock
+ * does the same to the CC from MIDI). The values here come from a patch, so
+ * they are in range. */
 void param_put(uint32_t offset, uint32_t value)
 {
     uint32_t id = param_id_of(offset);
-    if (id)
+    if (!id)
+        return;
+    if (patch_param_desc[offset].nrpn_msb == 254) {
+        param_write(value, id);
+        pickup_arm(offset);
+    } else {
         param_set_by_id(value, id);
+    }
 }
 
 const char *section_name(uint32_t i)

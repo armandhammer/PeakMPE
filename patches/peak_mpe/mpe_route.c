@@ -127,6 +127,8 @@ void mpe_channel_filter(uint32_t src, midi_handler_fn *handler, const uint8_t *m
 
     if (type == 0xB0 && mpe_rpn_cc(ch, msg[1], msg[2], z))
         return;
+    if (type == 0xB0 && msg[1] == 1 && ch == (z ? z->master : midi_global_channel))
+        morph_cc(msg[2]);      /* the mod wheel is also the morph position (morph.c); stock still gets it */
     if ((type == 0x80 || (type == 0x90 && msg[2] == 0)) && bound(ch, msg[1])) {
         deliver(ch, src, handler, msg);
         return;

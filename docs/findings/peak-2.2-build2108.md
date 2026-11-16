@@ -113,9 +113,21 @@ strings read from the image (`.data` is copied from flash `0x08045210` to RAM
   only caller. The encoder and the value buttons don't use it (they redraw the page
   through `ui_value_change`).
 - **Arguments:** `(id, prev, cur, saved, hires)`; the fifth is a stack word
-  (0 or 1). `saved` is the compare-buffer value (`FUN_080190F8(id)`), the
-  patch as stored, which is what the "saved val" row shows. Returns 1 = the
-  knob value is applied, 0 = pickup pending (nothing applied).
+  (0 or 1). `saved` is the stored patch's value (`saved_value_read`
+  `0x080190F8(id)`), which is what the "saved val" row shows. Returns 1 = the
+  knob value is applied, 0 = pickup pending (nothing applied); **the caller
+  writes the knob's value into the patch when it returns 1** (emulated,
+  2026-11-16: a hook that changes `cur` changes only what is drawn).
+- **Where the stored value comes from (2026-11-16, observed).** Not from a
+  buffer in RAM: `saved_value_read` reads the patch memory on every knob
+  move. The record number is (bank - 1) × 128 + number, from `patch_select`
+  `0x20002D14` +4 (bank, 1-based) and +5; a record is 512 bytes at
+  `record << 9` in the external DataFlash, and byte k of it is patch offset
+  k (the function reads at `id + record * 0x200`; a patch load reads the
+  whole record with `ext_flash_read_page` `0x0800EA64` into the shared
+  buffer `0x20003CA4` and copies it into the patch). `ext_flash_read`
+  `0x0800E978(addr, buf, len)` is the read underneath (DataFlash command
+  3). The patch's morph (`morph.c`) reads a record with it.
 - **Pickup** (`globals+0x0C` = `Pickup`, nonzero = on): a byte per patch offset
   at `0x20014054` (`pickup_state`). Armed to 3 by `pickup_arm` `0x08016B04`
   (called from `0x0800F6AC`, so the patch/MIDI side) and the knob-group
@@ -437,6 +449,46 @@ on the synth.
   `strb.w` at `0x0800EE32`), counted up when the write index catches the
   read index. It wraps after 255; no other code reads or writes it (the
   diagnostics page of the patch shows it).
+
+## The parameter setter and 9-bit controls (2026-11-16)
+
+Found while building the patch morph. Code **observed** (decompile), the
+refusal **emulated** (`tests/test_peak_morph.py`
+`test_a_low_fine_tune_comes_back`); not tried on the synth.
+
+- **`param_set_by_id` `0x0800F6AC` `(value, id)`**, the setter behind a
+  received CC, looks up the patch offset of the id (`0x0800F614`), compares
+  the value with that offset's descriptor minimum and maximum, and only
+  then calls `param_write` `0x0800F658` (writes the byte if it differs, ORs
+  the offset's group mask into `param_dirty_groups`, `mark_changed`) and
+  `pickup_arm`.
+- **For the coarse byte of a 9-bit pair the descriptor holds the pair's
+  range, and the setter holds the 7-bit byte against it.** Harmless where
+  the range starts at 0 (FiltFreq, the levels, LFO rates: 0-255). The three
+  oscillator Fine controls have 28-228 (offsets `0x33`, `0x48`, `0x5D`; CC
+  15, 18, 21 by the descriptor table): their coarse byte runs 14-114, and
+  **the setter refuses 14-27**. So over MIDI a stock Peak takes the Fine CC
+  only from 28 up (the lowest quarter of the downward range is reachable
+  from the panel only: inferred from this code, the panel path
+  `0x08017488` calls `param_write` directly).
+- **For the patch:** `param_put` (`section.c`), which every feature uses to
+  set a patch byte, sent such a byte through the setter, so section copy,
+  undo, a motion lane and now the morph could not set a Fine tune below
+  that. From v0.18 the coarse byte of a 9-bit pair goes to `param_write`
+  and `pickup_arm` directly.
+
+## Main-loop pace in the simulator (2026-11-16)
+
+**Emulated** (`work/_w_probe.py`): three broadcast writes to the sound chip
+(target 24, parameters 0, 3 and 13) are paced by the main loop, 712 of each
+in 100 ms idle on stock. With the patch 637 (v0.17) and 630 (v0.18): the
+patch's polls and hooks add about 12% to a main-loop pass in the
+simulator's count of instructions, the morph under 1% of that. Every other
+write of a note on and off is the same as stock (1,947 against 1,947).
+`tests/test_peak_sim.py` `test_mpe_off_writes_as_stock` compared the totals
+within 2% and tripped at v0.18 (2.1%); it now holds the note's own writes
+to 0.5% and the paced ones to 15%. On the synth the pace is not a concern
+so far: v0.17 lost 9 modulation ticks in 10 s, all of them page draws.
 
 ## Dead ends
 

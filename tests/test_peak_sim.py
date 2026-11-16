@@ -91,7 +91,16 @@ def test_mpe_off_writes_as_stock(mpe_image):
         _send(b, 0x80, 60, 0)
     ws, wm = _writes(s), _writes(m)
     assert set(ws) == set(wm)
-    assert abs(sum(ws.values()) - sum(wm.values())) <= sum(ws.values()) * 0.02
+    # Three broadcast writes are paced by the main loop (712 of each in 100 ms
+    # idle on stock), so they count its passes, not what a note does. The
+    # patch's polls make a pass about 12% longer in the simulator's time model
+    # (630 of each, v0.18; 637 on v0.17). Everything else must match stock.
+    per_pass = {(24, 0), (24, 3), (24, 13)}
+    rest_s = sum(v for k, v in ws.items() if k not in per_pass)
+    rest_m = sum(v for k, v in wm.items() if k not in per_pass)
+    assert abs(rest_s - rest_m) <= rest_s * 0.005, (rest_s, rest_m)
+    for k in per_pass:
+        assert ws[k] * 0.85 <= wm[k] <= ws[k], (k, ws[k], wm[k])
 
 
 def test_mpe_member_bend_moves_one_voice(mpe_image):
@@ -316,7 +325,7 @@ def test_two_zones_each_master_bends_only_its_zone(mpe_built):
     two_zones_bend: before the fix both zones moved by the same 100 c)."""
     b = _boot(mpe_built.patched)
     blob = mpe_built.blob
-    b.uc.mem_write(PATCHES + FLAG, b"")
+    b.uc.mem_write(PATCHES + FLAG, b"\x01")
     _rpn(b, 0, 6, 7)
     _rpn(b, 15, 6, 7)
     _send(b, 0x91, 60, 100, 0x9E, 67, 100, ms=40)   # channel 2 (Lower) and channel 15 (Upper)

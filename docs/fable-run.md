@@ -3,18 +3,21 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** ask the user whether to build the patch morph (step 22) as
-proposed in [peak-motion-morph.md](peak-motion-morph.md): morph between the
-stored and the edited patch from the mod wheel. Its first risk is settled:
-series I on v0.17 showed that parameter writes at a lane's rate (about 60 a
-second) cost no modulation ticks (9 lost per 10 s with or without the lane,
-all of them page draws). Still to do before the morph blends anything: map
-the Compare buffer (the stored patch, risk 2 in the note). Series I is
-closed: `LateTicks` works as a latched reading, the click of v0.16 is gone,
-what is left at the loop start is a thump from the cutoff closing in 40 ms,
-which the user puts down to the patch; stop and replace pass; rig 136/0/5.
-Not asked for, possible later: a `LateTicks` reading before and after a 2 s
-knob sweep (what the knob overlay costs MPE smoothing).
+**Next step:** image v0.18 (label `MPEI`, `9df89b4d…`,
+`work/flash/peak-firmware-2.2-build2108+mpe-9df89b4d8021.syx`) with the patch
+morph is built with all checks passed (681 simulator tests, 34 web tests,
+`work/build-v18.log`) and **not flashed yet**: the user has the flash
+command. Then series J in `TEST.md`. The user writes
+GO lines and I run `work/morph_check.py` with the venv Python:
+`--check` (GO check: brightness at five wheel positions against the filter
+set directly; the two columns of centroids should agree, the wheel-127 row
+tells whether the stored FiltFreq is 255 as assumed), `--wheel N` (GO wheel
+N), `--stress` (GO stress: 24 edits and a 10 s wheel sweep between two
+`LateTicks` readings), then the rig run with `Morph` Off. After the flash,
+add the hardware-log row from `work/flash-9df89b4d-*.log`. What the morph
+does and how it differs from the proposal: [peak-motion-morph.md](peak-motion-morph.md),
+"Built 2026-11-16 as v0.18". Not yet asked: whether the user has a
+controller that sends CC 1 (the LinnStrument's low row may; not checked).
 
 **Model:** the Fable brief (items A to D) is worked through; what is left is
 hands-on testing, small fixes and then the morph from the written design
@@ -54,7 +57,7 @@ in a slow attack) and whether to fix the sostenuto quirk.
 | D2 Design note | done | `6d22ee9` | [peak-motion-morph.md](peak-motion-morph.md): one-lane 32-step motion recorder; morph between the stored and the edited patch from the mod wheel; order and risks | proposal, nothing built |
 | D3 Motion recorder | done in the simulator | `b1e4e9f` | `motion.c`: Mod + Animate 1 arms, the next control moved is recorded for 32 steps and loops; replace while playing; stop restores the value. Settings > MOTION: Length 1/2/4 bars, state, `LateTicks` (late-tick counter, `diag.c`). `tests/test_peak_motion.py` 10 pass; Peak regression 95 pass | emulated; not on the synth |
 | D4 Smooth | done, on the synth in v0.17 (the user: rises smoothly) | | Lane playback is a ramp from step to step, written every 16 ms; the loop start no longer jumps. `tests/test_peak_motion.py` 13 pass | emulated and heard by the user |
-| D5 Morph | not started | | `LateTicks` readings are in (series I): parameter traffic costs no ticks. Needs the user's go-ahead | |
+| D5 Morph | done in the simulator, in v0.18 | | `morph.c`: Settings > MORPH > Morph = ModWheel; CC 1 blends the edited patch (0) towards the stored one (127); 126 continuous controls, switches stay; 16 setter calls per 16 ms. `tests/test_peak_morph.py` 16 pass. Rig script `work/morph_check.py` | emulated; not on the synth |
 
 ## Verified so far
 
