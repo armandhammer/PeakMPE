@@ -3,27 +3,17 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** the user is in series J on v0.18 (`TEST.md`). Done: J1 pass,
-J2 measured (the wheel's blend equals the filter set directly, at all five
-positions within 4%; hardware log). Open: J3 (the user's hands; I send
-`work/morph_check.py --wheel N` on "GO wheel N"; the filter is now edited to
-100, a dull but audible note), J4 (`--stress` on "GO stress" between two
-`LateTicks` readings), J5 (rig run with `Morph` Off, then the v0.18 row in
-the hardware log gets its rig result). Run the script with the venv Python,
-`-X utf8 -I`. Not yet answered: whether the user has a controller that
-sends CC 1. Unexplained, seen in J2: with the filter brought down from 255
-to 40 under a held note the level falls in steps over 1.4 s (also without
-the morph); not compared with stock.
-
-**Series J, results so far (2026-11-16, to go into the hardware log):** J3
-(user): wheel 127 and 64 as described; Resonance turned to 12 o'clock at
-wheel 64 read `current` 32; after wheel 0 the note went dull and the same
-knob position read 64 (the stronger resonance could not be heard with the
-filter that low: the step was badly chosen). J4: `LateTicks` before the
-stress run `2885 9`; `morph_check.py --stress` ran (`morph-2026-11-16_143027-stress`):
-no level step over 8 dB in any 10 ms of the 10 s sweep, mean level per
-second -21.1 to -22.4 dB. The reading after the run, the user's ear, and J5
-are still to come.
+**Next step:** nothing is open on the synth. Series J on v0.18 is done (hardware
+log): the morph's blend measured equal to the directly set value, a knob with
+the wheel up reads its blend, a 10 s sweep of 24 controls cost about 3
+modulation ticks, rig 136/0/5. The brief's items A to D and the morph are
+all built and on the synth. What could come next is the user's choice:
+(1) playing the morph from a real controller (not yet known whether the
+user has one that sends CC 1; the LinnStrument's low row may), and other
+sources (pressure, a pedal); (2) the things not tried: Compare and Save
+during a morph; (3) the open decisions below; (4) the unexplained stepwise
+closing of the filter from 255 to 40 under a held note (compare with
+stock); (5) what the knob overlay costs in `LateTicks` during a knob sweep.
 
 **Model:** the Fable brief (items A to D) is worked through; what is left is
 hands-on testing, small fixes and then the morph from the written design
@@ -31,8 +21,8 @@ note. Opus 5.5 (high effort for the morph, medium for test rounds) can take
 it from these files.
 
 **State on the synth:** v0.18 (`9df89b4d…`, boot `MPEI`, commit `c19c0f8`), flashed by
-the user 2026-11-16 (flash log ok, identity `02 01 00 08`; no rig run yet). `Morph` is set to
-`ModWheel`; the edit buffer of D002 has FiltFreq 100. Before it: v0.17 (`e5e9e652…`, boot
+the user 2026-11-16 (flash log ok, identity `02 01 00 08`; rig 136 pass, 0 fail, 5 info, run
+`2026-11-16_143231`; series J done). `Morph` is Off, D002 reselected. Before it: v0.17 (`e5e9e652…`, boot
 `MPEH`, commit `163e5c7`, rig 136/0/5, run `2026-11-16_105659`). Before it: v0.16 (`0f262ad9…`, boot `MPEG`, commit
 `11f5b71`, rig 136/0/5, run `2026-11-16_091401`). Before it: v0.15 (`dee61e50…`, boot `MPEF`, commit `ed02aa9`),
 flashed 2026-11-15 21:22. Rig 136 pass, 0 fail, 5 info (run
@@ -64,7 +54,7 @@ in a slow attack) and whether to fix the sostenuto quirk.
 | D2 Design note | done | `6d22ee9` | [peak-motion-morph.md](peak-motion-morph.md): one-lane 32-step motion recorder; morph between the stored and the edited patch from the mod wheel; order and risks | proposal, nothing built |
 | D3 Motion recorder | done in the simulator | `b1e4e9f` | `motion.c`: Mod + Animate 1 arms, the next control moved is recorded for 32 steps and loops; replace while playing; stop restores the value. Settings > MOTION: Length 1/2/4 bars, state, `LateTicks` (late-tick counter, `diag.c`). `tests/test_peak_motion.py` 10 pass; Peak regression 95 pass | emulated; not on the synth |
 | D4 Smooth | done, on the synth in v0.17 (the user: rises smoothly) | | Lane playback is a ramp from step to step, written every 16 ms; the loop start no longer jumps. `tests/test_peak_motion.py` 13 pass | emulated and heard by the user |
-| D5 Morph | done, blend measured on the synth in v0.18 (J2) | | `morph.c`: Settings > MORPH > Morph = ModWheel; CC 1 blends the edited patch (0) towards the stored one (127); 126 continuous controls, switches stay; 16 setter calls per 16 ms. `tests/test_peak_morph.py` 16 pass. Rig script `work/morph_check.py` | emulated; not on the synth |
+| D5 Morph | done, confirmed on the synth in v0.18 (series J) | | `morph.c`: Settings > MORPH > Morph = ModWheel; CC 1 blends the edited patch (0) towards the stored one (127); 126 continuous controls, switches stay; 16 setter calls per 16 ms. `tests/test_peak_morph.py` 16 pass. Rig script `work/morph_check.py` | emulated; not on the synth |
 
 ## Verified so far
 

@@ -382,6 +382,28 @@ changed:
 - **Not tried:** the Compare button during a morph; the cost of a wheel
   sweep with many controls differing (series J reads `LateTicks`).
 
+**Series J on the synth (v0.18, 2026-11-16; observed):**
+
+- **The blend is right.** One held saw on D002, FiltFreq edited to 100,
+  stored 255 (`work/morph_check.py --check`): the spectral centroid with
+  the wheel at 0, 32, 64, 96, 127 equals the centroid with FiltFreq set
+  directly to 100, 139, 178, 217, 255 (ratios 0.96 to 1.04, inside the 6 to
+  8% scatter of the measure; levels within 1.1 dB).
+- **A knob with the wheel up works in blend space.** Resonance (stored 0)
+  turned to 12 o'clock at wheel 64 showed `current` 32; with the wheel back
+  at 0 the same position showed 64 (user).
+- **Cost:** `LateTicks` read `2885 9` before and `2897 5` after a 10 s wheel
+  sweep (0-127-0 once a second, a CC every 10 ms) with 24 controls
+  differing: 12 lost ticks, of which about 9 are the two page draws of the
+  reading itself, longest gap 5 ms. So a full-speed morph of two dozen
+  controls costs at most a few ticks in 10 s. No clicks or stutter by ear
+  (user), no level step over 8 dB in any 10 ms of the recording.
+- Unexplained, not the morph's: with the filter brought down from 255 to
+  40 under a held note the level falls in steps over about 1.4 s, also when
+  set directly. Not compared with stock.
+- Not tried on the synth: the Compare button during a morph, Save during a
+  morph, a real wheel (the positions came from the computer).
+
 ## Order
 
 1. The merged-tick counter on the diagnostics page (risk 1): small, and

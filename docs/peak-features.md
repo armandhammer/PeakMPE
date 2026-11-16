@@ -495,8 +495,9 @@ built.
     resonance, mix, wavetable position, FX levels) between two snapshots,
     from the mod wheel or pressure; discrete settings switch at an
     endpoint. Interpolate times and frequencies in a perceptual scale.
-    **Built (v0.18, `patches/peak_mpe/morph.c`; emulated, not yet on the
-    synth):** Settings > MORPH > `Morph` = `ModWheel`. The mod wheel (CC 1
+    **Built (v0.18, `patches/peak_mpe/morph.c`; on the synth 2026-11-16:
+    the blend measured equal to the directly set value, a 10 s sweep of 24
+    controls cost about 3 modulation ticks; hardware log):** Settings > MORPH > `Morph` = `ModWheel`. The mod wheel (CC 1
     on the zone's master channel with MPE on, on the synth's channel
     without) blends the patch as you have edited it (wheel at 0) towards
     the patch as it is stored (wheel at 127): load a patch, turn some
