@@ -18,6 +18,7 @@ RESONANCE, FILT_FREQ, NO_NUMBER = 0x82, 0x83, 0xC8     # 7-bit; 9-bit pair 0x83/
 G_MOTION_LEN = 0x3F
 MOTION_PAGE = 10                                         # Settings: after MIDI MONITOR
 LOOP_MS = 2000
+MS_COUNTER = 0x20003AD0 + 0x1C0                       # tim6_isr: +1 per millisecond
 
 pytestmark = pytest.mark.slow
 
@@ -181,3 +182,32 @@ def test_motion_page_and_late_ticks(mpe_built):
     assert "4 bars" in _show(b, 8, MOTION_PAGE, 0)[1]
     rows = _show(b, 8, MOTION_PAGE + 1, 0)               # the stock page after ours is still there
     assert rows[0].startswith("MIDI ENABLE"), rows
+
+
+def test_late_ticks_row_is_a_latched_reading(mpe_built):
+    """On the synth (v0.16) the row showed the live count, each change redrew the
+    page, and drawing loses ticks: it ran up by about 1,000 a second by itself.
+    Now a reading is taken only when the page is drawn."""
+    b, blob = _board(mpe_built), mpe_built.blob
+    rows = _show(b, 8, MOTION_PAGE, 0)
+    assert rows[3].split()[1:] == ["0", "0"] or int(rows[3].split()[1]) < 100, rows
+    before = b.display.lcd.text()[3]
+    ms = int.from_bytes(b.uc.mem_read(MS_COUNTER, 4), "little")
+    b.uc.mem_write(MS_COUNTER, (ms + 500).to_bytes(4, "little"))     # the main loop "lost" half a second
+    b.run_ms(300)
+    assert b.display.lcd.text()[3] == before                         # the open page does not follow
+    rows = _show(b, 8, MOTION_PAGE, 0)                               # drawn again: a new reading
+    count, gap = rows[3].split()[1:3]
+    assert 495 <= int(count) < 600 and gap == "99", rows
+    rows = _show(b, 8, MOTION_PAGE, 0)
+    assert int(rows[3].split()[2]) < 99, rows                        # the gap is since the last reading
+
+
+def test_playback_does_not_ask_for_a_page_redraw(mpe_built):
+    b, blob = _board(mpe_built), mpe_built.blob
+    _record_four(b, blob)
+    b.run_ms(100)
+    b.uc.mem_write(0x20011208 + 1, b"\x00")              # stock's changed flag: clear
+    b.run_ms(1200)                                       # several steps played with new values
+    assert b.u8(PATCHES + RESONANCE) in (60, 110)
+    assert b.u8(0x20011208 + 1) == 0

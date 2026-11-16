@@ -147,7 +147,8 @@ void section_edit(uint32_t index, int32_t delta);
 uint32_t param_id_of(uint32_t offset);            /* the setter's id for a patch offset, 0 = not settable */
 void param_put(uint32_t offset, uint32_t value);  /* set a patch byte through stock's setter, if it has an id */
 void diag_tick(void);            /* once per modulation tick */
-uint32_t diag_late_ticks(void);
+void diag_latch(void);           /* the page is being drawn: take a new reading */
+void diag_late_text(char *out);  /* that reading as text, at most 8 characters */
 
 /* --- Motion recording (motion.c) --------------------------------------- */
 int motion_button(uint32_t ev, int mod_held);     /* 1 = taken (Mod + Animate 1 and its release) */

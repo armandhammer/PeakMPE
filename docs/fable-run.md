@@ -3,18 +3,28 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** the user flashes v0.16
-(`work/flash/peak-firmware-2.2-build2108+mpe-0f262ad9edb9.syx`, SHA-256
-`0f262ad9edb94932cc9ec60eecbc7ef83201e2e01696c332014f84f347169e78`, boot label
-`MPEG`; built and verified, log `work/build-v16.log`); then read the flash log,
-add a hardware-log row, take the user's results for series H in `TEST.md`
-(H1 to H4, incl. the `LateTicks` readings) and run `tools/hwrig run --stage all
---yes` on the user's GO (H5). After that: "Smooth" for the recorder if the
-user hears steps, then the morph (design note), using `LateTicks` as the
-measure. With nothing from the user there is no unblocked hardware-free item
-left in the brief.
+**Next step:** the user is in series H on v0.16 (`TEST.md`); take their results
+for H2 to H4 (does the lane loop, replace, stop; does the sweep sound like
+steps). H1's `LateTicks` reading on v0.16 is not usable (it counts its own
+screen redraws, see [peak-motion-morph.md](peak-motion-morph.md), "First
+reading on the synth"). The fix is in the source after v0.16: a latched
+`count gap` row and no page redraw on lane playback
+(`tests/test_peak_motion.py`, 12 tests). Fold it into the next image (v0.17,
+label `MPEH`) together with whatever H2 to H4 ask for (probably "Smooth"):
+bump the label in `patches/peak_mpe/patch.py` and `tools/web_descriptor.py`,
+re-export the descriptor, re-pin the two web test hashes,
+`scripts/build-image.sh patches/peak_mpe/patch.py`, series I in `TEST.md` with
+the reading "MOTION page: note `LateTicks`, leave the page for 10 s, come
+back, note it again", idle and while a lane plays. The rig run for v0.16
+(H5) still needs the user's GO.
 
-**State on the synth:** v0.15 (`dee61e50…`, boot `MPEF`, commit `ed02aa9`),
+**Model:** the Fable brief (items A to D) is worked through; what is left is
+hands-on testing, small fixes and then the morph from the written design
+note. Opus 5.5 (high effort for the morph, medium for test rounds) can take
+it from these files.
+
+**State on the synth:** v0.16 (`0f262ad9…`, boot `MPEG`, commit `11f5b71`), flashed by
+the user 2026-11-16 (flash log ok, identity `02 01 00 08`; no rig run yet). Before it: v0.15 (`dee61e50…`, boot `MPEF`, commit `ed02aa9`),
 flashed 2026-11-15 21:22. Rig 136 pass, 0 fail, 5 info (run
 `2026-11-15_212605`). Series F and G done (hardware log): stock stealing
 observed, all three Glide settings work, undo window ok, messages clear after

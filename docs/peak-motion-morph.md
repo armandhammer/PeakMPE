@@ -149,6 +149,25 @@ the synth).** As proposed, with these points settled or changed:
   the state (`Off`, `Armed`, `Rec`, `Play`) and `LateTicks`.
 - Not built: Smooth, storing the lane, a second lane.
 
+**First reading on the synth (v0.16, user, 2026-11-16):** with the MOTION
+page open and nothing playing, `LateTicks` ran up by about 1,000 a second.
+Most likely cause (inferred, not yet separated on the synth): the row showed
+the live count, the patch redraws its page whenever a shown value changes,
+and drawing the screen keeps the main loop from its modulation ticks, so
+each redraw lost ticks, changed the number and caused the next redraw. The
+simulator does not show it (it charges no time for the screen: 0 to 1 late
+ticks in 2 s). Changed in the source after v0.16, not flashed: the row is a
+latched reading, taken only when the page is drawn, and shows `count gap`
+(the count and the longest gap between two ticks in ms since the last
+reading); and lane playback no longer asks stock for a page redraw on every
+step. **If the latched count still grows by hundreds a second between two
+looks, the cause is something else and the main loop really is that
+short of time**; that reading decides how the morph is built. Either way
+it is a finding: screen redraws cost modulation ticks on this synth, so
+anything that changes a shown value many times a second (the MIDI MONITOR
+page's `Msg count` while playing, a received CC on the page that shows it)
+takes time from pitch, pressure and Slide smoothing.
+
 **Risks and what to check first**
 
 1. Which button events arrive while Mod is held (the panel table entry for

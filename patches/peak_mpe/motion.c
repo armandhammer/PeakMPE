@@ -66,14 +66,21 @@ static uint32_t value(void)
     return hires ? (uint32_t)(patches[id] * 2 + (patches[id + 1] >> 6)) & 0xFF : patches[id];
 }
 
+/* Sets the control. Stock's setter also asks for the page to be redrawn
+ * (mark_changed), and drawing the screen keeps the main loop from its
+ * modulation ticks (diag.c, LateTicks), so a lane playing 16 steps a second
+ * would cost ticks all the time: the redraw request is taken back. A page
+ * that shows the control keeps its old number while the lane plays. */
 static void write(uint32_t v)
 {
+    uint8_t flags = ui_msg_state[1];
     if (hires) {
         param_put(id, v >> 1);
         param_put(id + 1u, (v & 1) << 6);
     } else {
         param_put(id, v);
     }
+    ui_msg_state[1] = flags;
     written = (uint8_t)v;
 }
 

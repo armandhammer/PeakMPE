@@ -324,9 +324,12 @@ static void render_view(const struct mpe_live *v, uint32_t display, char *out)
     case DISP_MSTATE:
         put_str(&p, motion_state_name());
         break;
-    case DISP_LATE:
-        put_num(&p, diag_late_ticks() % 100000000u);
+    case DISP_LATE: {
+        char buf[16];
+        diag_late_text(buf);
+        put_str(&p, buf);
         break;
+    }
     case DISP_GLIDE: {
         static const char *const names[] = {"Stock", "LastNote", "Legato"};
         uint8_t n = globals[MPE_G_GLIDE];
@@ -367,6 +370,8 @@ void mpe_ui_format(uint32_t display, uint32_t value)
         return;
     }
     char *field = drawn[display - DISP_ZONE];
+    if (display == DISP_LATE)      /* a reading is taken only when stock draws the page: see diag.c */
+        diag_latch();
     render(display, field);
     lcd_puts(field);
 }
