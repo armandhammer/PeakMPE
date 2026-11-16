@@ -44,8 +44,9 @@ computer, each time you write the **GO** line of a step.
 
 ### J3. A knob while the wheel is up (your hands, I set the wheel)
 
-After J2 the filter Frequency is edited to a low value (dull), and the stored
-D002 has it fully open (bright).
+J1 and J2 are done (J2: the wheel's blend measured the same as the filter
+set directly, at all five positions). After J2 the filter Frequency is edited
+to a low value (dull), and the stored D002 has it fully open (bright).
 
 1. Hold one pad on the LinnStrument from here to the end of J3. Expected: a
    dull note.

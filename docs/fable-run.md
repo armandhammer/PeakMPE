@@ -3,30 +3,27 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** image v0.18 (label `MPEI`, `9df89b4d…`,
-`work/flash/peak-firmware-2.2-build2108+mpe-9df89b4d8021.syx`) with the patch
-morph is built with all checks passed (681 simulator tests, 34 web tests,
-`work/build-v18.log`) and **not flashed yet**: the user has the flash
-command. Then series J in `TEST.md`. The user writes
-GO lines and I run `work/morph_check.py` with the venv Python:
-`--check` (GO check: brightness at five wheel positions against the filter
-set directly; the two columns of centroids should agree, the wheel-127 row
-tells whether the stored FiltFreq is 255 as assumed), `--wheel N` (GO wheel
-N), `--stress` (GO stress: 24 edits and a 10 s wheel sweep between two
-`LateTicks` readings), then the rig run with `Morph` Off. After the flash,
-add the hardware-log row from `work/flash-9df89b4d-*.log`. What the morph
-does and how it differs from the proposal: [peak-motion-morph.md](peak-motion-morph.md),
-"Built 2026-11-16 as v0.18". Not yet asked: whether the user has a
-controller that sends CC 1 (the LinnStrument's low row may; not checked).
+**Next step:** the user is in series J on v0.18 (`TEST.md`). Done: J1 pass,
+J2 measured (the wheel's blend equals the filter set directly, at all five
+positions within 4%; hardware log). Open: J3 (the user's hands; I send
+`work/morph_check.py --wheel N` on "GO wheel N"; the filter is now edited to
+100, a dull but audible note), J4 (`--stress` on "GO stress" between two
+`LateTicks` readings), J5 (rig run with `Morph` Off, then the v0.18 row in
+the hardware log gets its rig result). Run the script with the venv Python,
+`-X utf8 -I`. Not yet answered: whether the user has a controller that
+sends CC 1. Unexplained, seen in J2: with the filter brought down from 255
+to 40 under a held note the level falls in steps over 1.4 s (also without
+the morph); not compared with stock.
 
 **Model:** the Fable brief (items A to D) is worked through; what is left is
 hands-on testing, small fixes and then the morph from the written design
 note. Opus 5.5 (high effort for the morph, medium for test rounds) can take
 it from these files.
 
-**State on the synth:** v0.17 (`e5e9e652…`, boot `MPEH`, commit `163e5c7`), flashed by
-the user 2026-11-16 (flash log ok, identity `02 01 00 08`; rig 136 pass, 0 fail, 5 info, run
-`2026-11-16_105659`; series I done). Before it: v0.16 (`0f262ad9…`, boot `MPEG`, commit
+**State on the synth:** v0.18 (`9df89b4d…`, boot `MPEI`, commit `c19c0f8`), flashed by
+the user 2026-11-16 (flash log ok, identity `02 01 00 08`; no rig run yet). `Morph` is set to
+`ModWheel`; the edit buffer of D002 has FiltFreq 100. Before it: v0.17 (`e5e9e652…`, boot
+`MPEH`, commit `163e5c7`, rig 136/0/5, run `2026-11-16_105659`). Before it: v0.16 (`0f262ad9…`, boot `MPEG`, commit
 `11f5b71`, rig 136/0/5, run `2026-11-16_091401`). Before it: v0.15 (`dee61e50…`, boot `MPEF`, commit `ed02aa9`),
 flashed 2026-11-15 21:22. Rig 136 pass, 0 fail, 5 info (run
 `2026-11-15_212605`). Series F and G done (hardware log): stock stealing
@@ -57,7 +54,7 @@ in a slow attack) and whether to fix the sostenuto quirk.
 | D2 Design note | done | `6d22ee9` | [peak-motion-morph.md](peak-motion-morph.md): one-lane 32-step motion recorder; morph between the stored and the edited patch from the mod wheel; order and risks | proposal, nothing built |
 | D3 Motion recorder | done in the simulator | `b1e4e9f` | `motion.c`: Mod + Animate 1 arms, the next control moved is recorded for 32 steps and loops; replace while playing; stop restores the value. Settings > MOTION: Length 1/2/4 bars, state, `LateTicks` (late-tick counter, `diag.c`). `tests/test_peak_motion.py` 10 pass; Peak regression 95 pass | emulated; not on the synth |
 | D4 Smooth | done, on the synth in v0.17 (the user: rises smoothly) | | Lane playback is a ramp from step to step, written every 16 ms; the loop start no longer jumps. `tests/test_peak_motion.py` 13 pass | emulated and heard by the user |
-| D5 Morph | done in the simulator, in v0.18 | | `morph.c`: Settings > MORPH > Morph = ModWheel; CC 1 blends the edited patch (0) towards the stored one (127); 126 continuous controls, switches stay; 16 setter calls per 16 ms. `tests/test_peak_morph.py` 16 pass. Rig script `work/morph_check.py` | emulated; not on the synth |
+| D5 Morph | done, blend measured on the synth in v0.18 (J2) | | `morph.c`: Settings > MORPH > Morph = ModWheel; CC 1 blends the edited patch (0) towards the stored one (127); 126 continuous controls, switches stay; 16 setter calls per 16 ms. `tests/test_peak_morph.py` 16 pass. Rig script `work/morph_check.py` | emulated; not on the synth |
 
 ## Verified so far
 
