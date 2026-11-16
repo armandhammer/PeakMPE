@@ -101,8 +101,10 @@ These apply to every module in the combined definition.
   10th interrupt ([findings](findings/peak-2.2-build2108.md#timers-and-the-1-khz-tick-2026-11-15)).
   Until 2026-11-15 the simulator ran the Peak's timers twice too fast, and
   v0.6 to v0.13 carried tick counts twice too large (EnvSync's holds, the
-  undo gesture window); stock's message countdown is not used for timing,
-  its count length on the synth is not known.
+  undo gesture window). Stock's message countdown is not used for timing.
+  From v0.15 one count of it is 22 ms (stock: 11 ms), so `Msg Time` 127
+  lasts about 3 s as the guide says, and a message of the patch always sets
+  stock's changed flag, without which the page is never redrawn after it.
 - **Timing budget, checked for every combined image:**
   - note latency (MIDI in to sound) under combined load: dense MPE
     expression while changing patches, paging the screen and receiving
