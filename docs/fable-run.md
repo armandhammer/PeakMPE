@@ -13,7 +13,12 @@ next unblocked work is D3: the merged-tick counter on the MIDI MONITOR page
 **F2 so far (observed, v0.14, `work/glide_check.py`):** Glide = Stock, run
 `work/hw-runs/glide-2026-11-15_195536-stock/`: all four notes (48, 60, 55, and
 67 over a held 55) start at 71.3 to 71.9, the 72 every voice was left at, as
-expected for Stock. LastNote and Legato runs wait for the user to set the item.
+expected for Stock. Glide = LastNote (the user set it; run
+`glide-2026-11-15_195628-lastnote/`): 48 starts at 71.4 (the last 72), 60 at
+50.2, 55 at 59.4, 67 over the held 55 at 55.5 with nothing near 67 to 72. Each
+start is where the previous note's pitch was at that moment (the slow glide,
+GlideTime 110, had not quite arrived: 48 was at about 50, 60 at about 59.4),
+which is the design. The Legato run waits for the user to set the item.
 
 **v0.14 was flashed by the user 2026-11-15 19:13** (log `work/flash-06be5529-2026-11-15.log`: full transfer, identity `02 01 00 08`; row in `docs/hardware-log.md`). Rig run on it: 136 pass, 0 fail, 5 info (run `2026-11-15_191511`). The image:
 `work/flash/peak-firmware-2.2-build2108+mpe-06be5529753f.syx`, SHA-256
