@@ -321,6 +321,23 @@ Code **observed**, behaviour **emulated**.
     pitch.
   - **PreGlide** nonzero overrides all of these: the note starts at its own
     pitch plus the offset.
+- **On the synth (observed, 2026-11-15, v0.14, `work/glide_check.py`,
+  recordings in `work/hw-runs/glide-2026-11-15_19*`):** sine, MPE off, Glide
+  on, Glide Time 110 (slow); every voice first left at note 72; then 48, 60
+  and 55 detached and 67 over the held 55. Pitch 40 to 140 ms after each
+  note-on:
+
+  | Glide setting | 48 | 60 | 55 | 67 over a held 55 |
+  |---|---|---|---|---|
+  | Stock | 71.3 | 71.7 | 71.6 | 71.9, then down to 67.7 after 1 s |
+  | LastNote | 71.4 | 50.2 | 59.4 | 55.5, then 59.2, 62.3, 64.7 at 0.3, 0.6, 1.0 s |
+  | Legato | 47.9 | 60.0 | 55.0 | 55.0, then 59.0, 62.2, 64.6 |
+
+  Stock: each note from its voice's last pitch (72), as the code reads.
+  LastNote: from where the previous note's pitch is at that moment (48 had
+  reached about 50 and 60 about 59.4 when the next note came). Legato:
+  detached notes on pitch, the legato note from the held one. The held 55
+  stays at 55.0 while the new voice glides.
 - **MPE.** The patch binds a member channel to a voice in a hook on
   `voice_alloc`'s `voice_glide` call (`0x08012640`) and leaves glide alone.
   So with MPE on, a note glides from its voice's last pitch as in Poly;

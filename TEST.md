@@ -15,38 +15,11 @@ Setup for all series: **quit Ableton and any other MIDI app.**
 
 ## Series F: glide start, message time, undo timing (image `MPEE Ver`)
 
-Needs the v0.14 image `06be5529…` (boot screen `MPEE Ver 108.469`). F0 (which note
-is cut) and F6 (rig regression, 136 pass) are done and removed. In F2 I send
-the notes from the computer over USB; I start each run only when you write
-**GO**. Hands off
-the Peak while one runs (each takes under a minute). Rows are counted as in
-Novation's guide: the title is Row 1, the three items are Rows 2 to 4, chosen
-with the three buttons left of the screen.
-
-### F1. The new setting is there
-
-1. Press **Settings**. Press **Page ►** or **Page ◀** until the top line
-   reads `MPE EXTRAS      7/32`. Expected below it: Row 2 `PressCurve`, Row 3
-   `EnvSync`, Row 4 `Glide      Stock`.
-2. Press the **Row 4** button. Turn the **Value** knob one click clockwise.
-   Expected Row 4: `Glide      LastNote`.
-3. One more click clockwise. Expected: `Glide      Legato`. A third click
-   changes nothing.
-4. Two clicks anticlockwise. Expected: `Glide      Stock`.
-
-### F2. Where a glide starts (I play, three runs)
-
-For each run set Row 4 of `MPE EXTRAS      7/32` as given, then write the
-word after "write". Each run plays five sine notes with a slow glide and
-takes about 10 seconds; I read the result from the recording.
-
-1. `Glide      Stock`. Write **GO stock**.
-2. `Glide      LastNote` (one click clockwise). Write **GO lastnote**.
-3. `Glide      Legato` (one more click clockwise). Write **GO legato**.
-
-Expected (I check): Stock starts every note from the pitch its voice last
-played; LastNote from the note before it; Legato on pitch when nothing is
-held and from the held note otherwise.
+Image v0.14 `06be5529…` (boot screen `MPEE Ver 108.469`). Done and removed: F0
+(which note is cut), F1 and F2 (the Glide item and where a glide starts), F6
+(rig regression, 136 pass). The Glide item is still on `Legato` from F2; F7
+uses that. Rows are counted as in Novation's guide: the title is Row 1, the
+three items are Rows 2 to 4, chosen with the three buttons left of the screen.
 
 ### F3. How long a knob message lasts (stopwatch on a phone)
 
@@ -93,15 +66,20 @@ held and from the held note otherwise.
    step 2). On v0.13 the two moves counted as one, because the pause had to
    be 4 seconds, and the note would come back at its original brightness.
 
-### F7. By ear, with the LinnStrument (after F2)
+### F7. By ear, with the LinnStrument
 
 1. On the Peak select patch **D002** (the MPE On patch). Press the Glide
    **On** button so that its LED is lit. Turn the Glide **Time** knob until
    the knob message reads `GlideTime` `current 70`.
-2. Set `Glide      Legato` (F1, steps 1 to 3).
+2. Check the Glide item: press **Settings**, then **Page ►** or **Page ◀** until
+   the top line reads `MPE EXTRAS      7/32`. Row 4 should read
+   `Glide      Legato` (left there by F2).
 3. On the LinnStrument play one low pad, lift it, then play one pad two
    octaves higher. Expected: the high note starts on pitch, no glide.
 4. Hold the low pad and, while holding it, press the high pad. Expected: the
    high note glides up from the low note's pitch in about half a second.
-   **Tell me whether this feels right for a lead line**, and whether
-   `LastNote` (it glides in step 3 as well) is better or worse.
+   **Tell me whether this feels right for a lead line.**
+5. Press **Row 4** and turn the **Value** knob one click anticlockwise: Row 4
+   reads `Glide      LastNote`. Repeat step 3. Expected: the high note now
+   glides up from the low note although the low pad was lifted. **Tell me
+   which of the two you would rather play with.**

@@ -445,7 +445,9 @@ Measurements (step 6) can run on the rig while code is written for others.
     start is the previous note's unbent pitch (a per-note bend is added
     after the glide). Code: `mpe_voice.c` (`glide_start`, in the existing
     hook on `voice_alloc`'s `voice_glide` call); tests
-    `tests/test_peak_glide.py`. Musical success to check by ear: a legato
+    `tests/test_peak_glide.py`. **On the synth, v0.14, 2026-11-15
+    (observed, `work/glide_check.py`):** all three settings start a glide
+    where designed (table in the findings). Musical success to check by ear: a legato
     line on the LinnStrument glides note to note as a mono lead would, and
     chords no longer swoop in from unrelated pitches.
 20. **Strum** (S–M as an arp/Chord mode; M–L for incoming MIDI). MIDI sends

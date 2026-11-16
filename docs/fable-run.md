@@ -3,22 +3,18 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** the user's panel steps of series F in `TEST.md` (F1, F3, F4,
-F5), then F2 with the user's GO per setting (`work/glide_check.py --label
-stock|lastnote|legato`), then F7 by ear; add each result to the v0.14 row of
-`docs/hardware-log.md`. F0 and F6 are done. With nothing from the user, the
-next unblocked work is D3: the merged-tick counter on the MIDI MONITOR page
-([peak-motion-morph.md](peak-motion-morph.md), "Order").
+**Next step:** the user's remaining steps of series F in `TEST.md`: F3 (Msg Time
+number and stopwatch), F4 (2 s message), F5 (undo window), F7 (LinnStrument, by
+ear); add each result to the v0.14 row of `docs/hardware-log.md` and settle the
+"Message time" paragraph of the findings from F3. F0, F1, F2 and F6 are done.
+The Peak's Glide item was left on Legato (F7 uses it). With nothing from the
+user, the next unblocked work is D3: the merged-tick counter on the MIDI
+MONITOR page ([peak-motion-morph.md](peak-motion-morph.md), "Order").
 
-**F2 so far (observed, v0.14, `work/glide_check.py`):** Glide = Stock, run
-`work/hw-runs/glide-2026-11-15_195536-stock/`: all four notes (48, 60, 55, and
-67 over a held 55) start at 71.3 to 71.9, the 72 every voice was left at, as
-expected for Stock. Glide = LastNote (the user set it; run
-`glide-2026-11-15_195628-lastnote/`): 48 starts at 71.4 (the last 72), 60 at
-50.2, 55 at 59.4, 67 over the held 55 at 55.5 with nothing near 67 to 72. Each
-start is where the previous note's pitch was at that moment (the slow glide,
-GlideTime 110, had not quite arrived: 48 was at about 50, 60 at about 59.4),
-which is the design. The Legato run waits for the user to set the item.
+**F2 done (observed, v0.14):** Stock starts every note at about 72 (its voice's
+last pitch); LastNote from the previous note's current pitch; Legato on pitch
+when detached and from the held note when legato. Table in the findings,
+"Glide".
 
 **v0.14 was flashed by the user 2026-11-15 19:13** (log `work/flash-06be5529-2026-11-15.log`: full transfer, identity `02 01 00 08`; row in `docs/hardware-log.md`). Rig run on it: 136 pass, 0 fail, 5 info (run `2026-11-15_191511`). The image:
 `work/flash/peak-firmware-2.2-build2108+mpe-06be5529753f.syx`, SHA-256
@@ -42,7 +38,7 @@ both descriptors equal (log `work/build-v14.log`).
 | A4 Rig experiment | done | `c63f5d0` | `work/steal_check.py` on v0.14, 2026-11-15: the 9th note took the releasing voice (released note -56 dB, held notes +0 dB); the 10th cut the next voice in rotation (63), not the oldest; all held: 48 then 53 cut; slow attack: the newest (83) cut. All as the code reads. No steal policy built; refinements listed in the findings are the user's call | observed |
 | B1 Trace stock glide | done | `aea1d4d` | A poly note glides from the pitch its own voice last had (`voice_state+0x74+4v` is never reset); after power-on from note 60; MonoLG glides only legato; PreGlide overrides | code observed, emulated (`work/_b1_glide.py`) |
 | B2 Glide findings | done | `aea1d4d` | [findings, "Glide"](findings/peak-2.2-build2108.md#glide-2026-11-15) | |
-| B3 Glide option | done in the simulator | `aea1d4d` | Settings > MPE EXTRAS > Glide: Stock / LastNote / Legato (globals `+0x3E`), in `mpe_voice.c` `glide_start`; `tests/test_peak_glide.py` 6 pass. Rig check `work/glide_check.py` ready (dry run clean) | emulated; not on the synth |
+| B3 Glide option | done, confirmed on the synth | `aea1d4d` | Settings > MPE EXTRAS > Glide: Stock / LastNote / Legato (globals `+0x3E`), in `mpe_voice.c` `glide_start`; `tests/test_peak_glide.py` 6 pass. Rig check `work/glide_check.py` run for all three settings on v0.14 | emulated and observed; by-ear check F7 open |
 | C1 Tick rate of `mpe_mod_update` | done without a measurement | `aea1d4d` | **1 kHz.** TIM6 PSC 59 ARR 99 = 10 kHz, a tick every 10th interrupt; the tempo constant 1,717,984 per BPM is 24 clocks per quarter at 1 kHz, and the arp step measured 125 ms on the synth. The simulator's 2000 per second was its own error (TIM6 raised every 50 us slot); fixed in `emu/board.py` | code observed + one hardware time; no new rig measurement needed |
 | C2 Quick-assign `dest_of[]` | done | `aea1d4d` | All 47 entries: the control's name (`patch_param_desc`) and the destination's name (matrix list `0x080464E0`) agree. The firmware has no control-to-destination table (searched in destination order at record sizes 1, 2, 4, 8, 12) | names observed; pairing by name |
 | C3 DIN overflow counter size | done | `aea1d4d` | One byte: `ldrb.w`/`strb.w [r3, #0x204]` at `0x0800EE2C`/`0x0800EE32` in the USART6 interrupt; wraps after 255 | observed |
