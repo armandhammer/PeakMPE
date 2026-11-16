@@ -179,6 +179,41 @@ Play for several minutes, densely: chords, fast runs, lots of sliding and
 pressure. Tell me before you start: I can record the Peak's output during
 that time and check afterwards that every note ended.
 
+## 9. Patch morph from the Low Row (firmware v0.18 and later)
+
+The Peak patch's morph (Settings > MORPH > `Morph` = `ModWheel`) follows the
+mod wheel, MIDI CC 1, on the zone's Main channel. The LinnStrument has no
+wheel, but its lowest row of pads can be one. From the manual (Panel
+Settings, Per-Split Settings, "Low Row"; not yet tried here, see `TEST.md`
+series K):
+
+- **Low Row = X=CC1** turns the lowest row into a control strip that sends
+  CC 1 as you slide left and right. The row no longer plays notes.
+- Its default is **Hold mode**: press anywhere for 0, slide right (up to 7
+  pads) for up to 127, and letting go sends 0 again. For the morph that is
+  "lean on it with the thumb to go towards the stored patch, let go to
+  come back to your edit".
+- The hidden **Fader mode** makes the whole row a fader, 0 at the left end
+  and 127 at the right, and the value stays when you let go. To choose it,
+  hold the **X=CC1** pad on the Per-Split Settings screen; swipe up or down
+  to pick the setting, left or right to change it. The same hidden screen
+  can change the CC number, which must stay 1 for the morph.
+- The manual says messages common to all notes go out on the Main channel;
+  that the Low Row's CC 1 does too is what series K checks on the Peak's
+  MIDI MONITOR page (`B0 01 xx` is CC 1 on channel 1).
+
+Other ways the manual offers, and why not: **Timbre/Y = CC1** sends CC 1 per
+note on the Per-Note channels, which the morph ignores (and the patch needs
+Y as CC 74 for Slide); **CC FADERS** turns a whole split into eight faders,
+on that split's Main channel.
+
+To set it:
+
+1. Press **Per-Split Settings**. In columns 12 and 13, **Low Row**, press
+   **X=CC1** so it is lit.
+2. Press **Per-Split Settings** again to leave. To undo, choose **NORMAL**
+   in the same columns.
+
 ## What to tell me afterwards
 
 For each step: what you heard, and anything odd (a note that didn't sound,
