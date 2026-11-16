@@ -718,7 +718,42 @@ def test_do_it_message_is_not_redrawn_over(mpe_built):
     b.run_ms(1)
     rows = b.display.lcd.text()
     assert rows[0].startswith("COPY SECTION") and "Done:" in rows[1], rows
-    b.run_ms(1500)                         # held for 2 s by the patch's own clock; Msg Time 0 alone is 5 counts
+    b.run_ms(2500)                         # held for 3 s by the patch's own clock; Msg Time 0 alone is 5 counts
     assert "Done:" in b.display.lcd.text()[1]
     b.run_ms(1000)
     assert "Done:" not in "\n".join(b.display.lcd.text())         # and it does go away
+
+
+def test_message_clears_when_the_copy_changed_nothing(mpe_built):
+    """Found on the synth (v0.14, series F4): Osc1>2 on an Init-based patch copies
+    equal values, so no parameter changed, stock's changed flag stayed clear and
+    the Done message (and the undo's) was never redrawn over."""
+    b = _boot(mpe_built.patched)
+    blob = mpe_built.blob
+    b.uc.mem_write(GLOBALS + 0x1A, bytes([64]))                   # Msg Time as on the user's Peak
+    _call(b, blob.address("section_edit"), G_SECT, 1)             # Osc1>2
+    _show(b, 8, 8, 1)
+    _call(b, blob.address("mpe_ui_value_change"), 1)              # Do it
+    b.run_ms(2500)
+    assert "Done:" in b.display.lcd.text()[1]
+    b.run_ms(1500)
+    rows = b.display.lcd.text()
+    assert rows[0].startswith("COPY SECTION") and "Do it" in rows[2], rows
+    _call(b, blob.address("qa_button"), MOD_PRESS)
+    _call(b, blob.address("edit_button"), UNDO_LEFT)
+    b.run_ms(2500)
+    assert b.display.lcd.text()[0].startswith("UNDO")
+    b.run_ms(1500)
+    rows = b.display.lcd.text()
+    assert rows[0].startswith("COPY SECTION") and "Do it" in rows[2], rows
+
+
+def test_msg_time_127_lasts_about_three_seconds(mpe_built):
+    """Stock counts the knob message down once per 11 ms (Msg Time 127: 1.45 s; the
+    user measured about 1.5 s); the patch makes a count 22 ms, the guide's 3 s."""
+    b = _boot(mpe_built.patched)
+    b.uc.mem_write(0x20011208 + 2, bytes([127 + 5]))
+    b.run_ms(2600)
+    assert b.u8(0x20011208 + 2) > 0
+    b.run_ms(600)
+    assert b.u8(0x20011208 + 2) == 0

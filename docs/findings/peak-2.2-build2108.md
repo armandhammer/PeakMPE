@@ -377,29 +377,39 @@ on the synth.
   modulation ticks per simulated second, an arp step in 62.5 ms. Fixed
   2026-11-15: `emu/board.py` takes the period from TIM6's PSC and ARR
   (`Board.tim6_period_us`). Summit timing is unchanged.
-- **Message time** (`FUN_08018ADC`, main loop): the countdown
-  `ui_msg_state+2` loses one count on a main-loop pass that finds the
-  millisecond counter advanced by more than 10 since the last count, so one
-  count is **at least 11 ms** (observed in the code; 11 ms in the corrected
-  simulator, 5.5 simulated ms before). A knob message starts at `Msg Time` +
-  5 counts (`FUN_08018A98`); `Msg Time` is 0–127, initial value 64 (guide).
-  **Not settled:** the guide says 127 "is equivalent to approx. 3 seconds",
-  which is about 23 ms per count, twice the code's minimum. Either the
-  guide's figure is loose or main-loop passes on the synth are long enough
-  to stretch each count; the time has not been measured on the synth (test
-  F3 in `TEST.md`). The earlier note "about 60 ms per count" came from a
-  `Done:` message seen for about 0.3 s on v0.12 and assumed `Msg Time` 0.
-  The user's Peak has `Msg Time` 64, the initial value (read off the
-  Settings page, 2026-11-15), so that message had 69 counts, at least 0.76 s
-  of countdown: its 0.3 s was not the countdown but the page redraw that
-  v0.13 fixed.
+- **Message time** (`ui_msg_countdown` `0x08018ADC`, main loop): the
+  countdown `ui_msg_state+2` loses one count on a main-loop pass that finds
+  the millisecond counter advanced by more than 10 since the last count
+  (`cmp r3, #10` at `0x08018AEA`), so **one count is 11 ms** (observed in
+  the code; emulated; and on the synth `Msg Time` 127 lasted about 1.5 s by
+  the user's stopwatch, 2026-11-15, against 132 × 11 ms = 1.45 s). A knob
+  message starts at `Msg Time` + 5 counts (`FUN_08018A98`); `Msg Time` is
+  0–127, initial value 64, which is also what the user's Peak has. The
+  guide's "127 is equivalent to approx. 3 seconds" is twice what build 2108
+  does. From v0.15 the patch changes the compare to 21, so a count is 22 ms
+  and 127 lasts 2.9 s (the user asked for about 3 s).
+- **When the page comes back.** At the end of the countdown the page is
+  redrawn only if the changed flag `ui_msg_state+1` is nonzero (the same
+  function; `mark_changed` `0x08018A88` sets bit 0, every parameter write
+  calls it). A message drawn without any parameter change is therefore
+  never cleared by stock. Stock's own messages always follow a change; the
+  patch's did not: on v0.14 the `Done:` message of a section copy onto equal
+  values, and the `UNDO` message after it, stayed on the screen for good
+  (observed on the synth, series F4, more than 45 s; reproduced in the
+  simulator: flag 0 after an Osc1>2 copy on the Init patch, 1 after
+  Amp>E1). Fixed in v0.15: `ui_say` calls `mark_changed`.
+  The earlier note "about 60 ms per count" came from a `Done:` message seen
+  for about 0.3 s on v0.12 and assumed `Msg Time` 0; with the real 64 that
+  message had at least 0.76 s of countdown, so its 0.3 s was the page
+  redraw that v0.13 removed.
 - **Consequences for the patch as flashed in v0.13** (constants written for
   the simulator's 2 kHz): EnvSync applied a changed choice after about 2 s
   (meant 1 s) and a tempo change after about 1 s (meant 0.5 s); the undo
   gesture window was about 4 s (meant 2 s); and the "hold" of the Do it and
-  undo messages, 35 counts, was 0.4 to 0.8 s (meant 2 s). Corrected in the
-  source 2026-11-15 (the hold is now timed by the patch's own 1 kHz tick,
-  not by stock's countdown), not yet flashed.
+  undo messages, 35 counts, was 0.4 to 0.8 s (meant 2 s). Corrected in v0.14
+  (the hold is timed by the patch's own 1 kHz tick, not by stock's
+  countdown); on the synth the undo window behaved as intended (series F5,
+  user).
 - **DIN receive ring and its overflow counter** (`0x20003EAC`, USART6
   interrupt `0x0800EDD8`, observed): `+0` receive write index, `+1` receive
   read index, `+2`/`+3` transmit read/write index (all u8), `+4` transmit

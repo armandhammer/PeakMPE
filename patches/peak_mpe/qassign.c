@@ -110,15 +110,18 @@ void ui_say(const char *l0, const char *l1, const char *l2, const char *l3)
             lcd_putc_esc(' ');
     }
     ui_msg_state[2] = (uint8_t)(globals[GLOBAL_MSG_TIME] + 5);
+    /* Stock redraws the page when the countdown ends only if the changed flag is set
+     * (FUN_08018ADC). A message about something that changed no value (a copy onto
+     * equal values, its undo, "No free slot") left the flag clear and stayed on the
+     * screen for good: found on the synth with v0.14, series F4. */
+    mark_changed();
 }
 
-/* Keeps the message just drawn up for 2 s, timed by the 1 kHz modulation tick rather
- * than by stock's countdown: how long one count of that lasts on the synth is not
- * known (at least 11 ms from the code, FUN_08018ADC; about 23 ms if the guide's "Msg
- * Time 127 is approx. 3 seconds" is exact; findings, "Timers and the 1 kHz tick").
- * v0.13 set 35 counts, which is 0.4 to 0.8 s. ui_hold_poll keeps the countdown from
- * running out until the 2 s are over; another ui_say ends the hold. */
-#define HOLD_TICKS 2000
+/* Keeps the message just drawn up for 3 s (the user's choice, 2026-11-15), timed by
+ * the 1 kHz modulation tick rather than by stock's countdown, whose length depends
+ * on Msg Time. ui_hold_poll keeps the countdown from running out until the time is
+ * over; another ui_say ends the hold. */
+#define HOLD_TICKS 3000
 #define HOLD_MIN_COUNTS 5
 void ui_say_hold(void)
 {

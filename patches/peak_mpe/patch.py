@@ -71,6 +71,11 @@ PATCHES = [
     # MPEB = v0.11 (Settings PARAM LOCK: keep FX, Arp or Voice settings through a patch change);
     # MPEE = v0.14 (Glide start option on MPE EXTRAS; tick counts for the real 1 kHz tick; 2 s message hold by ticks).
     # MPED = v0.13 (v0.12 plus longer Do it message, 20-column undo text). MPEC = v0.12 (section copy, one-level undo, MIDI monitor).
+    # Message time: stock takes one count off the message countdown when the ms counter
+    # has advanced by more than 10 (cmp r3, #10 in ui_msg_countdown 0x08018ADC), so Msg
+    # Time 127 lasts 1.45 s (about 1.5 s measured by the user, 2026-11-15) where the
+    # guide says about 3 s. More than 21 makes a count 22 ms: 127 = 2.9 s, 64 = 1.5 s.
+    (0x08018AEA, bytes.fromhex("0a2b"), bytes.fromhex("152b"), "ui_msg_countdown: one count per 22 ms instead of 11 (cmp r3, #21)"),
     (0x080452FB, b" Version ", b"MPEE Ver ", "boot screen label (.data initialiser of RAM 0x200000EB)"),
     (0x080445E8, b"Version\x00", b"MPEEVer\x00", "Settings 2/28 SYSTEM item name"),
     # The flag's reserved descriptor: max 0 -> 1, display 0 -> 0x0F (Off/On,
