@@ -176,8 +176,15 @@ strings read from the image (`.data` is copied from flash `0x08045210` to RAM
   busy-waited in the main loop: about 51 µs of bus time per character, so
   **a full redraw of the four rows (80 characters and the cursor commands)
   keeps the main loop for about 4.5 ms plus the formatting** (inferred from
-  the bit rate; not measured). The modulation tick is not caught up
-  (`mod_tick`), so each full redraw costs about four of the 1 kHz ticks.
+  the bit rate). The modulation tick is not caught up (`mod_tick`), so each
+  full redraw costs about four of the 1 kHz ticks. **On the synth (v0.17,
+  2026-11-16, observed):** the patch's late-tick counter (`diag.c`, Settings
+  > MOTION) read a longest gap between two modulation ticks of 6 ms over an
+  interval holding two page draws and nothing else, twice, and 9 lost ticks
+  in each such 10 s interval; with a motion lane writing Filter Frequency
+  about 60 times a second the same 9. So a page draw holds the main loop
+  for about 5 ms, an otherwise idle main loop keeps its 1 kHz tick, and
+  parameter writes at that rate cost no ticks.
 - **Simulator.** The LCD model decodes this driver, so tests read the DDRAM
   codes and `lcd.glyph(code)` bitmaps; the pots are not modelled, so a
   test calls `knob_overlay` directly with the arguments above, as `knob_poll`

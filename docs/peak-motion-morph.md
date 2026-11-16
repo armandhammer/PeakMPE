@@ -203,6 +203,40 @@ a second, which fits the 800 to 1,000 late ticks a second the user read, and
 the 16 redraws a second that v0.16's playback asked for would cost about 70
 of 1,000 ticks. Both are gone in the source.
 
+**Series I on the synth (v0.17, user, 2026-11-16; observed):**
+
+| Reading | `LateTicks` | Since the reading before |
+|---|---|---|
+| I1.1 MOTION page, nothing playing | `79 35` | since power-on |
+| I1.2 after 10 s on the next page | `88 6` | **+9**, longest gap 6 ms |
+| I3.1 a Frequency lane playing | `1245 10` | +1,157 over all of I2 (messages, the 2 s knob sweep with its overlay, opening Settings: not separated), longest gap 10 ms |
+| I3.2 after 10 s on the next page, lane playing | `1254 6` | **+9**, longest gap 6 ms |
+
+- **The row works:** the numbers stand still, and the count no longer feeds
+  itself. v0.16's 800 to 1,000 a second were the row's own redraws.
+- **Idle, the main loop loses about 9 of 10,000 ticks**, and those are the
+  two page draws inside the interval: the longest gap, 6 ms, is one page
+  draw, which agrees with the 4.5 ms of bus time read from the code plus
+  the formatting.
+- **A playing lane costs nothing that this measure can see:** the same +9
+  with the lane writing Filter Frequency about 60 times a second (two
+  setter calls each, one update group applied per 16 ms). So parameter
+  traffic of that size is free, and **the morph's budget is the chip
+  writes per group, not the main loop**: a morph that moves a handful of
+  groups at stock's 16 ms rate is the same order of traffic. Groups that
+  cost over a thousand writes (a waveform change) stay excluded as planned.
+- **What does cost ticks is the screen.** The 1,157 lost during I2 were not
+  separated; the knob overlay redrawing during the 2 s sweep is the likely
+  bulk (inferred). Not a morph question (the wheel draws nothing), but a
+  reading before and after a knob sweep would show what the overlay costs
+  MPE smoothing while a knob is turned.
+- **I2, I5 (by ear):** the sweep rises smoothly; where the loop starts again
+  the user hears a thump (with the effects on, a "tap tap": the effects
+  repeating it), which changes with other patch settings and which the user
+  puts down to the patch. That is the cutoff falling from fully open to
+  closed in 40 ms: a movement that ends where it began has none. Stop (I4)
+  and the repeating dip (I5) pass.
+
 **Risks and what to check first**
 
 1. Which button events arrive while Mod is held (the panel table entry for

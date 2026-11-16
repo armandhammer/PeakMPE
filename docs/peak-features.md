@@ -473,9 +473,9 @@ built.
 21. **Motion recording** (L). Record one knob's movement for 1–4 bars at a
     clock subdivision and loop it, with overdub or replace. Prototype in RAM
     with one lane of 16 steps.
-    **Built (v0.16, `patches/peak_mpe/motion.c`; on the synth 2026-11-16:
-    recording, looping and stopping work, the loop start clicked; v0.17
-    plays the lane as a ramp, emulated):** one lane of 32 steps. Hold **Mod** and press **Animate 1**
+    **Built (`patches/peak_mpe/motion.c`; on the synth as v0.17,
+    2026-11-16: recording, looping, replacing and stopping work by hand and
+    ear, hardware log):** one lane of 32 steps. Hold **Mod** and press **Animate 1**
     (the screen says `Move a control`), then move a slider or knob: from that
     move its values are recorded for one loop and then played back, as a
     ramp from each step's value to the next, until Mod + Animate 1 is pressed

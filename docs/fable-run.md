@@ -3,31 +3,28 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** image v0.17 (label `MPEH`, `e5e9e652…`,
-`work/flash/peak-firmware-2.2-build2108+mpe-e5e9e6526599.syx`) is built with
-all checks passed (665 simulator tests, 34 web tests, `work/build-v17.log`)
-and **not flashed yet**: the user has the flash command. After their flash,
-add the hardware-log row (read `work/flash-e5e9e652-*.log`) and take their
-results for series I in `TEST.md`: the two
-`LateTicks` readings (idle, and with a lane playing; read, turn to the next
-page for 10 s, turn back, read), whether the click at the loop start is gone
-(I2), and whether a dip turned into a playing loop repeats (I5). Series H on
-v0.16 is closed: H2 the sweep looped but clicked at one end (read as the jump
-where the loop starts again: inferred; v0.17 plays the lane as a ramp), H3
-"something is not right" without a named fault (the step was unclear, I5
-replaces it), H4 pass, rig 136/0/5. The `LateTicks` numbers of v0.16 (about
-1,000 a second idle, 800 with a lane playing, the page open both times) are
-the row redrawing itself; the screen costs about 4.5 ms of main-loop time
-per redraw (findings, "LCD bus speed"). The I1 and I3 readings decide how the
-morph is built ([peak-motion-morph.md](peak-motion-morph.md)).
+**Next step:** ask the user whether to build the patch morph (step 22) as
+proposed in [peak-motion-morph.md](peak-motion-morph.md): morph between the
+stored and the edited patch from the mod wheel. Its first risk is settled:
+series I on v0.17 showed that parameter writes at a lane's rate (about 60 a
+second) cost no modulation ticks (9 lost per 10 s with or without the lane,
+all of them page draws). Still to do before the morph blends anything: map
+the Compare buffer (the stored patch, risk 2 in the note). Series I is
+closed: `LateTicks` works as a latched reading, the click of v0.16 is gone,
+what is left at the loop start is a thump from the cutoff closing in 40 ms,
+which the user puts down to the patch; stop and replace pass; rig 136/0/5.
+Not asked for, possible later: a `LateTicks` reading before and after a 2 s
+knob sweep (what the knob overlay costs MPE smoothing).
 
 **Model:** the Fable brief (items A to D) is worked through; what is left is
 hands-on testing, small fixes and then the morph from the written design
 note. Opus 5.5 (high effort for the morph, medium for test rounds) can take
 it from these files.
 
-**State on the synth:** v0.16 (`0f262ad9…`, boot `MPEG`, commit `11f5b71`), flashed by
-the user 2026-11-16 (flash log ok, identity `02 01 00 08`; rig 136 pass, 0 fail, 5 info, run `2026-11-16_091401`). Before it: v0.15 (`dee61e50…`, boot `MPEF`, commit `ed02aa9`),
+**State on the synth:** v0.17 (`e5e9e652…`, boot `MPEH`, commit `163e5c7`), flashed by
+the user 2026-11-16 (flash log ok, identity `02 01 00 08`; rig 136 pass, 0 fail, 5 info, run
+`2026-11-16_105659`; series I done). Before it: v0.16 (`0f262ad9…`, boot `MPEG`, commit
+`11f5b71`, rig 136/0/5, run `2026-11-16_091401`). Before it: v0.15 (`dee61e50…`, boot `MPEF`, commit `ed02aa9`),
 flashed 2026-11-15 21:22. Rig 136 pass, 0 fail, 5 info (run
 `2026-11-15_212605`). Series F and G done (hardware log): stock stealing
 observed, all three Glide settings work, undo window ok, messages clear after
@@ -56,8 +53,8 @@ in a slow attack) and whether to fix the sostenuto quirk.
 | D1 Findings for steps 21, 22 | done | `6d22ee9` | Parameter changes are applied by 13 update groups, at most once per 16 ms (`FUN_08013014`); a group costs 5-40 chip writes, a waveform change about 1,290 with voices sounding (`work/_d_param_cost.py`); knob events and the tempo clock position are reachable without new hooks | code observed, counts emulated; bus time on the synth not measured |
 | D2 Design note | done | `6d22ee9` | [peak-motion-morph.md](peak-motion-morph.md): one-lane 32-step motion recorder; morph between the stored and the edited patch from the mod wheel; order and risks | proposal, nothing built |
 | D3 Motion recorder | done in the simulator | `b1e4e9f` | `motion.c`: Mod + Animate 1 arms, the next control moved is recorded for 32 steps and loops; replace while playing; stop restores the value. Settings > MOTION: Length 1/2/4 bars, state, `LateTicks` (late-tick counter, `diag.c`). `tests/test_peak_motion.py` 10 pass; Peak regression 95 pass | emulated; not on the synth |
-| D4 Smooth | done in the simulator, in v0.17 | | Lane playback is a ramp from step to step, written every 16 ms; the loop start no longer jumps. `tests/test_peak_motion.py` 13 pass | emulated; not on the synth |
-| D5 Morph | not started | | after the `LateTicks` readings of series I | |
+| D4 Smooth | done, on the synth in v0.17 (the user: rises smoothly) | | Lane playback is a ramp from step to step, written every 16 ms; the loop start no longer jumps. `tests/test_peak_motion.py` 13 pass | emulated and heard by the user |
+| D5 Morph | not started | | `LateTicks` readings are in (series I): parameter traffic costs no ticks. Needs the user's go-ahead | |
 
 ## Verified so far
 
