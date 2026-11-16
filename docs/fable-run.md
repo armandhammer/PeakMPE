@@ -3,32 +3,26 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** the user's remaining steps of series F in `TEST.md`: F3 (Msg Time
-number and stopwatch), F4 (2 s message), F5 (undo window), F7 (LinnStrument, by
-ear); add each result to the v0.14 row of `docs/hardware-log.md` and settle the
-"Message time" paragraph of the findings from F3. F0, F1, F2 and F6 are done.
-The Peak's Glide item was left on Legato (F7 uses it). With nothing from the
-user, the next unblocked work is D3: the merged-tick counter on the MIDI
-MONITOR page ([peak-motion-morph.md](peak-motion-morph.md), "Order").
+**Next step:** the user flashes v0.15
+(`work/flash/peak-firmware-2.2-build2108+mpe-dee61e501ccc.syx`, SHA-256
+`dee61e501ccc8ca89022e2c5450b8f5e6b933a6662d9004b78f65f0d63ebb103`, boot label
+`MPEF`; built and verified, log `work/build-v15.log`); then read the flash log,
+add a hardware-log row, run `tools/hwrig run --stage all --yes` on the user's
+GO (G3) and take the user's results for G1 and G2 in `TEST.md`. With nothing
+from the user, the next unblocked work is D3: the merged-tick counter on the
+MIDI MONITOR page ([peak-motion-morph.md](peak-motion-morph.md), "Order").
 
-**F3.1 (user, 2026-11-15):** `Msg Time` on the Peak reads 64. The stopwatch reading at 127 (F3.3) is still open.
+**State on the synth:** v0.14 (`06be5529…`, boot `MPEE`), flashed 2026-11-15
+19:13. Rig 136 pass, 0 fail, 5 info (run `2026-11-15_191511`). Series F done
+(hardware log): the steal check and all three Glide settings behave as
+designed; `Msg Time` is 64 and 127 lasts about 1.5 s; F5 ok; F7 both Glide
+modes work, the user keeps both. **F4 failed:** the Done and UNDO messages
+stayed for good when the copy changed nothing. Fixed in `e075205` (v0.15,
+not flashed), which also holds messages 3 s and makes a message count 22 ms
+(Msg Time 127 = 2.9 s), both at the user's request.
 
-**F2 done (observed, v0.14):** Stock starts every note at about 72 (its voice's
-last pitch); LastNote from the previous note's current pitch; Legato on pitch
-when detached and from the held note when legato. Table in the findings,
-"Glide".
-
-**v0.14 was flashed by the user 2026-11-15 19:13** (log `work/flash-06be5529-2026-11-15.log`: full transfer, identity `02 01 00 08`; row in `docs/hardware-log.md`). Rig run on it: 136 pass, 0 fail, 5 info (run `2026-11-15_191511`). The image:
-`work/flash/peak-firmware-2.2-build2108+mpe-06be5529753f.syx`, SHA-256
-`06be5529753f67073d8be8d6fa2380f61d6ca2a03e793a367ceb95efa37e4925`, boot label
-`MPEE`. `scripts/check` before it: pytest 650 passed, 9 skipped; web 34 passed;
-both descriptors equal (log `work/build-v14.log`).
-
-**Waiting for the user (nothing was sent to the synth):**
-- GO for the rig runs (F0, F2, F6): notes and CCs over USB, Ableton closed.
-- The flash, and the readings of series F (Msg Time value and message time).
-- Whether to build any of the steal refinements (A4) or fix the sostenuto
-  quirk.
+**Open with the user:** whether 1.5 s at Msg Time 64 is wanted (G2); whether
+to build a steal refinement or fix the sostenuto quirk.
 
 ## Items
 
@@ -44,7 +38,7 @@ both descriptors equal (log `work/build-v14.log`).
 | C1 Tick rate of `mpe_mod_update` | done without a measurement | `aea1d4d` | **1 kHz.** TIM6 PSC 59 ARR 99 = 10 kHz, a tick every 10th interrupt; the tempo constant 1,717,984 per BPM is 24 clocks per quarter at 1 kHz, and the arp step measured 125 ms on the synth. The simulator's 2000 per second was its own error (TIM6 raised every 50 us slot); fixed in `emu/board.py` | code observed + one hardware time; no new rig measurement needed |
 | C2 Quick-assign `dest_of[]` | done | `aea1d4d` | All 47 entries: the control's name (`patch_param_desc`) and the destination's name (matrix list `0x080464E0`) agree. The firmware has no control-to-destination table (searched in destination order at record sizes 1, 2, 4, 8, 12) | names observed; pairing by name |
 | C3 DIN overflow counter size | done | `aea1d4d` | One byte: `ldrb.w`/`strb.w [r3, #0x204]` at `0x0800EE2C`/`0x0800EE32` in the USART6 interrupt; wraps after 255 | observed |
-| C4 Message countdown rate | cause found; one reading open | `aea1d4d` | The simulator counted 2x fast (same TIM6 error). A count is at least 11 ms by the code; the guide's "Msg Time 127 is approx. 3 seconds" would be 23 ms. The old "60 ms per count" assumed Msg Time 0. The 2 s message hold now uses the patch's own 1 kHz tick (`ui_hold_poll`) | code observed; synth time not measured (TEST.md F3) |
+| C4 Message countdown rate | done | `aea1d4d` | The simulator counted 2x fast (same TIM6 error). A count is at least 11 ms by the code; the guide's "Msg Time 127 is approx. 3 seconds" would be 23 ms. The old "60 ms per count" assumed Msg Time 0. The 2 s message hold now uses the patch's own 1 kHz tick (`ui_hold_poll`) | code observed; on the synth Msg Time 127 lasted about 1.5 s (user's stopwatch), so a count is 11 ms and the guide's 3 s is not what build 2108 does |
 | C5 Patch timing constants (found through C1) | done in the simulator | `aea1d4d` | EnvSync check interval 128 -> 64 ticks, undo gesture 4000 -> 2000 ticks, message hold by ticks. On the synth v0.13 has the first two twice too long and the hold too short | emulated |
 | D1 Findings for steps 21, 22 | done | `6d22ee9` | Parameter changes are applied by 13 update groups, at most once per 16 ms (`FUN_08013014`); a group costs 5-40 chip writes, a waveform change about 1,290 with voices sounding (`work/_d_param_cost.py`); knob events and the tempo clock position are reachable without new hooks | code observed, counts emulated; bus time on the synth not measured |
 | D2 Design note | done | `6d22ee9` | [peak-motion-morph.md](peak-motion-morph.md): one-lane 32-step motion recorder; morph between the stored and the edited patch from the mod wheel; order and risks | proposal, nothing built |
