@@ -15,6 +15,16 @@ sends CC 1. Unexplained, seen in J2: with the filter brought down from 255
 to 40 under a held note the level falls in steps over 1.4 s (also without
 the morph); not compared with stock.
 
+**Series J, results so far (2026-11-16, to go into the hardware log):** J3
+(user): wheel 127 and 64 as described; Resonance turned to 12 o'clock at
+wheel 64 read `current` 32; after wheel 0 the note went dull and the same
+knob position read 64 (the stronger resonance could not be heard with the
+filter that low: the step was badly chosen). J4: `LateTicks` before the
+stress run `2885 9`; `morph_check.py --stress` ran (`morph-2026-11-16_143027-stress`):
+no level step over 8 dB in any 10 ms of the 10 s sweep, mean level per
+second -21.1 to -22.4 dB. The reading after the run, the user's ear, and J5
+are still to come.
+
 **Model:** the Fable brief (items A to D) is worked through; what is left is
 hands-on testing, small fixes and then the morph from the written design
 note. Opus 5.5 (high effort for the morph, medium for test rounds) can take
