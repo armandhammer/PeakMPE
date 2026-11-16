@@ -1,7 +1,8 @@
 """Peak motion recording (patches/peak_mpe/motion.c; docs/peak-motion-morph.md).
 
 Hold Mod and press Animate 1, move a control: its values over one loop of 32
-steps are recorded and then played back in time with the tempo. The Init
+steps are recorded and then played back in time with the tempo, as a ramp
+from each step's value to the next. The Init
 Patch runs at 120 BPM, so a step (3 MIDI clocks) is 62.5 ms and the one-bar
 loop 2 s.
 
@@ -91,6 +92,32 @@ def test_one_bar_is_recorded_and_loops(mpe_built):
         heard.append(b.u8(PATCHES + RESONANCE))
         b.run_ms(500)
     assert heard == [10, 60, 110, 30, 10, 60], heard
+
+
+def test_the_loop_start_is_a_ramp_not_a_jump(mpe_built):
+    """On the synth (v0.16) a filter sweep clicked where the loop began again:
+    the value went from the last step's to the first step's in one write. Now
+    it takes one step (62.5 ms) to get there."""
+    b, blob = _board(mpe_built), mpe_built.blob
+    _arm(b, blob)
+    _move(b, blob, RESONANCE, 0)
+    b.run_ms(1000)
+    _move(b, blob, RESONANCE, 120)
+    b.run_ms(980)                                        # 1.98 s: just before the loop starts again
+    assert b.u8(PATCHES + RESONANCE) == 120
+    heard = []
+    for _ in range(12):                                  # to 2.10 s
+        b.run_ms(10)
+        heard.append(b.u8(PATCHES + RESONANCE))
+    assert heard == sorted(heard, reverse=True), heard   # it only falls
+    assert len({v for v in heard if 10 < v < 110}) >= 2, heard   # through values in between
+    assert heard[-1] == 0, heard
+    b.run_ms(880)                                        # 2.98 s: the rise to 120 at the half bar, the same way
+    seen = set()
+    for _ in range(12):
+        seen.add(b.u8(PATCHES + RESONANCE))
+        b.run_ms(10)
+    assert any(10 < v < 110 for v in seen) and b.u8(PATCHES + RESONANCE) == 120, seen
 
 
 def test_stop_puts_the_value_back(mpe_built):

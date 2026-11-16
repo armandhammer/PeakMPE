@@ -144,3 +144,6 @@ address,name,kind,confidence,notes
 0x20012268,tempo_clock_position,data,observed,"u32 written by tempo_clock_step: MIDI clock count << 16 | fraction (accumulator >> 16)"
 0x20000ab8,button_table,data,observed,"u32 per panel button: byte 0 type (1 and 2 knob groups; 3 opens a menu; 4 an action), byte 1 the action or menu, bytes 2-3 an s16 argument. Entry 7 Mod (menu 5); 12 Animate Hold, 14 Animate 1, 15 Animate 2 (action 6, arguments 2, 0, 1); 33 and 34 Page right and left (action 1); 31 and 32 Value up and down (action 5); 18 the audition note (action 0)"
 0x20003c90,ms_counter,data,observed,"u32 counted up by tim6_isr every 10th interrupt: milliseconds since start-up (0x20003ad0+0x1c0; its low 16 bits are copied to +0xd2)"
+0x0800ed0c,lcd_spi_init,function,observed,"(): RCC_APB1ENR |= SPI2EN; SPI2 CR1 = 0x3af (master, LSB first, PCLK1/64), CR2 = 4, enable; only caller lcd_init"
+0x0800ed64,lcd_spi_tx,function,observed,"(byte): waits for TXE (SPI2_SR 0x40003808 bit 1), writes SPI2_DR 0x4000380c; callers lcd_write_cmd, lcd_write_data"
+0x0800ed7c,lcd_spi_wait,function,observed,"(): waits for TXE, then for BSY clear (SPI2_SR bit 7)"

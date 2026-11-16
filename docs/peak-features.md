@@ -473,21 +473,24 @@ built.
 21. **Motion recording** (L). Record one knob's movement for 1–4 bars at a
     clock subdivision and loop it, with overdub or replace. Prototype in RAM
     with one lane of 16 steps.
-    **Built (v0.16, `patches/peak_mpe/motion.c`; emulated, not yet on the
-    synth):** one lane of 32 steps. Hold **Mod** and press **Animate 1**
+    **Built (v0.16, `patches/peak_mpe/motion.c`; on the synth 2026-11-16:
+    recording, looping and stopping work, the loop start clicked; v0.17
+    plays the lane as a ramp, emulated):** one lane of 32 steps. Hold **Mod** and press **Animate 1**
     (the screen says `Move a control`), then move a slider or knob: from that
-    move its values are recorded for one loop and then played back step by
-    step until Mod + Animate 1 is pressed again, which puts the control back
+    move its values are recorded for one loop and then played back, as a
+    ramp from each step's value to the next, until Mod + Animate 1 is pressed
+    again, which puts the control back
     to its value from before. Moving the control while it plays replaces the
     steps that pass meanwhile. Settings > MOTION has `Length` (1, 2 or 4
     bars: a step is a 1/32, 1/16 or 1/8 note), the recorder's state, and
-    `LateTicks`, a count of modulation ticks the main loop lost (the measure
+    `LateTicks`, a count of modulation ticks the main loop lost and the
+    longest stall in ms, read when the page is drawn (the measure
     of how much parameter traffic the synth has room for, needed before the
     morph). Time is stock's own tempo clock, internal or external; the loop's
     "one" is the move that started the recording. Not stored with the patch;
     a patch load clears it. Controls without a CC or NRPN number are not
-    taken. Not built: values between the steps ("Smooth"), more than one
-    lane. Tests: `tests/test_peak_motion.py`.
+    taken. Not built: more than one lane. Tests:
+    `tests/test_peak_motion.py`.
 22. **Patch morph** (L). Blend selected parameter groups (cutoff,
     resonance, mix, wavetable position, FX levels) between two snapshots,
     from the mod wheel or pressure; discrete settings switch at an

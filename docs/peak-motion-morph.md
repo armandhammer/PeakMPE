@@ -147,7 +147,7 @@ the synth).** As proposed, with these points settled or changed:
   hand takes over at once, also with `Pickup` on.
 - Settings > MOTION: `Length` 1, 2 or 4 bars (a step of 3, 6 or 12 clocks),
   the state (`Off`, `Armed`, `Rec`, `Play`) and `LateTicks`.
-- Not built: Smooth, storing the lane, a second lane.
+- Not built: storing the lane, a second lane. (Smooth: built after series H, below.)
 
 **First reading on the synth (v0.16, user, 2026-11-16):** with the MOTION
 page open and nothing playing, `LateTicks` ran up by about 1,000 a second.
@@ -167,6 +167,41 @@ it is a finding: screen redraws cost modulation ticks on this synth, so
 anything that changes a shown value many times a second (the MIDI MONITOR
 page's `Msg count` while playing, a received CC on the page that shows it)
 takes time from pitch, pressure and Slide smoothing.
+
+**Series H on the synth (v0.16, user, 2026-11-16):**
+
+- H2: the recorded Frequency sweep (dull to bright in 2 s) loops, but "sounds
+  weird, like it's clicking at one end of the animation", which it does not
+  when the knob is turned by hand. Read as the loop's start (inferred): the
+  recording ends bright and begins dull, and v0.16 wrote each step's value
+  in one go, so the cutoff went from fully open to fully closed in a single
+  write once per bar, a jump no hand can make. With the MOTION page open the
+  count still ran up, by about 800 a second: the same self-made reading as
+  H1 (the page was open both times), so it says nothing about the lane's
+  own cost.
+- H3 (replace part of the loop): "hard to evaluate, something is not right".
+  Not enough to name a fault. The step was poorly designed: after the hand
+  stops, the lane takes over again within 250 ms, so the replaced part is
+  short and sits next to the click. Series I asks for a plainer gesture.
+- H4 (stop, cancel): pass.
+
+**Changed after series H (in the source for v0.17):** playback is a ramp. At
+each step the value moves from where it is to the step's recorded value and
+arrives 20 ms before the step ends, written every 16 ms (stock's own rate
+for applying parameter changes). The loop's start is then a fall over about
+40 ms (at 120 BPM and 1 bar; 230 ms at 4 bars) instead of a jump, and a sweep has 60 small
+changes a second instead of 16 larger ones. This is the "Smooth" of the
+proposal, always on (the MOTION page has no free row, and a hand movement
+is continuous). `tests/test_peak_motion.py`
+`test_the_loop_start_is_a_ramp_not_a_jump`.
+
+**What a redraw costs (2026-11-16, from the code):** the screen is on SPI2
+at PCLK1/64, about 469 kHz, busy-waited: about 4.5 ms of main-loop time for
+the four rows (findings, "LCD bus speed"; bit rate observed, time inferred).
+A page that redraws on every pass therefore leaves room for under 200 ticks
+a second, which fits the 800 to 1,000 late ticks a second the user read, and
+the 16 redraws a second that v0.16's playback asked for would cost about 70
+of 1,000 ticks. Both are gone in the source.
 
 **Risks and what to check first**
 

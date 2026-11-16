@@ -166,6 +166,18 @@ strings read from the image (`.data` is copied from flash `0x08045210` to RAM
   `09`), so the display module takes them only while it draws and restores the
   stock set afterwards with `lcd_load_cgram()` (design choice; the restore
   is checked in the simulator).
+- **LCD bus speed (2026-11-16).** The display is on **SPI2**
+  (`0x40003800`): `lcd_spi_init` `0x0800ED0C` (only caller `lcd_init`)
+  enables the SPI2 clock (`RCC_APB1ENR` bit 14) and stores `CR1 = 0x3AF`:
+  master, LSB first, software NSS, clock **PCLK1/64** (observed). With PCLK1
+  at 30 MHz (inferred, the Summit's clock tree) that is 469 kHz. One
+  character is three SPI bytes (`lcd_spi_tx` `0x0800ED64` waits for TXE and
+  writes `SPI2_DR`; `lcd_spi_wait` `0x0800ED7C` then waits for not busy), all
+  busy-waited in the main loop: about 51 µs of bus time per character, so
+  **a full redraw of the four rows (80 characters and the cursor commands)
+  keeps the main loop for about 4.5 ms plus the formatting** (inferred from
+  the bit rate; not measured). The modulation tick is not caught up
+  (`mod_tick`), so each full redraw costs about four of the 1 kHz ticks.
 - **Simulator.** The LCD model decodes this driver, so tests read the DDRAM
   codes and `lcd.glyph(code)` bitmaps; the pots are not modelled, so a
   test calls `knob_overlay` directly with the arguments above, as `knob_poll`
