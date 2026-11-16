@@ -3,17 +3,17 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** nothing is open on the synth. Series J on v0.18 is done (hardware
-log): the morph's blend measured equal to the directly set value, a knob with
-the wheel up reads its blend, a 10 s sweep of 24 controls cost about 3
-modulation ticks, rig 136/0/5. The brief's items A to D and the morph are
-all built and on the synth. What could come next is the user's choice:
-(1) playing the morph from a real controller (not yet known whether the
-user has one that sends CC 1; the LinnStrument's low row may), and other
-sources (pressure, a pedal); (2) the things not tried: Compare and Save
-during a morph; (3) the open decisions below; (4) the unexplained stepwise
-closing of the filter from 255 to 40 under a held note (compare with
-stock); (5) what the knob overlay costs in `LateTicks` during a knob sweep.
+**Next step:** the user plays from a LinnStrument only (2026-11-16). Series K
+in `TEST.md` (no new image, I send nothing): the LinnStrument's Low Row set
+to `X=CC1` as the morph's wheel, per Roger Linn Design's manual (Hold mode:
+slide for 0 to 127, release sends 0; hidden Fader mode keeps the value). K2
+checks on MIDI MONITOR that it arrives as `B0 01 xx` (CC 1 on the Main
+channel 1: the manual implies it, not confirmed). If it arrives on another
+channel or the user wants something else, the morph's source is one line
+in `mpe_route.c` (`morph_cc`), and pressure or a pedal could be added.
+Series J on v0.18 is done (hardware log). Still open beyond that: Compare
+and Save during a morph, the stepwise closing of the filter seen in J2, the
+knob overlay's cost in `LateTicks`, and the two decisions below.
 
 **Model:** the Fable brief (items A to D) is worked through; what is left is
 hands-on testing, small fixes and then the morph from the written design
