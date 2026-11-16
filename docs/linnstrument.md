@@ -184,8 +184,9 @@ that time and check afterwards that every note ended.
 The Peak patch's morph (Settings > MORPH > `Morph` = `ModWheel`) follows the
 mod wheel, MIDI CC 1, on the zone's Main channel. The LinnStrument has no
 wheel, but its lowest row of pads can be one. From the manual (Panel
-Settings, Per-Split Settings, "Low Row"; not yet tried here, see `TEST.md`
-series K):
+Settings, Per-Split Settings, "Low Row"), and tried on the Peak with v0.18
+on 2026-11-16 (series K in the [hardware log](hardware-log.md): all of the
+below worked as written):
 
 - **Low Row = X=CC1** turns the lowest row into a control strip that sends
   CC 1 as you slide left and right. The row no longer plays notes.
@@ -196,11 +197,14 @@ series K):
 - The hidden **Fader mode** makes the whole row a fader, 0 at the left end
   and 127 at the right, and the value stays when you let go. To choose it,
   hold the **X=CC1** pad on the Per-Split Settings screen; swipe up or down
-  to pick the setting, left or right to change it. The same hidden screen
-  can change the CC number, which must stay 1 for the morph.
-- The manual says messages common to all notes go out on the Main channel;
-  that the Low Row's CC 1 does too is what series K checks on the Peak's
-  MIDI MONITOR page (`B0 01 xx` is CC 1 on channel 1).
+  to pick the setting, left or right to change it (the screen shows `HLD`
+  or `FDR`). The same hidden screen can change the CC number, which must
+  stay 1 for the morph.
+- The two modes differ in reach as well: Hold goes from 0 to 127 within 7
+  pads of where you pressed, Fader uses the whole row.
+- The Low Row's CC 1 goes out on the Main channel: the Peak's MIDI MONITOR
+  page showed `B0 01 7F` at the end of a slide (CC 1 on channel 1), which
+  is where the morph listens.
 
 Other ways the manual offers, and why not: **Timbre/Y = CC1** sends CC 1 per
 note on the Per-Note channels, which the morph ignores (and the patch needs

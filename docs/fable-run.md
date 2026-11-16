@@ -3,16 +3,12 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** the user plays from a LinnStrument only (2026-11-16). Series K
-in `TEST.md` (no new image, I send nothing): the LinnStrument's Low Row set
-to `X=CC1` as the morph's wheel, per Roger Linn Design's manual (Hold mode:
-slide for 0 to 127, release sends 0; hidden Fader mode keeps the value). K2
-checks on MIDI MONITOR that it arrives as `B0 01 xx` (CC 1 on the Main
-channel 1: the manual implies it, not confirmed). If it arrives on another
-channel or the user wants something else, the morph's source is one line
-in `mpe_route.c` (`morph_cc`), and pressure or a pedal could be added.
-Series J on v0.18 is done (hardware log). Still open beyond that: Compare
-and Save during a morph, the stepwise closing of the filter seen in J2, the
+**Next step:** nothing pending on the synth. Series K is done (2026-11-16,
+hardware log): the user plays from a LinnStrument only, and its Low Row set
+to `X=CC1` drives the morph without a firmware change (`B0 01 7F` on MIDI
+MONITOR, follows smoothly, Hold and Fader mode both work). `TEST.md` holds
+no series; the next one is L. Still open, the user's choice: Compare and
+Save during a morph, the stepwise closing of the filter seen in J2, the
 knob overlay's cost in `LateTicks`, and the two decisions below.
 
 **Model:** the Fable brief (items A to D) is worked through; what is left is
@@ -22,7 +18,7 @@ it from these files.
 
 **State on the synth:** v0.18 (`9df89b4d…`, boot `MPEI`, commit `c19c0f8`), flashed by
 the user 2026-11-16 (flash log ok, identity `02 01 00 08`; rig 136 pass, 0 fail, 5 info, run
-`2026-11-16_143231`; series J done). `Morph` is Off, D002 reselected. Before it: v0.17 (`e5e9e652…`, boot
+`2026-11-16_143231`; series J and K done). After series K `Morph` and the LinnStrument's Low Row are as the user left them (not reported). Before it: v0.17 (`e5e9e652…`, boot
 `MPEH`, commit `163e5c7`, rig 136/0/5, run `2026-11-16_105659`). Before it: v0.16 (`0f262ad9…`, boot `MPEG`, commit
 `11f5b71`, rig 136/0/5, run `2026-11-16_091401`). Before it: v0.15 (`dee61e50…`, boot `MPEF`, commit `ed02aa9`),
 flashed 2026-11-15 21:22. Rig 136 pass, 0 fail, 5 info (run

@@ -402,7 +402,15 @@ changed:
   40 under a held note the level falls in steps over about 1.4 s, also when
   set directly. Not compared with stock.
 - Not tried on the synth: the Compare button during a morph, Save during a
-  morph, a real wheel (the positions came from the computer).
+  morph.
+
+**Series K, a real source (v0.18, 2026-11-16; observed by the user):** a
+LinnStrument's Low Row set to `X=CC1` drives the morph. The Peak's MIDI
+MONITOR page read `Last msg   B0 01 7F` at the end of a slide, so the CC
+arrives on the Main channel 1, where `morph_cc` listens. The morph follows
+the thumb smoothly, in Hold mode (0 to 127 over 7 pads, 0 on release) and
+in Fader mode (the whole row, the value stays). No firmware change needed;
+set-up in [linnstrument.md](linnstrument.md) section 9.
 
 ## Order
 
