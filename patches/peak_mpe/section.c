@@ -44,7 +44,7 @@ static uint8_t undo_valid, undone;
 static uint32_t last_move, last_id1;     /* the last control event: tick, offset + 1 */
 
 /* The setter's id for a patch offset, or 0 if it cannot be set that way. */
-static uint32_t id_of(uint32_t offset)
+uint32_t param_id_of(uint32_t offset)
 {
     const struct param_desc *d = &patch_param_desc[offset];
     if (d->max == 0 && d->min == 0)
@@ -56,9 +56,9 @@ static uint32_t id_of(uint32_t offset)
     return d->nrpn_lsb + 128u * d->nrpn_msb + 128u;
 }
 
-static void put(uint32_t offset, uint32_t value)
+void param_put(uint32_t offset, uint32_t value)
 {
-    uint32_t id = id_of(offset);
+    uint32_t id = param_id_of(offset);
     if (id)
         param_set_by_id(value, id);
 }
@@ -104,9 +104,9 @@ static uint32_t swap(void)
     uint32_t n = 0;
     for (uint32_t o = 0; o < PARAMS; o++) {
         uint8_t a = patches[o], b = undo_buf[o];
-        if (a == b || !id_of(o))
+        if (a == b || !param_id_of(o))
             continue;
-        put(o, b);
+        param_put(o, b);
         undo_buf[o] = a;
         n++;
     }
@@ -151,7 +151,7 @@ void section_edit(uint32_t index, int32_t delta)
     }
     undo_capture();
     for (uint32_t k = 0; k < ops[op].len; k++)
-        put(ops[op].dst + k, patches[ops[op].src + k]);
+        param_put(ops[op].dst + k, patches[ops[op].src + k]);
     ui_say("COPY SECTION", "Done:", ops[op].name, "Undo: Mod+Page left");
     ui_say_hold();
 }

@@ -16,6 +16,8 @@
  *   MPE EXTRAS      PressCurve (Squared/Linear), EnvSync (Off, 1/2-1/16),
  *                   Glide (Stock/LastNote/Legato)
  *   PARAM LOCK      Lock FX, Lock Arp, Lock Voice (Off/On)
+ *   COPY SECTION, MIDI MONITOR (section.c, diag.c)
+ *   MOTION          Length (1, 2, 4 bars); read-only: the recorder's state, LateTicks
  * The Summit's read-only "Channels" item (CH CLASH) is left out: the Peak has
  * no Multi parts whose channels a zone could take.
  * The items are kind 3 (global settings) with records 0x30-0x38, which stock
@@ -59,15 +61,15 @@ struct mpe_page {
 };
 
 #define STOCK_DESCS 0x22           /* Peak global_param_desc: records 0x00-0x21, then other data */
-#define MPE_G_LAST MPE_G_GLIDE      /* the last record of new_descs */
+#define MPE_G_LAST MPE_G_LATE       /* the last record of new_descs */
 #define MPE_DESCS (MPE_G_LAST + 1)
 #define MPE_PAGE_AT 4              /* after MIDI CONTROL (stock page 3) */
-#define MPE_PAGES 6
+#define MPE_PAGES 7
 #define STOCK_PAGES PEAK_SETTINGS_PAGES
 #define UI_MODE_SETTINGS PEAK_UI_SETTINGS
 #define UI_MODE (ui_state[0])
 
-enum { DISP_ZONE = 0xE0, DISP_MEMBERS, DISP_NOTE, DISP_MASTER, DISP_CURVE, DISP_ENVSYNC, DISP_LOCK_FX, DISP_LOCK_ARP, DISP_LOCK_VOICE, DISP_SECT, DISP_DOIT, DISP_DLAST, DISP_DCOUNT, DISP_DOVF, DISP_GLIDE, DISP_END };
+enum { DISP_ZONE = 0xE0, DISP_MEMBERS, DISP_NOTE, DISP_MASTER, DISP_CURVE, DISP_ENVSYNC, DISP_LOCK_FX, DISP_LOCK_ARP, DISP_LOCK_VOICE, DISP_SECT, DISP_DOIT, DISP_DLAST, DISP_DCOUNT, DISP_DOVF, DISP_GLIDE, DISP_MLEN, DISP_MSTATE, DISP_LATE, DISP_END };
 
 #define FIELD 8                    /* value field: columns 11-18, the mark is at 19 */
 
@@ -88,6 +90,7 @@ static const char title_extra[] = "MPE EXTRAS";
 static const char title_lock[] = "PARAM LOCK";
 static const char title_sect[] = "COPY SECTION";
 static const char title_mon[] = "MIDI MONITOR";
+static const char title_motion[] = "MOTION";
 
 static const struct mpe_desc new_descs[] = {
     {0, 2, 0x40, 0x2E, DISP_ZONE, "Zone"},
@@ -104,7 +107,10 @@ static const struct mpe_desc new_descs[] = {
     {0, 0, 0xFF, 0x00, DISP_DLAST, "Last msg"},
     {0, 0, 0xFF, 0x00, DISP_DCOUNT, "Msg count"},
     {0, 0, 0xFF, 0x00, DISP_DOVF, "DIN ovfl"},
-    {0, 2, 0x40, 0x37, DISP_GLIDE, "Glide"},          /* record 0x3E: stored in the globals again */
+    {0, 2, 0x40, 0x37, DISP_GLIDE, "Glide"},          /* records 0x3E, 0x3F: stored in the globals again */
+    {0, 2, 0x40, 0x38, DISP_MLEN, "Length"},
+    {0, 0, 0xFF, 0x00, DISP_MSTATE, "Motion"},        /* records 0x40, 0x41: read-only, not stored */
+    {0, 0, 0xFF, 0x00, DISP_LATE, "LateTicks"},
 };
 
 /* Last drawn per item. Only compared with what would be drawn now, so its
@@ -158,6 +164,10 @@ static void build_tables(void)
     page_item(&mpe_pages[5], MPE_G_DIAG);
     page_item(&mpe_pages[5], MPE_G_DIAG + 1);
     page_item(&mpe_pages[5], MPE_G_DIAG + 2);
+    page_init(&mpe_pages[6], title_motion);
+    page_item(&mpe_pages[6], MPE_G_MOTION_LEN);
+    page_item(&mpe_pages[6], MPE_G_MOTION_STATE);
+    page_item(&mpe_pages[6], MPE_G_LATE);
 
     struct mpe_page **stock = (struct mpe_page **)(settings_menu + 4);
     uint32_t n = 0;
@@ -305,6 +315,18 @@ static void render_view(const struct mpe_live *v, uint32_t display, char *out)
         put_str(&p, names[n > 4 ? 0 : n]);
         break;
     }
+    case DISP_MLEN: {
+        static const char *const names[] = {"1 bar", "2 bars", "4 bars"};
+        uint8_t n = globals[MPE_G_MOTION_LEN];
+        put_str(&p, names[n > 2 ? 0 : n]);
+        break;
+    }
+    case DISP_MSTATE:
+        put_str(&p, motion_state_name());
+        break;
+    case DISP_LATE:
+        put_num(&p, diag_late_ticks() % 100000000u);
+        break;
     case DISP_GLIDE: {
         static const char *const names[] = {"Stock", "LastNote", "Legato"};
         uint8_t n = globals[MPE_G_GLIDE];
@@ -369,6 +391,7 @@ void mpe_ui_poll(void)
     disp_poll();
     envsync_poll();
     ui_hold_poll();
+    motion_poll();
     const uint8_t *page = ui_current_page();
     if (!on_mpe_page(page) || ui_message_active())
         return;
@@ -390,7 +413,7 @@ void mpe_ui_poll(void)
 
 static void edit_setting(uint16_t index, int32_t delta)
 {
-    if (index > MPE_G_LAST || delta == 0)  /* as stock, no reset for globals */
+    if (index > MPE_G_MOTION_LEN || delta == 0)  /* as stock, no reset for globals; the last two records are read-only */
         return;
     if (index >= MPE_G_SECT && index <= MPE_G_DIAG + 2) {  /* COPY SECTION (section.c); the monitor items are read-only */
         if (index <= MPE_G_DOIT) {
@@ -421,6 +444,9 @@ static void edit_setting(uint16_t index, int32_t delta)
         break;
     case MPE_G_GLIDE:
         v = globals[MPE_G_GLIDE] > 2 ? 0 : globals[MPE_G_GLIDE];
+        break;
+    case MPE_G_MOTION_LEN:
+        v = globals[MPE_G_MOTION_LEN] > 2 ? 0 : globals[MPE_G_MOTION_LEN];
         break;
     case MPE_G_LOCK_FX:
     case MPE_G_LOCK_FX + 1:

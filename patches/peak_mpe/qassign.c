@@ -88,6 +88,8 @@ uint32_t qa_panel_read(void)
 {
     uint32_t ev = panel_event_read();
     qa_button(ev);
+    if (motion_button(ev, held))   /* Mod + Animate 1: motion recording (motion.c) */
+        return 0;
     if (held && edit_button(ev))   /* Mod + Page left/right: undo / redo (section.c) */
         return 0;
     return ev;

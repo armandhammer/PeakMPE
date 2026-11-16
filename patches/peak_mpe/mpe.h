@@ -40,6 +40,9 @@
 #define MPE_G_DIAG 0x3B
 #define MPE_G_LOCK_FX 0x36       /* parameter lock: FX, Arp, Voice at +0x36, +0x37, +0x38: 0 Off, 1 On */
 #define MPE_G_GLIDE 0x3E         /* where a poly glide starts: 0 Stock (the voice's last pitch), 1 LastNote, 2 Legato */
+#define MPE_G_MOTION_LEN 0x3F    /* motion recording loop: 0 = 1 bar, 1 = 2 bars, 2 = 4 bars */
+#define MPE_G_MOTION_STATE 0x40  /* Settings records, not stored: the recorder's state, */
+#define MPE_G_LATE 0x41          /* and the late-tick count (diag.c) */
 
 #define MPE_DEFAULT_MEMBERS 15
 #define MPE_DEFAULT_NOTE_RANGE 48
@@ -141,6 +144,17 @@ int edit_button(uint32_t ev);    /* Mod held: Page left/right = undo/redo; 1 = t
 const char *section_name(uint32_t i);
 uint32_t section_op(void);
 void section_edit(uint32_t index, int32_t delta);
+uint32_t param_id_of(uint32_t offset);            /* the setter's id for a patch offset, 0 = not settable */
+void param_put(uint32_t offset, uint32_t value);  /* set a patch byte through stock's setter, if it has an id */
+void diag_tick(void);            /* once per modulation tick */
+uint32_t diag_late_ticks(void);
+
+/* --- Motion recording (motion.c) --------------------------------------- */
+int motion_button(uint32_t ev, int mod_held);     /* 1 = taken (Mod + Animate 1 and its release) */
+void motion_knob(uint32_t id, uint32_t cur, uint32_t hires);
+void motion_poll(void);          /* main loop, from mpe_ui_poll */
+void motion_clear(void);         /* a patch load */
+const char *motion_state_name(void);
 void diag_note(const uint8_t *msg);
 void diag_text(uint32_t which, char *out);
 

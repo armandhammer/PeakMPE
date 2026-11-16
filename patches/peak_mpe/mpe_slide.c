@@ -71,6 +71,7 @@ void mpe_mod_update(void)
 {
     arp_echo_tick();
     envsync_tick();
+    diag_tick();
     mod_update();
     if (!mpe_part_on(0)) {
         for (uint32_t v = 0; v < MPE_VOICES; v++)

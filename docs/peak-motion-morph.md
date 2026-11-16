@@ -131,10 +131,29 @@ emulated / inferred).
 - **Cost:** one group update per step (5–40 writes per 62.5 ms at 120
   BPM), or per 16 ms with Smooth: within what a turning knob already costs.
 
+**Built 2026-11-16 as v0.16 (emulated, `tests/test_peak_motion.py`; not on
+the synth).** As proposed, with these points settled or changed:
+
+- Animate 1 is panel button 14 (`button_table` `0x20000AB8`: type 4, action
+  6, argument 0; Animate 2 is entry 15, the Hold button entry 12; action 6
+  with argument 0 or 1 runs the Animate function and sends CC 114 or 115:
+  observed). The press with Mod held and its release are hidden from stock.
+- The loop's "one" is the move that starts the recording; the recorder
+  keeps its own position by adding up the changes of stock's clock count,
+  and restarts the loop if that count jumps (what resets it is still not
+  traced).
+- Stopping puts the control back to its value from before the recording.
+- The recorded control's Pickup is cleared on each of its moves, so the
+  hand takes over at once, also with `Pickup` on.
+- Settings > MOTION: `Length` 1, 2 or 4 bars (a step of 3, 6 or 12 clocks),
+  the state (`Off`, `Armed`, `Rec`, `Play`) and `LateTicks`.
+- Not built: Smooth, storing the lane, a second lane.
+
 **Risks and what to check first**
 
 1. Which button events arrive while Mod is held (the panel table entry for
    Animate 1 and 2: type, mode). Simulator, then one hands-on check.
+   *Settled in the table (above); the hands-on check is series H.*
 2. Pickup and the overlay: playback must not draw the knob overlay on
    every step, and must not leave pickup armed in a way that makes the
    control feel dead after stopping. The setter arms pickup; playback

@@ -15,8 +15,31 @@
 #define DIN_RING 0x20003EAC
 #define DIN_OVERFLOWS (*(volatile uint8_t *)(DIN_RING + 0x204))
 
+#define MS_COUNTER (*(volatile uint32_t *)(0x20003AD0 + 0x1C0))   /* tim6_isr: +1 per millisecond */
+
 static uint8_t last[3];
 static uint32_t count;
+static uint32_t late, last_ms;
+static uint8_t ticked;
+
+/* Late ticks: the interrupt asks for a modulation tick every millisecond, and the
+ * main loop runs one per pass without catching up, so a pass longer than 1 ms loses
+ * ticks. Each tick here counts the milliseconds that went by without one. It is the
+ * measure of how much main-loop work (parameter updates, the screen) the synth has
+ * room for: docs/peak-motion-morph.md, "Risks". Shown on Settings > MOTION. */
+void diag_tick(void)
+{
+    uint32_t ms = MS_COUNTER;
+    if (ticked && ms - last_ms > 1)
+        late += ms - last_ms - 1;
+    last_ms = ms;
+    ticked = 1;
+}
+
+uint32_t diag_late_ticks(void)
+{
+    return late;
+}
 
 void diag_note(const uint8_t *msg)
 {
