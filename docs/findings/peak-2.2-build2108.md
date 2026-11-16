@@ -388,8 +388,11 @@ on the synth.
   guide's figure is loose or main-loop passes on the synth are long enough
   to stretch each count; the time has not been measured on the synth (test
   F3 in `TEST.md`). The earlier note "about 60 ms per count" came from a
-  `Done:` message seen for about 0.3 s on v0.12 and assumed `Msg Time` 0;
-  that message was more likely wiped by the page redraw fixed in v0.13.
+  `Done:` message seen for about 0.3 s on v0.12 and assumed `Msg Time` 0.
+  The user's Peak has `Msg Time` 64, the initial value (read off the
+  Settings page, 2026-11-15), so that message had 69 counts, at least 0.76 s
+  of countdown: its 0.3 s was not the countdown but the page redraw that
+  v0.13 fixed.
 - **Consequences for the patch as flashed in v0.13** (constants written for
   the simulator's 2 kHz): EnvSync applied a changed choice after about 2 s
   (meant 1 s) and a tempo change after about 1 s (meant 0.5 s); the undo

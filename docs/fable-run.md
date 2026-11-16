@@ -11,6 +11,8 @@ The Peak's Glide item was left on Legato (F7 uses it). With nothing from the
 user, the next unblocked work is D3: the merged-tick counter on the MIDI
 MONITOR page ([peak-motion-morph.md](peak-motion-morph.md), "Order").
 
+**F3.1 (user, 2026-11-15):** `Msg Time` on the Peak reads 64. The stopwatch reading at 127 (F3.3) is still open.
+
 **F2 done (observed, v0.14):** Stock starts every note at about 72 (its voice's
 last pitch); LastNote from the previous note's current pitch; Legato on pitch
 when detached and from the held note when legato. Table in the findings,
