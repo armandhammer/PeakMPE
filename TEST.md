@@ -15,18 +15,13 @@ Setup for all series: **quit Ableton and any other MIDI app.**
 
 ## Series F: glide start, message time, undo timing (image `MPEE Ver`)
 
-Needs the v0.14 image `06be5529…` (boot screen `MPEE Ver 108.469`). F0 needs
-no new image and can run before the flash. In F0, F2 and F6 I send the notes from
-the computer over USB; I start each only when you write **GO**. Hands off
+Needs the v0.14 image `06be5529…` (boot screen `MPEE Ver 108.469`). F0 (which note
+is cut) and F6 (rig regression, 136 pass) are done and removed. In F2 I send
+the notes from the computer over USB; I start each run only when you write
+**GO**. Hands off
 the Peak while one runs (each takes under a minute). Rows are counted as in
 Novation's guide: the title is Row 1, the three items are Rows 2 to 4, chosen
 with the three buttons left of the screen.
-
-### F0. Which note is cut when all eight voices are busy (no flash needed)
-
-1. Write **GO F0**. I run `work/steal_check.py`: three takes of nine or ten
-   sine notes on the Init-based test sound. Nothing for you to do; I report
-   which note stopped in each take.
 
 ### F1. The new setting is there
 
@@ -97,12 +92,6 @@ held and from the held note otherwise.
    fully anticlockwise, the value before step 4, not to where it was before
    step 2). On v0.13 the two moves counted as one, because the pause had to
    be 4 seconds, and the note would come back at its original brightness.
-
-### F6. Regression run (I play)
-
-1. Write **GO rig**. I run `tools/hwrig run --stage all --yes` (about 15
-   minutes, Ableton and Focusrite Control closed, hands off). Expected: 136
-   pass, 0 fail, 5 info, as on v0.13.
 
 ### F7. By ear, with the LinnStrument (after F2)
 

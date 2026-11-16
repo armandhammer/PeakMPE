@@ -417,7 +417,11 @@ Measurements (step 6) can run on the rig while code is written for others.
     is not by age. Details and what a patch could still add (oldest on a tie,
     pedal-held notes before key-held, keep the lowest note) are in the
     [findings](findings/peak-2.2-build2108.md#voice-allocation-and-stealing-2026-11-15).
-    Open: one rig check that the synth behaves as the code reads.
+    **Confirmed on the synth 2026-11-15 (observed, `work/steal_check.py`):**
+    with eight notes held and one let go, a 9th takes the releasing voice
+    and no held note is cut; with all held, the voice after the last pick
+    goes (rotation, not age); with all eight still in a slow attack, the
+    newest goes. Step closed: nothing to build for "tail-aware".
 19. **Per-note glide in MPE** (M). Scope still open. With channel rotation
     (the LinnStrument's default) a member channel's previous note is
     unrelated to its next one, so seeding glide per channel would glide from

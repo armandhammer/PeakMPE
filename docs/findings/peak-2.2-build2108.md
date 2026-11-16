@@ -177,9 +177,10 @@ From the Ghidra decompile, the literal pools read from the image, and the
 simulator (`tests/test_peak_voice_steal.py`, `work/_a1_alloc.py`). The code is
 the Summit's allocator with one engine
 ([Summit findings, "Voice allocation reads the FPGA"](summit-2.2-build2121.md#the-fpga-bus-spi1)).
-Code structure is **observed**; what the sound chip (FPGA) replies on a real
-Peak is **inferred** (the simulator models the replies, it does not emulate
-the chip).
+Code structure is **observed**. What the sound chip (FPGA) replies was
+inferred when this was written (the simulator models the replies, it does
+not emulate the chip); the three predictions that follow from it were then
+**observed on the synth** the same day (below).
 
 **Stock is already tail-aware.** A new note takes the quietest voice that is
 in its release before it touches a held one. Plan step 18 as written
@@ -252,13 +253,31 @@ in its release before it touches a held one. Plan step 18 as written
     used in the ranking).
   - 8 voices still in state 0 (attack), 9th and 10th note: each takes the
     **newest** voice, so the 10th cuts the 9th.
+- **On the synth (observed, 2026-11-15, image v0.14, `work/steal_check.py`,
+  recordings in `work/hw-runs/steal-2026-11-15_192047/`):** sine notes 48,
+  53, 58, 63, 68, 73, 78, 83 played in that order, MPE off, release about
+  -10 dB/s; each pitch's level measured against its held level.
+  - **Release first.** 58 let go, a 9th note 0.25 s later: 58 is at -56 dB
+    (cut; its release alone would have it at about -6 dB), all seven held
+    notes at +0 dB. The 9th note took the releasing voice.
+  - **Rotation, not age.** A 10th note then cut 63, the note on the voice
+    after the last pick, while the older 48 and 53 kept sounding. So held
+    voices at full sustain do tie on the real chip.
+  - **All held:** a 9th note cut 48 and a 10th cut 53, the first and
+    second notes played.
+  - **Attack: the newest goes.** With a slow attack (Amp Attack 110) and
+    all eight still rising, a 9th note 0.4 s later cut 83, the note just
+    played; the other eight and the 9th all reached the same level.
+  So states 3 (release), 1/2 (held) and 0 (attack) mean on the chip what
+  the code's ranking implies.
 - **Where a patch could do better than stock** (ideas, nothing built): a
   tie between held voices could go to the oldest by start stamp instead of
   rotation order; a note the pedal holds with its key up could go before a
   note whose key is down; the lowest held note could be protected. All
-  three use MCU state only. Whether held voices tie on a real Peak (equal
-  levels at full sustain) is not known: the levels have never been read on
-  hardware.
+  three use MCU state only. Held voices do tie on a real Peak at full
+  sustain (observed above), so the rotation tie-break is what decides in
+  practice. The slow-attack case is the one a player may notice: a pad's
+  newest note is the one that disappears.
 - **Possible stock quirk, from the code only (inferred, not run):** at
   sostenuto pedal up, `FUN_08011F90` releases every sostenuto-held voice
   whose pedal-held flag is 0, with no check that its key is still down, so a
@@ -378,6 +397,6 @@ on the synth.
 
 ## Open
 
-- What the sound chip really replies to the allocator's reads on a Peak:
-  the state of a held voice over time (when 0 becomes 1 or 2), the level's
-  scale, and whether held voices at full sustain read exactly equal.
+- The sound chip's replies in numbers: when a voice's state goes from 0 to
+  1 or 2 and the level's scale. The behaviour that follows from them is
+  observed (voice allocation section).

@@ -3,15 +3,14 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** with the user's GO, run in this order and add the results to the
-v0.14 row of `docs/hardware-log.md`: `tools/hwrig run --stage all --yes` (F6;
-expect 136 pass, 0 fail, 5 info), `work/steal_check.py` (F0),
-`work/glide_check.py --label stock|lastnote|legato` (F2, the user sets the
-Glide item before each). Then the user's panel steps F1, F3, F4, F5, F7. With
-nothing from the user, the next unblocked work is D3: the merged-tick counter
-on the MIDI MONITOR page ([peak-motion-morph.md](peak-motion-morph.md), "Order").
+**Next step:** the user's panel steps of series F in `TEST.md` (F1, F3, F4,
+F5), then F2 with the user's GO per setting (`work/glide_check.py --label
+stock|lastnote|legato`), then F7 by ear; add each result to the v0.14 row of
+`docs/hardware-log.md`. F0 and F6 are done. With nothing from the user, the
+next unblocked work is D3: the merged-tick counter on the MIDI MONITOR page
+([peak-motion-morph.md](peak-motion-morph.md), "Order").
 
-**v0.14 was flashed by the user 2026-11-15 19:13** (log `work/flash-06be5529-2026-11-15.log`: full transfer, identity `02 01 00 08`; row in `docs/hardware-log.md`). No rig run or series F step yet. The image:
+**v0.14 was flashed by the user 2026-11-15 19:13** (log `work/flash-06be5529-2026-11-15.log`: full transfer, identity `02 01 00 08`; row in `docs/hardware-log.md`). Rig run on it: 136 pass, 0 fail, 5 info (run `2026-11-15_191511`). The image:
 `work/flash/peak-firmware-2.2-build2108+mpe-06be5529753f.syx`, SHA-256
 `06be5529753f67073d8be8d6fa2380f61d6ca2a03e793a367ceb95efa37e4925`, boot label
 `MPEE`. `scripts/check` before it: pytest 650 passed, 9 skipped; web 34 passed;
@@ -30,7 +29,7 @@ both descriptors equal (log `work/build-v14.log`).
 | A1 Trace the stock voice allocator | done | `7d7ee6f` | `voice_alloc` `0x080122B0` asks `voice_candidates` `0x08011B70`, which reads each voice's envelope state and level from the sound chip and ranks: quietest in release, then quietest held, then newest in attack | code observed; chip replies inferred |
 | A2 Findings and symbols | done | `7d7ee6f` | [findings, "Voice allocation and stealing"](findings/peak-2.2-build2108.md#voice-allocation-and-stealing-2026-11-15); 12 symbols; `tests/test_peak_voice_steal.py` (4 pass) | emulated |
 | A3 Feasibility | done | `7d7ee6f` | **Step 18 as written is what stock does**: a 9th note takes the quietest releasing voice and cuts no held note. Nothing to build for "tail-aware". The MCU itself holds no level or release time, only the gate, pedal-held flags and a start stamp per voice | code observed |
-| A4 Rig experiment | ready, needs the user's OK | (work/, not in git) | `work/steal_check.py`: three takes (8 held + one released + a 9th and 10th; 8 held + 9th + 10th; slow attack + 9th), reports which pitch stops. Dry run clean (869 messages). Turns "chip replies inferred" into observed. No new steal policy built; possible refinements are listed in the findings | not run |
+| A4 Rig experiment | done | (this commit) | `work/steal_check.py` on v0.14, 2026-11-15: the 9th note took the releasing voice (released note -56 dB, held notes +0 dB); the 10th cut the next voice in rotation (63), not the oldest; all held: 48 then 53 cut; slow attack: the newest (83) cut. All as the code reads. No steal policy built; refinements listed in the findings are the user's call | observed |
 | B1 Trace stock glide | done | `aea1d4d` | A poly note glides from the pitch its own voice last had (`voice_state+0x74+4v` is never reset); after power-on from note 60; MonoLG glides only legato; PreGlide overrides | code observed, emulated (`work/_b1_glide.py`) |
 | B2 Glide findings | done | `aea1d4d` | [findings, "Glide"](findings/peak-2.2-build2108.md#glide-2026-11-15) | |
 | B3 Glide option | done in the simulator | `aea1d4d` | Settings > MPE EXTRAS > Glide: Stock / LastNote / Legato (globals `+0x3E`), in `mpe_voice.c` `glide_start`; `tests/test_peak_glide.py` 6 pass. Rig check `work/glide_check.py` ready (dry run clean) | emulated; not on the synth |
@@ -49,7 +48,9 @@ both descriptors equal (log `work/build-v14.log`).
   (`tests/test_peak_*.py`, `tests/test_mod_tick.py`).
 - Full `scripts/check` for the v0.14 build: pytest 650 passed, 9 skipped
   (Summit and Peak), web 34 passed, descriptors equal.
-- Not verified: anything on the synth.
+- On the synth (v0.14): rig regression 136 pass, 0 fail, 5 info; the steal
+  check (A4). Not yet on the synth: Glide, the timing corrections, the 2 s
+  message hold.
 
 ## Stock firmware quirks found (not fixed)
 
