@@ -407,13 +407,13 @@ Measurements (step 6) can run on the rig while code is written for others.
     retriggered note reuses or takes a new voice under Poly, Poly2 and MPE,
     which changes how a ratchet sounds. Needs the allocation generation
     counter (engineering rules).
-    **Euclidean rhythms built 2026-11-17 (v0.20, emulated, not on the
+    **Euclidean rhythms built 2026-11-16 (v0.20, emulated, not on the
     synth):** Settings > ARP EUCLID with `Pulses` (Off, 1-32), `Steps`
     (1-32) and `Rotate`. With Pulses on, the arp plays that many notes
     spread evenly over the steps in place of the patch's Rhythm; SyncRate,
     Type, Octaves, Gate, Swing and Latch stay stock's. Stock's rhythms are
     lists of note and rest lengths
-    ([findings, "Arp rhythm patterns"](findings/peak-2.2-build2108.md#arp-rhythm-patterns-2026-11-17)),
+    ([findings, "Arp rhythm patterns"](findings/peak-2.2-build2108.md#arp-rhythm-patterns-2026-11-16)),
     so the patch builds such a list in RAM and points the arp at it
     (`euclid.c`, one hook on the call of `arp_tick`; tests
     `tests/test_peak_euclid.py`). The setting is global, like Lock Arp,
@@ -542,8 +542,8 @@ first look; enhancements only if it shows gaps.
 
 **MTS real-time retuning:** check the SysEx handler (`0x0800D040`) for
 real-time single-note tuning before planning anything; stock may already
-have it. **Checked 2026-11-17: it does** (code observed, emulated on the
-stock image; [findings](findings/peak-2.2-build2108.md#midi-tuning-standard-in-stock-2026-11-17)).
+have it. **Checked 2026-11-16: it does** (code observed, emulated on the
+stock image; [findings](findings/peak-2.2-build2108.md#midi-tuning-standard-in-stock-2026-11-16)).
 `F0 7F 00 08 02 tt 01 kk xx yy zz F7` retunes one note of tuning table
 `tt` (0 to 16), sounding voices included, and the bulk dump (`7E 00 08
 00/01`) is there too. `0x0800D040` itself is a factory-test handler. Two

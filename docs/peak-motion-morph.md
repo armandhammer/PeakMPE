@@ -435,7 +435,7 @@ checks it on the synth):**
   release and is what the fourth press stores (emulated).
 - Not changed in v0.19: pressing Compare still clears the undo step and
   stops a motion lane (same hook; emulated on v0.19 afterwards).
-  **v0.20 (2026-11-17, emulated, `tests/test_peak_compare.py`; not on the
+  **v0.20 (2026-11-16, emulated, `tests/test_peak_compare.py`; not on the
   synth):** Compare leaves both alone. While it is held the lane keeps its
   time and writes nothing, so the stored patch is heard as it is; at the
   release stock puts the patch back with the lane's last value in it and

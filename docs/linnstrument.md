@@ -54,7 +54,8 @@ picture shows the labels.
 3. **A standard 5-pin MIDI cable** (round DIN plugs at both ends). The
    LinnStrument plugs straight into the Peak with it; no computer is needed
    in between.
-4. The Peak with the MPE firmware on it (boot screen `MPE1 Ver 108.469`) and
+4. The Peak with the MPE firmware on it (the boot screen reads `MPE` and a
+   letter or digit before `Ver 108.469`, for example `MPEK Ver 108.469`) and
    the patch slot that has VOICE `MPE` On (D002, the one you saved for the
    rig). The rig's LinnStrument sound, below, builds on it.
 

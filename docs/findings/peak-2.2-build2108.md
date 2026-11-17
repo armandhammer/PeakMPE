@@ -535,7 +535,7 @@ firmware's event queue); not yet on the synth with a morph running.
   time but writes nothing, and both go on at the release
   (`tests/test_peak_compare.py`, emulated; not on the synth).
 
-## Arp rhythm patterns (2026-11-17)
+## Arp rhythm patterns (2026-11-16)
 
 Read for Euclidean rhythms (feature list step 17). Code **observed**
 (decompile); the format **emulated** by playing patterns built to it
@@ -584,7 +584,7 @@ Read for Euclidean rhythms (feature list step 17). Code **observed**
   minute of one of the arp's note ons coming back. With no loop a release
   always gets through; with a loop the filter works as before.
 
-## MIDI Tuning Standard in stock (2026-11-17)
+## MIDI Tuning Standard in stock (2026-11-16)
 
 The feature list asked whether stock already takes real-time retuning. It
 does, for one note per message. Code **observed** (decompile), the
