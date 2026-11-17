@@ -48,7 +48,7 @@
 #define MPE_G_MORPH_N 0x44       /* that differ between the stored and the edited patch */
 #define MPE_G_EUC_PULSES 0x45    /* Euclidean arp rhythm (euclid.c), stored: notes per pattern, 0 or > 32 = Off, */
 #define MPE_G_EUC_STEPS 0x46     /* steps 1-32 (0 or > 32 = 16), */
-#define MPE_G_EUC_ROTATE 0x47    /* and the step the pattern starts at, taken modulo the steps */
+#define MPE_G_EUC_ROTATE 0x47    /* and the step the pattern starts at, modulo the steps (> 31 = 0) */
 
 #define MPE_DEFAULT_MEMBERS 15
 #define MPE_DEFAULT_NOTE_RANGE 48

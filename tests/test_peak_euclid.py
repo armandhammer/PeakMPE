@@ -114,6 +114,14 @@ def test_a_new_rhythm_number_does_not_bring_stock_s_pattern_back(board):
     assert _steps(_play(b, 0, 8, 0, 1000))[:6] == [0, 1, 2, 3, 4, 5]
 
 
+def test_settings_bytes_never_written_read_as_off(mpe_built):
+    b = _boot(mpe_built.patched)
+    b.uc.mem_write(GLOBALS + G_PULSES, bytes([0xFF, 0xFF, 0xFF]))
+    rows = _show(b, 8, EUCLID_PAGE, 0)
+    assert rows[1].split()[:2] == ["Pulses", "Off"] and rows[2].split() == ["Steps", "16"], rows
+    assert rows[3].split() == ["Rotate", "0"], rows
+
+
 def test_euclid_page(mpe_built):
     b, blob = _boot(mpe_built.patched), mpe_built.blob
     rows = _show(b, 8, EUCLID_PAGE, 0)

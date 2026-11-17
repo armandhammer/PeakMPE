@@ -22,7 +22,7 @@
  * for the same note was taken for the echo, with no loop at all: one held
  * key is the very note the arp plays, so at a 16th-note rhythm most releases
  * were lost and the arp went on until the key was pressed and let go again
- * (emulated 2026-11-17). An echoed note on comes back before its note off,
+ * (emulated 2026-11-16). An echoed note on comes back before its note off,
  * so a real loop is known in time.
  *
  * The cost that is left: a key pressed on the same channel and note within

@@ -1,7 +1,8 @@
 /* Peak Euclidean arp rhythms (docs/peak-features.md step 17).
  *
  * Settings > ARP EUCLID (globals +0x45 .. +0x47): Pulses (Off, 1-32), Steps
- * (1-32) and Rotate (0-31). With Pulses on, the arpeggiator plays that many
+ * (1-32) and Rotate (0-31); a byte out of range, as one never written may
+ * be, reads as Off, 16 and 0. With Pulses on, the arpeggiator plays that many
  * notes spread as evenly as possible over Steps steps (5 in 8: x.x.xx.x) in
  * place of the patch's Rhythm; Rotate starts the pattern that many steps
  * later. Everything else stays stock's: SyncRate sets how long a step is,
@@ -60,7 +61,8 @@ uint32_t euclid_pulses(void)
 
 uint32_t euclid_rotate(void)
 {
-    return globals[MPE_G_EUC_ROTATE] % euclid_steps();
+    uint8_t v = globals[MPE_G_EUC_ROTATE];
+    return v >= MAX_STEPS ? 0 : v % euclid_steps();   /* a byte never written (255) is 0 */
 }
 
 /* Step i of n has a note: k of them, as even as whole steps allow. */
