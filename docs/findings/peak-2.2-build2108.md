@@ -579,6 +579,10 @@ Read for Euclidean rhythms (feature list step 17). Code **observed**
   so its release is at risk each time: in the simulator the arp then went
   on after the key was let go, until the key was pressed and released
   again. MPE notes arrive on member channels and are not affected.
+  **Mended in v0.20 (emulated, `tests/test_peak_arp_echo.py`):** a note
+  off is dropped only while a loop is known to be there, that is, within a
+  minute of one of the arp's note ons coming back. With no loop a release
+  always gets through; with a loop the filter works as before.
 
 ## MIDI Tuning Standard in stock (2026-11-17)
 

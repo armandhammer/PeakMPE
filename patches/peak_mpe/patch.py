@@ -70,7 +70,8 @@ PATCHES = [
     # MPEA = v0.10 (quick-assign: with Mod held a control only selects, stock draws and applies nothing);
     # MPEB = v0.11 (Settings PARAM LOCK: keep FX, Arp or Voice settings through a patch change);
     # MPEK = v0.20 (Compare leaves the undo step and a motion lane alone: both stand still while it is held;
-    #         Euclidean arp rhythms: Settings ARP EUCLID, euclid.c).
+    #         Euclidean arp rhythms: Settings ARP EUCLID, euclid.c; the arp echo filter drops a note off only
+    #         while a loop is known, so a key let go without a loop always stops its arp note).
     # MPEJ = v0.19 (morph: stands still while Compare is held, so the release finds the edit again; starts afresh after Save).
     # MPEI = v0.18 (patch morph: Settings MORPH page, the mod wheel blends the edited patch towards the stored one).
     # MPEH = v0.17 (motion playback as a ramp between steps; LateTicks a latched "count gap" reading; no page redraw from playback).

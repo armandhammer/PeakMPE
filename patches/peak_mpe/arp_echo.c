@@ -16,10 +16,19 @@
  * message cancels at most one incoming message. Velocity isn't compared: a
  * DAW may rescale it.
  *
- * The cost: a key really released (or pressed) on the same channel and note
- * within ECHO_WINDOW of the arp sending that note is dropped too. With the
- * arp running, that leaves the note in the arp until it is pressed and
- * released again.
+ * A note off is only dropped while a loop is known to be there: a note on
+ * of the arp's has come back within the last LOOP_TICKS. Without that rule
+ * (v0.2 to v0.19) a key let go within ECHO_WINDOW of the arp's own note off
+ * for the same note was taken for the echo, with no loop at all: one held
+ * key is the very note the arp plays, so at a 16th-note rhythm most releases
+ * were lost and the arp went on until the key was pressed and let go again
+ * (emulated 2026-11-17). An echoed note on comes back before its note off,
+ * so a real loop is known in time.
+ *
+ * The cost that is left: a key pressed on the same channel and note within
+ * ECHO_WINDOW of the arp sending that note on is dropped (only a note the
+ * arp plays that is not held: a latched or an octave note), and that also
+ * counts as a loop seen.
  *
  * Time comes from mod_tick (1 kHz, called through mpe_mod_update). Nothing
  * here runs unless the arp sends notes, so with the arp off, or Arp>Midi
@@ -30,6 +39,7 @@
 
 #define ECHO_SLOTS 32
 #define ECHO_WINDOW 100   /* mod_tick ticks: about 100 ms */
+#define LOOP_TICKS 60000  /* a loop counts as there this long after an echoed note on: one minute */
 
 struct echo {
     uint8_t status;       /* 0x90 / 0x80 | channel; 0 = free */
@@ -39,6 +49,7 @@ struct echo {
 
 static struct echo pending[ECHO_SLOTS];
 static uint16_t arp_echo_now;
+static uint16_t loop_left;    /* ticks for which a loop still counts as there */
 
 static int expired(const struct echo *e)
 {
@@ -48,6 +59,8 @@ static int expired(const struct echo *e)
 void arp_echo_tick(void)
 {
     arp_echo_now++;
+    if (loop_left)
+        loop_left--;
 }
 
 static void expect(uint8_t type, uint32_t note)
@@ -102,8 +115,13 @@ int arp_echo_drop(const uint8_t *msg)
             continue;
         int hit = !expired(e);
         e->status = 0;
-        if (hit)
+        if (!hit)
+            continue;
+        if ((status & 0xF0) == 0x90) {
+            loop_left = LOOP_TICKS;        /* the arp's own note on came back: there is a loop */
             return 1;
+        }
+        return loop_left != 0;             /* a note off: an echo only if there is a loop */
     }
     return 0;
 }

@@ -138,3 +138,32 @@ def test_filter_clock_counts_milliseconds(built):
             ticks.append(int.from_bytes(b.uc.mem_read(addr, 2), "little"))
     steps = [(ticks[i + 1] - ticks[i]) & 0xFFFF for i in range(5)]
     assert all(120 <= s <= 130 for s in steps), steps   # 1 tick = 1 ms
+
+
+def test_a_key_let_go_right_after_the_arps_note_off_stops_the_arp(built):
+    """No loop: Arp>Midi on, one key held. The arp plays that key's note, so
+    its own note off is never far away; a release 20 ms after one was taken
+    for its echo up to v0.19 and the arp went on."""
+    b = _boot(built.patched)
+    b.uc.mem_write(PATCHES + ARP_ON, b"\x01")
+    b.uc.mem_write(GLOBALS + ARP_MIDI, b"\x01")
+    b.run_ms(100)
+    b.din.tx_log.clear()
+    start = b.time_us / 1000.0
+    for x in (0x90, 60, 100):
+        b.din.rx_queue.append((b.time_us, x))
+    released = None
+    seen = 0
+    while released is None and b.time_us / 1000.0 - start < 3000:
+        b.run_ms(1)
+        notes = _notes(b.din.tx_log)
+        offs = [t for t, s, _n, _v in notes if s & 0xF0 == 0x80]
+        if len(offs) >= 4 and offs[-1] != seen:
+            b.run_ms(20)
+            for x in (0x80, 60, 0):
+                b.din.rx_queue.append((b.time_us, x))
+            released = b.time_us / 1000.0
+    assert released is not None
+    b.run_ms(1000)
+    late = [x for x in _notes(b.din.tx_log) if x[0] > released + 200 and x[1] & 0xF0 == 0x90]
+    assert not late, f"arp still playing after the key was let go: {late[:4]}"
