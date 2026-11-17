@@ -240,7 +240,7 @@ extern volatile uint8_t compare_held;
 void patch_save(uint32_t number, uint32_t bank);
 
 /* The arpeggiator's state (0x20000640 holds its address): +8 pointer to the
- * rhythm pattern's events (2 bytes each: velocity in percent, 0 = rest;
+ * rhythm pattern's events (2 bytes each: the step's velocity, 0 = rest;
  * length in arp clocks), +0x1D4 their number, +0x1D5 the next one's index,
  * +0x1D8 the Rhythm number the pattern was loaded for. observed */
 extern uint8_t *volatile arp_state_ptr;

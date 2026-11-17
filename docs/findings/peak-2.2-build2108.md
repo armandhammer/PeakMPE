@@ -546,9 +546,12 @@ Read for Euclidean rhythms (feature list step 17). Code **observed**
   point at the patterns, in flash from `0x080427C4` (Rhythm 33) up to
   `0x08042E4C` (Rhythm 1). A pattern is a count byte, a zero byte, then
   that many two-byte events.
-- **An event** is a velocity in percent of the key's (`0x64` = 100; stock
-  uses `0x32` to `0x68` for accents) and a length in arp clocks. Velocity 0
-  is a rest. Six clocks are one step of the SyncRate. A note event is always
+- **An event** is a velocity (`0x64` = 100; stock uses `0x32` to `0x68`
+  for accents) and a length in arp clocks. Velocity 0 is a rest. The step
+  is played at that velocity, not the key's: `arp_step` `0x080151A0` takes
+  it from state `+0x1D9` whenever `+0x1E3` is set, and `arp_tick` sets
+  that every tick (observed). Emulated on stock: a key struck at 30 played
+  at 100 in Rhythm 1, and at 100, 100, 65, 100, 66 in Rhythm 2. Six clocks are one step of the SyncRate. A note event is always
   followed by a rest event: Rhythm 1 is `64 03 00 03` (a note of 3 clocks
   and a rest of 3, every step), and Rhythm 4 starts with a lone rest
   (`00 0C`).

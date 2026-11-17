@@ -10,8 +10,9 @@
  *
  * Stock's rhythms (findings, "Arp rhythm patterns"): the arp state
  * (arp_state_ptr) holds a pointer to the pattern's events at +8 and their
- * number at +0x1D4; an event is two bytes, a velocity in percent (0 = a
- * rest) and a length in arp clocks, six clocks to a step, and a note event
+ * number at +0x1D4; an event is two bytes, the velocity the step is played
+ * at (0 = a rest; the key's own velocity is not used) and a length in arp
+ * clocks, six clocks to a step, and a note event
  * is always followed by a rest event, whose length the Gate setting may
  * use. arp_tick loads the patch's Rhythm (patch +0xF1) from the table at
  * arp_state_ptr + 8 whenever it differs from the number at +0x1D8, and then
@@ -34,7 +35,7 @@
 #define NOTE_CLOCKS 3              /* as stock's Rhythm 1: half the step at Gate 64 */
 #define MAX_STEPS 32
 #define MAX_SPAN 96                /* clocks in one event pair or one rest */
-#define VELOCITY 100               /* percent of the key's velocity, stock's usual value */
+#define VELOCITY 100               /* stock's usual value; the arp does not use the key's velocity */
 #define DEFAULT_STEPS 16
 
 #define A_PATTERN 8                /* arp state: pointer to the pattern's events */
