@@ -3,13 +3,25 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** none pending. v0.21 (`e702ad11…`) is flashed, series M
-passed on the synth and the rig rerun gave 136 pass, 0 fail, 5 info (run
-`2026-11-17_100041`, 2026-11-17), after the rig's clean start learned to
-reset the mod wheel (the first run's Slide failure was a wheel left at 127
-by the LinnStrument's Low Row; hardware log). Open, the user's choice: M7
+**Next step:** image v0.22 (label `MPEM`, `e7b5ec86…`,
+`work/flash/peak-firmware-2.2-build2108+mpe-e7b5ec8678dd.syx`) is built
+(source commit `2d6f240`) with all checks passed (727 simulator tests, 34
+web tests, `work/build-v22.log`), 2026-11-17, and is **not flashed yet**.
+It is v0.21 plus one fix: Osc 1/2/3 Fine over MIDI (CC 15, 18, 21) reaches
+−100 (`ccpair.c`; stock drops −100 to −73, the bug of upstream PR 3;
+findings, "The parameter setter and 9-bit controls"). The user flashes it,
+then series N in `TEST.md`: N1 boot label, N2 the Fine knob unchanged, N3
+on **GO rig** (after asking what is plugged in) `work/fine_check.py`
+(dry run passes) and `hwrig run --stage all`. After the flash, add the
+hardware-log row from the flash log. Still open, the user's choice: M7
 showed about half the modulation ticks lost while a knob turns (longest gap
 9 ms): whether to make the knob overlay cheaper.
+
+**v0.21 on the synth:** flashed, series M passed and the rig rerun gave
+136 pass, 0 fail, 5 info (run `2026-11-17_100041`, 2026-11-17), after the
+rig's clean start learned to reset the mod wheel (the first run's Slide
+failure was a wheel left at 127 by the LinnStrument's Low Row; hardware
+log).
 
 **What v0.20 and v0.21 hold (all emulated, nothing on the synth):** Compare leaves
 the undo step and a motion lane alone (`tests/test_peak_compare.py`);
