@@ -478,7 +478,9 @@ Measurements (step 6) can run on the rig while code is written for others.
     alternatives, and both stay. Musical success as stated before the build: a legato
     line on the LinnStrument glides note to note as a mono lead would, and
     chords no longer swoop in from unrelated pitches.
-20. **Strum** (S–M as an arp/Chord mode; M–L for incoming MIDI). MIDI sends
+20. ~~**Strum**~~ **Dropped (2026-11-17, the user):** strumming is the MIDI
+    controller's job, not the synth's. The plan as it stood:
+    (S–M as an arp/Chord mode; M–L for incoming MIDI). MIDI sends
     a chord as separate notes, so strumming live input needs a short
     chord-detection window and care with note-offs, sustain and expression
     arriving during the delay. Prototype it as an arp Chord-mode option
@@ -573,4 +575,5 @@ message carries one note.
 | Fine-edit modifier | Value +/- step by one |
 | Slew for incoming MIDI automation | 2.2 honours CC-pair LSBs; low value |
 | Sustain and sostenuto changes | Stock pedal modes |
+| Strum (step 20) | The MIDI controller's job, not the synth's (the user, 2026-11-17) |
 | Event prioritisation | Not until measured: the soak handled 900 messages/s with no stuck note; measure note latency under load first |
