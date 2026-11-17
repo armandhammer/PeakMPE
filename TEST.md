@@ -13,20 +13,22 @@ Setup for all series: **quit Ableton and any other MIDI app.**
 
 ---
 
-## Series M: Save in a morph, Compare, Euclidean arp (image `MPEK Ver`)
+## Series M: Save in a morph, Compare, Euclidean arp, ratchets (image `MPEL Ver`)
 
-New image v0.20 `323f03fb…` (boot screen `MPEK Ver 108.469`), built in
+New image v0.21 `e702ad11…` (boot screen `MPEL Ver 108.469`), built in
 the night of 2026-11-16. Series A to K are done, and L1 and L2 of series
 L (results in [docs/hardware-log.md](docs/hardware-log.md)). L3 (Save) and
-L4 (the rig run) were not done on v0.19; they are M2 and M7 here, unchanged
+L4 (the rig run) were not done on v0.19; they are M2 and M8 here, unchanged
 apart from the page numbers, so one flash covers everything.
 
-What v0.20 adds:
+What is new since v0.19 (v0.20 and v0.21 in one image):
 
 - **Compare** no longer clears the undo step or stops a motion lane (M3,
   M4). In the simulator v0.19 did both.
-- **Euclidean arp rhythms** (M5): Settings > ARP EUCLID, a new page. The
-  Settings menu now has 35 pages, so MORPH reads `12/35`.
+- **Euclidean arp rhythms** (M5): Settings > ARP EUCLID, a new page.
+- **Arp ratchets** (M6): Settings > ARP RATCHET, another new page. A note
+  sounds two or three times within its step. The Settings menu now has 36
+  pages, so MORPH reads `12/36`.
 - **Arp echo filter**: with Arp>MIDI on and no MIDI loop, a key let go just
   after the arp's own note off is no longer ignored. Nothing to test by
   hand (it needs a keyboard on the Peak's own MIDI channel).
@@ -35,7 +37,7 @@ What v0.20 adds:
 D002 and M2.12 puts it back. Nothing touches any other patch.
 
 Setup: the LinnStrument as in series K and L (Low Row **X=CC1** on **FDR**).
-I send nothing until M7. Rows on the Peak are counted as in Novation's
+I send nothing until M8. Rows on the Peak are counted as in Novation's
 guide: the title is Row 1, the three items are Rows 2 to 4. Remember that
 the Peak ends all notes when it loads a patch, and pressing **Compare**
 loads one: a pad is pressed again while **Compare** is held.
@@ -43,12 +45,12 @@ loads one: a pad is pressed again while **Compare** is held.
 ### M1. Flash
 
 1. Run the flash command I gave you. Expected boot screen:
-   `MPEK Ver 108.469`.
+   `MPEL Ver 108.469`.
 
 ### M2. Save with the row up (saves over D002)
 
 1. Select patch **D001**, then **D002**. Press **Settings**. Press
-   **Page ►** or **Page ◀** until the top line reads `MORPH          12/35`.
+   **Page ►** or **Page ◀** until the top line reads `MORPH          12/36`.
    If Row 2 reads `Morph      Off`: press **Row 2** and turn the **Value**
    knob one click clockwise. Expected Row 2: `Morph      ModWheel`. Touch
    the lowest row of the LinnStrument at its left end and lift. Expected
@@ -96,7 +98,7 @@ loads one: a pad is pressed again while **Compare** is held.
 
 ### M3. Compare keeps the undo step
 
-1. Press **Settings**, go to `MORPH          12/35`, press **Row 2** and
+1. Press **Settings**, go to `MORPH          12/36`, press **Row 2** and
    turn the **Value** knob one click anticlockwise. Expected Row 2:
    `Morph      Off`. Select patch **D001**, then **D002**.
 2. Hold a pad. Turn the filter **Frequency** knob down to about
@@ -122,7 +124,7 @@ loads one: a pad is pressed again while **Compare** is held.
    once, taking about two seconds. Expected: after that the sweep repeats
    by itself, once every two seconds.
 3. Press **Settings** and go to the page whose top line reads
-   `MOTION         11/35`. Expected Row 3: `Motion     Play`.
+   `MOTION         11/36`. Expected Row 3: `Motion     Play`.
 4. Lift the pad. Press **Compare** and keep it held. While holding it,
    press a pad and keep it held. Expected: a steady bright note, no sweep
    (the stored patch as it is). Row 3 still reads `Motion     Play`.
@@ -138,7 +140,7 @@ loads one: a pad is pressed again while **Compare** is held.
    arpeggiator (it lights). Hold a pad. Expected: the note repeats
    steadily, eight times a second.
 2. Press **Settings** and go to the page whose top line reads
-   `ARP EUCLID     13/35` (one page after MORPH). Expected: Row 2
+   `ARP EUCLID     13/36` (one page after MORPH). Expected: Row 2
    `Pulses     Off`, Row 3 `Steps       16`, Row 4 `Rotate       0`.
 3. Press **Row 3** and turn the **Value** knob eight clicks anticlockwise.
    Expected Row 3: `Steps        8`.
@@ -160,25 +162,44 @@ loads one: a pad is pressed again while **Compare** is held.
    notes a second are back. Press the arpeggiator's **On** button again
    (it goes dark).
 
-### M6. What turning a knob costs (two readings)
+### M6. Arp ratchet
+
+1. Press the arpeggiator's **On** button (it lights). Press **Settings**
+   and go to the page whose top line reads `ARP RATCHET    14/36` (one page
+   after ARP EUCLID). Expected: Row 2 `Ratchet    Off`, Row 3
+   `Every        1`.
+2. Press **Row 2** and turn the **Value** knob one click clockwise.
+   Expected Row 2: `Ratchet    x2`. Hold a pad. Expected: the note repeats
+   sixteen times a second, twice as fast as in M5.1.
+3. Press **Row 3** and turn the **Value** knob three clicks clockwise.
+   Expected Row 3: `Every        4`. Hold a pad. Expected: eight notes a
+   second again, but every fourth one is a quick double (da da da da-da).
+4. Press **Row 2** and turn the **Value** knob one more click clockwise.
+   Expected Row 2: `Ratchet    x3`. Hold a pad. Expected: every fourth
+   note is a quick triple.
+5. Turn the **Value** knob two clicks anticlockwise. Expected Row 2:
+   `Ratchet    Off`. Press **Row 3** and turn the **Value** knob three
+   clicks anticlockwise. Expected Row 3: `Every        1`. Press the
+   arpeggiator's **On** button again (it goes dark).
+
+### M7. What turning a knob costs (two readings)
 
 An open question from series I: the screen that pops up while a knob is
 turned may keep the Peak from its modulation work (pitch bend and pressure
 smoothing). Two numbers answer it.
 
-1. Press **Settings** and go to `MOTION         11/35`. **Tell me Row 4**
+1. Press **Settings** and go to `MOTION         11/36`. **Tell me Row 4**
    (it reads `LateTicks` and two numbers).
 2. Press **Page ►** once (the MORPH page). Turn the filter **Frequency**
    knob back and forth for about five seconds without stopping. Wait until
    the MORPH page is back (about 3 seconds).
 3. Press **Page ◀** once (the MOTION page). **Tell me Row 4 again.**
 
-After M3.1 and M5.8 the settings are back where they were (`Morph      Off`,
-`Pulses     Off`, the arpeggiator off). The Euclid settings are stored with
-the other settings only when you press **Save** inside the Settings menu;
-there is no need to.
+After M3.1, M5.8 and M6.5 the settings are back where they were
+(`Morph      Off`, `Pulses     Off`, `Ratchet    Off`, the arpeggiator off). The Euclid and ratchet settings are stored with the other settings only
+when you press **Save** inside the Settings menu; there is no need to.
 
-### M7. Regression run (I play)
+### M8. Regression run (I play)
 
 1. Tell me what is plugged into the Peak and the computer now (the rig
    needs the USB cable and the audio cables as in J5). Then write
