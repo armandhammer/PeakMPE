@@ -535,6 +535,51 @@ firmware's event queue); not yet on the synth with a morph running.
   time but writes nothing, and both go on at the release
   (`tests/test_peak_compare.py`, emulated; not on the synth).
 
+## Arp rhythm patterns (2026-11-17)
+
+Read for Euclidean rhythms (feature list step 17). Code **observed**
+(decompile); the format **emulated** by playing patterns built to it
+(`tests/test_peak_euclid.py`). Nothing on the synth yet.
+
+- **Where the 33 rhythms are.** The word at `arp_state_ptr` `0x20000640` is
+  the arp state's address (`0x200127D4`); the 33 words from `0x20000648`
+  point at the patterns, in flash from `0x080427C4` (Rhythm 33) up to
+  `0x08042E4C` (Rhythm 1). A pattern is a count byte, a zero byte, then
+  that many two-byte events.
+- **An event** is a velocity in percent of the key's (`0x64` = 100; stock
+  uses `0x32` to `0x68` for accents) and a length in arp clocks. Velocity 0
+  is a rest. Six clocks are one step of the SyncRate. A note event is always
+  followed by a rest event: Rhythm 1 is `64 03 00 03` (a note of 3 clocks
+  and a rest of 3, every step), and Rhythm 4 starts with a lone rest
+  (`00 0C`).
+- **Playing them** (`arp_tick` `0x08015554`, called once per tick from
+  `tick_work` `0x0801192C`, the call at `0x08011956`): when the patch's
+  Rhythm (`+0xF1`) differs from the number kept at state `+0x1D8`, the
+  pattern's count goes to `+0x1D4`, the address of its events to `+8`, and
+  `arp_pattern_reset` `0x08014F68` starts it from the first event. The
+  reader `0x08015518` takes the event at index `+0x1D5` and wraps at the
+  count. For a rest the next event time (`+0x1D6`, clocks × 256) moves on
+  by its length. For a note the reader takes the next event too, moves on
+  by both lengths, and sets the step's end (`+0xC`) from ArpGateTime
+  (`+0xF3`): 64 gives the note's own length, 127 the whole of note and
+  rest, between them a share of the rest, below 64 a share of the note.
+- **Times are 16 bits**, compared by the sign of their difference, so one
+  event pair must stay under 128 clocks (21 steps). Stock's longest pair is
+  37 clocks.
+- **The pattern free-runs.** With no key held the events are still read and
+  timed; a key pressed when the arp has no notes restarts the pattern
+  (`arp_reset` `0x08014FA8`), so the first step sounds at once unless the
+  pattern starts with a rest.
+- **Swing** works on the 6-clock grid in `arp_tick`, apart from the
+  patterns.
+- **A cost of the arp echo filter seen on the way (emulated):** with
+  Arp>MIDI On, a key on the global channel released within 100 ms of the
+  arp's own note off for the same note is taken for the echo and dropped
+  (`arp_echo.c` says so). With one key held the arp plays that very note,
+  so its release is at risk each time: in the simulator the arp then went
+  on after the key was let go, until the key was pressed and released
+  again. MPE notes arrive on member channels and are not affected.
+
 ## Main-loop pace in the simulator (2026-11-16)
 
 **Emulated** (`work/_w_probe.py`): three broadcast writes to the sound chip

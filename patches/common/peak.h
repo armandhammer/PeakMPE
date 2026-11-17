@@ -239,4 +239,16 @@ extern volatile uint8_t compare_held;
  * button's last press (settings_save_action 0x0801903E). observed */
 void patch_save(uint32_t number, uint32_t bank);
 
+/* The arpeggiator's state (0x20000640 holds its address): +8 pointer to the
+ * rhythm pattern's events (2 bytes each: velocity in percent, 0 = rest;
+ * length in arp clocks), +0x1D4 their number, +0x1D5 the next one's index,
+ * +0x1D8 the Rhythm number the pattern was loaded for. observed */
+extern uint8_t *volatile arp_state_ptr;
+/* Once per tick from 0x0801192C (call at 0x08011956): tempo, the flags, the
+ * patch's Rhythm into the state when it changed, then the steps. observed */
+void arp_tick(void);
+/* Starts the pattern again from its first event and ends the step that is
+ * sounding (0x08014F68); stock calls it after loading a pattern. observed */
+void arp_pattern_reset(void);
+
 #endif

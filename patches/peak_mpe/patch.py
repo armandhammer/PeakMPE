@@ -69,7 +69,8 @@ PATCHES = [
     # MPE9 = v0.9 (quick-assign message redrawn on every move: stock overwrote it);
     # MPEA = v0.10 (quick-assign: with Mod held a control only selects, stock draws and applies nothing);
     # MPEB = v0.11 (Settings PARAM LOCK: keep FX, Arp or Voice settings through a patch change);
-    # MPEK = v0.20 (Compare leaves the undo step and a motion lane alone: both stand still while it is held).
+    # MPEK = v0.20 (Compare leaves the undo step and a motion lane alone: both stand still while it is held;
+    #         Euclidean arp rhythms: Settings ARP EUCLID, euclid.c).
     # MPEJ = v0.19 (morph: stands still while Compare is held, so the release finds the edit again; starts afresh after Save).
     # MPEI = v0.18 (patch morph: Settings MORPH page, the mod wheel blends the edited patch towards the stored one).
     # MPEH = v0.17 (motion playback as a ramp between steps; LateTicks a latched "count gap" reading; no page redraw from playback).
@@ -97,7 +98,7 @@ PATCHES = [
 SOURCES = ["mpe_settings.c", "mpe_route.c", "mpe_voice.c", "mpe_ui.c",
            "mpe_expr.c", "mpe_bend.c", "mpe_pressure.c", "mpe_slide.c",
            "arp_echo.c", "disp.c", "envsync.c", "qassign.c", "paramlock.c", "section.c", "diag.c", "motion.c",
-           "morph.c"]
+           "morph.c", "euclid.c"]
 
 MIDI_CHANNEL_FILTER = 0x0800EED0
 VOICE_DISPATCH = 0x08012984
@@ -125,6 +126,7 @@ PANEL_EVENT_READ = 0x0800DDFC
 FW_MEMCPY = 0x0801D736
 LCD_PUTS = 0x0800D260
 PATCH_SAVE = 0x08018F10
+ARP_TICK = 0x08015554
 
 # (kind, site, expected original, patch symbol, why)
 HOOKS = [
@@ -177,6 +179,7 @@ HOOKS = [
     ("bl", 0x0801AECC, FW_MEMCPY, "plock_copy", "patch load: the copy into the patch (parameter lock)"),
     ("bl", 0x08016FF4, PANEL_EVENT_READ, "qa_panel_read", "panel_button_event: the button event read (Mod held)"),
     ("bl", 0x0801903E, PATCH_SAVE, "morph_patch_save", "settings_save_action: the Save button's write of the patch (morph)"),
+    ("bl", 0x08011956, ARP_TICK, "euclid_arp_tick", "tick work 0x0801192C: the call of arp_tick (Euclidean rhythm)"),
     ("bl", 0x08016C2A, LCD_PUTS, "disp_skip_puts", "knob_overlay: the pickup label on row 3"),
     ("bl", 0x08016C48, LCD_PUTS, "disp_skip_puts", "knob_overlay: the row-3 clear after a pickup"),
     ("bl", 0x08016C3C, FORMAT_VALUE, "disp_fmt_pick", "knob_overlay: the knob's value on the pickup row"),

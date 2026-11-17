@@ -433,5 +433,5 @@ def test_morph_page(mpe_built):
     _show(b, 8, MORPH_PAGE, 1)                           # the read-only rows take no edit
     _call(b, blob.address("mpe_ui_value_change"), 1)
     assert _show(b, 8, MORPH_PAGE, 0)[2].split()[1] == "90"
-    rows = _show(b, 8, MORPH_PAGE + 1, 0)                # the stock page after ours is still there
-    assert rows[0].startswith("MIDI ENABLE"), rows
+    rows = _show(b, 8, MORPH_PAGE + 1, 0)                # the next page is the patch's ARP EUCLID page
+    assert rows[0].startswith("ARP EUCLID"), rows

@@ -158,3 +158,5 @@ address,name,kind,confidence,notes
 0x20012570,compare_stash,data,observed,"0x201 bytes: the patch as it stood when Compare was pressed"
 0x08018f10,patch_save,function,observed,"(number bank): ext flash write 0x0800e9b4 of the patch 0x20012340 (0x200 bytes) at record (number + (bank - 1) * 0x80) << 9; only caller the Save button's last press, settings_save_action 0x0801903e, which then sets patch_select +4/+5 to the destination; no patch_load"
 0x20003b58,button_queue,data,observed,"64 panel button events at 0x20003ad0+0x88 (button_table index, bit 7 = pressed); write index +0x84, read index +0xda; read by panel_event_read"
+0x08014f68,arp_pattern_reset,function,observed,"zeroes the pattern position (+0x54 +0x1c8 +0x1d5 +0x1d6 and four timing words) and ends the sounding step (0x08014f30); callers arp_reset, the SyncRate change 0x08015098 and arp_tick after loading a rhythm pattern"
+0x0801192c,tick_work,function,observed,"one of 12 functions from the table at 0x080426e0 in turn (index voice_state+0x1f0), then arp_tick (bl at 0x08011956); callers main init 0x0800d11c and 0x08016738"

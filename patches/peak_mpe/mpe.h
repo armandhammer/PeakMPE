@@ -46,6 +46,9 @@
 #define MPE_G_LATE 0x42          /* the late-tick count (diag.c), */
 #define MPE_G_MORPH_POS 0x43     /* the morph position in effect and the number of controls */
 #define MPE_G_MORPH_N 0x44       /* that differ between the stored and the edited patch */
+#define MPE_G_EUC_PULSES 0x45    /* Euclidean arp rhythm (euclid.c), stored: notes per pattern, 0 or > 32 = Off, */
+#define MPE_G_EUC_STEPS 0x46     /* steps 1-32 (0 or > 32 = 16), */
+#define MPE_G_EUC_ROTATE 0x47    /* and the step the pattern starts at, taken modulo the steps */
 
 #define MPE_DEFAULT_MEMBERS 15
 #define MPE_DEFAULT_NOTE_RANGE 48
@@ -159,6 +162,12 @@ void motion_knob(uint32_t id, uint32_t cur, uint32_t hires);
 void motion_poll(void);          /* main loop, from mpe_ui_poll */
 void motion_clear(void);         /* a patch load */
 const char *motion_state_name(void);
+
+/* euclid.c */
+void euclid_arp_tick(void);      /* hook: the call of arp_tick */
+uint32_t euclid_pulses(void);    /* in effect: 0 = Off */
+uint32_t euclid_steps(void);
+uint32_t euclid_rotate(void);
 
 /* morph.c */
 void morph_cc(uint32_t value);

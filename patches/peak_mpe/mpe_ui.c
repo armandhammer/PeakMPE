@@ -20,6 +20,7 @@
  *   MOTION          Length (1, 2, 4 bars); read-only: the recorder's state, LateTicks
  *   MORPH           Morph (Off/ModWheel); read-only: the position, the number of
  *                   controls that differ (morph.c)
+ *   ARP EUCLID      Pulses (Off, 1-32), Steps (1-32), Rotate (euclid.c)
  * The Summit's read-only "Channels" item (CH CLASH) is left out: the Peak has
  * no Multi parts whose channels a zone could take.
  * The items are kind 3 (global settings) with records 0x30-0x38, which stock
@@ -63,15 +64,15 @@ struct mpe_page {
 };
 
 #define STOCK_DESCS 0x22           /* Peak global_param_desc: records 0x00-0x21, then other data */
-#define MPE_G_LAST MPE_G_MORPH_N       /* the last record of new_descs */
+#define MPE_G_LAST MPE_G_EUC_ROTATE    /* the last record of new_descs */
 #define MPE_DESCS (MPE_G_LAST + 1)
 #define MPE_PAGE_AT 4              /* after MIDI CONTROL (stock page 3) */
-#define MPE_PAGES 8
+#define MPE_PAGES 9
 #define STOCK_PAGES PEAK_SETTINGS_PAGES
 #define UI_MODE_SETTINGS PEAK_UI_SETTINGS
 #define UI_MODE (ui_state[0])
 
-enum { DISP_ZONE = 0xE0, DISP_MEMBERS, DISP_NOTE, DISP_MASTER, DISP_CURVE, DISP_ENVSYNC, DISP_LOCK_FX, DISP_LOCK_ARP, DISP_LOCK_VOICE, DISP_SECT, DISP_DOIT, DISP_DLAST, DISP_DCOUNT, DISP_DOVF, DISP_GLIDE, DISP_MLEN, DISP_MSTATE, DISP_LATE, DISP_MORPH, DISP_MPOS, DISP_MDIFF, DISP_END };
+enum { DISP_ZONE = 0xE0, DISP_MEMBERS, DISP_NOTE, DISP_MASTER, DISP_CURVE, DISP_ENVSYNC, DISP_LOCK_FX, DISP_LOCK_ARP, DISP_LOCK_VOICE, DISP_SECT, DISP_DOIT, DISP_DLAST, DISP_DCOUNT, DISP_DOVF, DISP_GLIDE, DISP_MLEN, DISP_MSTATE, DISP_LATE, DISP_MORPH, DISP_MPOS, DISP_MDIFF, DISP_EPULSES, DISP_ESTEPS, DISP_EROTATE, DISP_END };
 
 #define FIELD 8                    /* value field: columns 11-18, the mark is at 19 */
 
@@ -94,6 +95,7 @@ static const char title_sect[] = "COPY SECTION";
 static const char title_mon[] = "MIDI MONITOR";
 static const char title_motion[] = "MOTION";
 static const char title_morph[] = "MORPH";
+static const char title_euclid[] = "ARP EUCLID";
 
 static const struct mpe_desc new_descs[] = {
     {0, 2, 0x40, 0x2E, DISP_ZONE, "Zone"},
@@ -117,6 +119,9 @@ static const struct mpe_desc new_descs[] = {
     {0, 0, 0xFF, 0x00, DISP_LATE, "LateTicks"},
     {0, 0, 0xFF, 0x00, DISP_MPOS, "Position"},
     {0, 0, 0xFF, 0x00, DISP_MDIFF, "Differ"},
+    {0, 32, 0x40, 0x3A, DISP_EPULSES, "Pulses"},      /* records 0x45-0x47: stored in the globals */
+    {1, 32, 0x40, 0x3B, DISP_ESTEPS, "Steps"},
+    {0, 31, 0x40, 0x3C, DISP_EROTATE, "Rotate"},
 };
 
 /* Last drawn per item. Only compared with what would be drawn now, so its
@@ -178,6 +183,10 @@ static void build_tables(void)
     page_item(&mpe_pages[7], MPE_G_MORPH);
     page_item(&mpe_pages[7], MPE_G_MORPH_POS);
     page_item(&mpe_pages[7], MPE_G_MORPH_N);
+    page_init(&mpe_pages[8], title_euclid);
+    page_item(&mpe_pages[8], MPE_G_EUC_PULSES);
+    page_item(&mpe_pages[8], MPE_G_EUC_STEPS);
+    page_item(&mpe_pages[8], MPE_G_EUC_ROTATE);
 
     struct mpe_page **stock = (struct mpe_page **)(settings_menu + 4);
     uint32_t n = 0;
@@ -343,6 +352,18 @@ static void render_view(const struct mpe_live *v, uint32_t display, char *out)
     case DISP_MDIFF:
         put_num3(&p, morph_differ());
         break;
+    case DISP_EPULSES:
+        if (euclid_pulses())
+            put_num3(&p, euclid_pulses());
+        else
+            put_str(&p, "Off");
+        break;
+    case DISP_ESTEPS:
+        put_num3(&p, euclid_steps());
+        break;
+    case DISP_EROTATE:
+        put_num3(&p, euclid_rotate());
+        break;
     case DISP_LATE: {
         char buf[16];
         diag_late_text(buf);
@@ -438,7 +459,9 @@ void mpe_ui_poll(void)
 
 static void edit_setting(uint16_t index, int32_t delta)
 {
-    if (index > MPE_G_MORPH || delta == 0)  /* as stock, no reset for globals; the records after Morph are read-only */
+    if (index > MPE_G_LAST || delta == 0)   /* as stock, no reset for globals */
+        return;
+    if (index > MPE_G_MORPH && index < MPE_G_EUC_PULSES)   /* the records between are read-only */
         return;
     if (index >= MPE_G_SECT && index <= MPE_G_DIAG + 2) {  /* COPY SECTION (section.c); the monitor items are read-only */
         if (index <= MPE_G_DOIT) {
@@ -479,12 +502,25 @@ static void edit_setting(uint16_t index, int32_t delta)
     case MPE_G_MORPH:
         v = globals[index] == 1;
         break;
+    case MPE_G_EUC_PULSES:
+        v = (int32_t)euclid_pulses();
+        break;
+    case MPE_G_EUC_STEPS:
+        v = (int32_t)euclid_steps();
+        break;
+    case MPE_G_EUC_ROTATE:
+        v = (int32_t)euclid_rotate();
+        break;
     default:
         v = setting(MPE_G_MASTER_RANGE, MPE_MAX_RANGE, MPE_DEFAULT_MASTER_RANGE);
         break;
     }
     v += delta;
     v = v < d->min ? d->min : v > d->max ? d->max : v;
+    if (index == MPE_G_EUC_PULSES && v > (int32_t)euclid_steps())
+        v = (int32_t)euclid_steps();          /* no more notes than steps */
+    if (index == MPE_G_EUC_ROTATE && v >= (int32_t)euclid_steps())
+        v = (int32_t)euclid_steps() - 1;
     globals[index] = (uint8_t)v;
     mark_changed();  /* as param_write does for stock Settings edits */
     mpe_globals_to_live();

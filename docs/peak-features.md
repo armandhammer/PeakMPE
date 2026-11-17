@@ -407,6 +407,21 @@ Measurements (step 6) can run on the rig while code is written for others.
     retriggered note reuses or takes a new voice under Poly, Poly2 and MPE,
     which changes how a ratchet sounds. Needs the allocation generation
     counter (engineering rules).
+    **Euclidean rhythms built 2026-11-17 (v0.20, emulated, not on the
+    synth):** Settings > ARP EUCLID with `Pulses` (Off, 1-32), `Steps`
+    (1-32) and `Rotate`. With Pulses on, the arp plays that many notes
+    spread evenly over the steps in place of the patch's Rhythm; SyncRate,
+    Type, Octaves, Gate, Swing and Latch stay stock's. Stock's rhythms are
+    lists of note and rest lengths
+    ([findings, "Arp rhythm patterns"](findings/peak-2.2-build2108.md#arp-rhythm-patterns-2026-11-17)),
+    so the patch builds such a list in RAM and points the arp at it
+    (`euclid.c`, one hook on the call of `arp_tick`; tests
+    `tests/test_peak_euclid.py`). The setting is global, like Lock Arp,
+    not per patch: a patch's Rhythm byte above 32 would index past stock's
+    table on a Peak without the patch. Ratchets are not built: an extra
+    note event makes the arp move on to its next note, so a true ratchet
+    (the same note again) needs a hook in the step itself and the voice
+    check above.
 18. **Tail-aware voice stealing** (M, an experiment). Prefer an idle voice,
     then one in release, then the least disruptive. First check: what stock
     does (the search at `0x08011B70` keeps the largest age counter, inferred
