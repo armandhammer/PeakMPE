@@ -435,6 +435,11 @@ checks it on the synth):**
   release and is what the fourth press stores (emulated).
 - Not changed: pressing Compare still clears the undo step and stops a
   motion lane (same hook; inferred from the code, not tried).
+- Stock, and not changed: pressing Compare ends the notes that are held
+  (it loads a patch; findings, "Compare and Save"), so the stored patch is
+  heard on a note played while the button is held. Seen on the synth in
+  series L (2026-11-16), where the first L2.5 wrongly expected the held
+  note to go on.
 
 ## Order
 

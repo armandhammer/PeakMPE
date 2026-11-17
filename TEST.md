@@ -28,6 +28,15 @@ LinnStrument because its `MPE` setting is Off. Nothing in this series
 touches D003 now.) L3 saves over D002; L3.12 makes it the Init sound with
 `MPE` On again.
 
+**Done so far (2026-11-16): L1, L2.1 to L2.4** (`Position` 64). My first
+L2.5 was wrong: it had you hold a pad and expected the note to go on. The
+Peak ends all notes when it loads a patch, and pressing **Compare** loads the
+stored one, so the note stops and the pad has to be pressed again (stock
+does the same in the simulator; what you saw is not a fault of v0.19). The
+steps from L2.5 on are rewritten for that. **Go on at L2.5**; nothing needs
+to be set up again if the Peak is as you left it (Frequency at about
+10 o'clock, row in the middle).
+
 Setup: the LinnStrument as in series K (Low Row **X=CC1**), with the hidden
 setting on **FDR** (K4), so the row keeps its position and both hands are
 free. I send nothing until L4. Rows on the Peak are counted as in Novation's
@@ -47,29 +56,34 @@ guide: the title is Row 1, the three items are Rows 2 to 4.
    Row 2: `Morph      ModWheel`.
 2. Touch the lowest row of the LinnStrument at its left end and lift.
    Expected Row 3: `Position     0`.
-3. Hold one pad that is not on the lowest row, from here to the end of L2.
-   Turn the filter **Frequency** knob down to about 10 o'clock. Expected: a
-   dull note.
+3. Hold one pad that is not on the lowest row. Turn the filter
+   **Frequency** knob down to about 10 o'clock. Expected: a dull note.
 4. Touch the lowest row in the middle and lift. Expected: the note is
    half-way bright. Row 4 reads `Differ       1`. **Tell me the `Position`
    number on Row 3** (somewhere near 64).
-5. Hold **Compare** for two seconds. Expected while it is held: the fully
-   bright note of the stored D002. The screen stays on the MORPH page.
-6. Let go of **Compare**. Expected: the half-way bright note of step 4
-   again, the same as before. Row 3 as in step 4, Row 4 `Differ       1`.
-7. Touch the lowest row at its right end and lift. Expected: bright note,
-   Row 3 `Position   127`.
-8. Press **Compare** and let go. Expected: no change in the sound. Row 4
-   still reads `Differ       1`.
-9. Touch the lowest row at its left end and lift. Expected: the dull note of
-   step 3 is back; Row 3 `Position     0`. (On v0.18 the simulator kept the
-   note bright here: the edit was gone.)
-10. Hold **Compare**. While holding it, touch the lowest row at its right
-    end and lift. Let go of **Compare**. Expected: bright while held and
-    bright afterwards (`Position   127`); a very short dull blip at the
-    moment you let go is expected here (the morph starts from your edit
-    and takes about an eighth of a second to reach the row's position).
-    Touch the row at its left end: dull again.
+5. Lift the pad. Press **Compare** and keep it held. While holding it,
+   press one pad (not on the lowest row) and keep that held too. Expected:
+   the fully bright note of the stored D002. The screen stays on the MORPH
+   page.
+6. Let go of **Compare**; keep the pad held. Expected: the note goes on
+   sounding and turns half-way bright, as in step 4. Row 3
+   `Position    64`, Row 4 `Differ       1`.
+7. Still holding the pad, touch the lowest row at its right end and lift.
+   Expected: bright note, Row 3 `Position   127`.
+8. Press **Compare** and let go. Expected: the note stops when you press
+   (the Peak's own behaviour). Lift the pad and press it again, and hold
+   it. Expected: the bright note as in step 7. Row 4 still reads
+   `Differ       1`.
+9. Still holding the pad, touch the lowest row at its left end and lift.
+   Expected: the dull note of step 3 is back; Row 3 `Position     0`. (On
+   v0.18 the simulator kept the note bright here: the edit was gone.)
+10. Lift the pad. Press **Compare** and keep it held. While holding it,
+    touch the lowest row at its right end and lift, then press a pad and
+    keep it held. Expected: bright. Let go of **Compare**; keep the pad
+    held. Expected: still bright (`Position   127`); a very short dull
+    blip at the moment you let go is expected here (the morph starts from
+    your edit and takes about an eighth of a second to reach the row's
+    position). Touch the row at its left end and lift: dull again.
 
 ### L3. Save with the row up (saves over D002)
 
@@ -87,9 +101,11 @@ guide: the title is Row 1, the three items are Rows 2 to 4.
 5. Press **Save**. Expected top line: `SAVE LOCATION    2/3`, Row 2
    `Patch      002`, Row 3 `Bank       D`. If it names another location,
    stop and tell me.
-6. Hold **Compare** for two seconds. Expected while held: the bright note
-   without resonance (what is stored at D002 now). Let go. Expected: the
-   half-way bright note with a little resonance again.
+6. Lift the pad. Press **Compare** and keep it held. While holding it,
+   press a pad and keep it held. Expected: the bright note without
+   resonance (what is stored at D002 now). Let go of **Compare**; keep the
+   pad held. Expected: the note goes on sounding and turns half-way bright
+   with a little resonance again.
 7. Press **Save**. Expected top line: `SAVE CATEGORY    3/3`.
 8. Press **Save**. Expected top line: `Patch Saved To D002`, then the Patch
    page again. The sound does not change at any of the four presses.

@@ -9,7 +9,8 @@ behind a received CC, or straight into the patch before the wheel leaves 0.
 import pytest
 
 from test_peak_disp import _overlay
-from test_peak_sim import GLOBALS, PATCHES, _boot, _call, _send, _show, mpe_built  # noqa: F401
+from test_peak_sim import FLAG, GLOBALS, PATCHES, _boot, _call, _send, _show, mpe_built  # noqa: F401
+from test_peak_voice_steal import _held
 
 G_MORPH, G_LOCK_FX = 0x40, 0x36
 MORPH_PAGE = 11                                          # Settings: after MOTION
@@ -329,6 +330,31 @@ def test_compare_does_not_start_a_morph(mpe_built):
     assert b.u8(PATCHES + RESONANCE) == a
     _wheel(b, 0)
     assert b.u8(PATCHES + RESONANCE) == edit
+
+
+def test_compare_ends_held_notes_and_a_new_note_plays_the_stored_patch(mpe_built):
+    """Stock: the load Compare makes ends all notes (patch_load calls
+    voices_all_release 0x08011A20). A note played while Compare is held
+    sounds with the stored patch and goes on through the release, where the
+    blend is back."""
+    b = _board(mpe_built)
+    b.uc.mem_write(PATCHES + FLAG, bytes([1]))           # MPE On, in the patch and as stored
+    b.flash[11].write((_record(b) << 9) + FLAG, bytes([1]))
+    a = _stored(b, FILT_FREQ)
+    _send(b, 0x91, 60, 100, ms=100)
+    _set(b, CC_FILT_FREQ, 40)
+    _wheel(b, 64)
+    assert _held(b) == [60]
+    _compare(b, True)
+    assert _held(b) == []                                # the held note is gone
+    _send(b, 0x81, 60, 0, ms=20)
+    _send(b, 0x92, 62, 100, ms=100)
+    assert _held(b) == [62] and b.u8(PATCHES + FILT_FREQ) == a
+    _compare(b, False)
+    assert _held(b) == [62]                              # no load at the release: the note stays
+    assert b.u8(PATCHES + FILT_FREQ) == _blend(a, 40, 64)
+    _wheel(b, 0)
+    assert _held(b) == [62] and b.u8(PATCHES + FILT_FREQ) == 40
 
 
 def test_save_with_the_wheel_up_stores_the_blend_and_it_is_the_patch(mpe_built):

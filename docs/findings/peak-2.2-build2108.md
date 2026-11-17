@@ -496,6 +496,17 @@ firmware's event queue); not yet on the synth with a morph running.
   the patch and pushed to the sound chip (`0x08013044`), without
   `patch_load`. In Save mode (UI mode 9) Compare works only on page 2 and
   loads the destination's record instead (`0x0801AF44`).
+- **Pressing Compare ends all notes; letting go does not.** `patch_load`
+  `0x0801AEB8` calls `0x08011EA0`, which calls `voices_all_release`
+  `0x08011A20`: a release command to all eight voices, gates cleared
+  (code observed). Emulated on the stock image: a note held when Compare
+  is pressed loses its gate, a note played while it is held sounds and
+  goes on through the release (the release makes no `patch_load`); the
+  same on v0.19 with `MPE` On (`work/_compare_note.py`,
+  `tests/test_peak_morph.py`). On the synth with v0.19 (the user,
+  2026-11-16, series L): pressing Compare stopped the held note and the
+  voice LED went dark (observed; stock firmware on the synth not tried).
+  The same holds for any patch load: a patch change or Initialise.
 - **Save** (action 3, `settings_save_action` `0x08018FCC`): in the Settings
   menu (mode 8) it stores the settings (screen `Settings Saved With` /
   `PROTECT OFF`), not the patch. Elsewhere the first press opens Save mode
