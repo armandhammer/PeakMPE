@@ -10,8 +10,9 @@ and **flashed by the user 2026-11-16** (flash log ok, identity `02 01 00 08`; ha
 during a morph (v0.18 lost the edit at the release: emulated) and makes the
 saved blend the patch after Save; see [peak-motion-morph.md](peak-motion-morph.md),
 "Compare and Save, v0.19". Then series L in `TEST.md`: L2 Compare with the
-row up, L3 Save with the row up (overwrites D003, assumed an unused Init
-Patch; L3.12 puts one back), L4 the rig run on **GO rig** after asking what
+row up, L3 Save with the row up (saves over D002, the user's Init sound with
+`MPE` On; L3.12 restores it. Not D003: it holds the user's patch "Element
+Song", MPE Off, found 2026-11-16 when it was silent from the LinnStrument), L4 the rig run on **GO rig** after asking what
 is plugged in. Readings wanted: `Position` in L2.4 and L3.2, `current` in
 L3.1, `saved val` in L3.11 (expected current × (127 − Position) / 127).
 Then add the results to the v0.19 hardware-log row.
