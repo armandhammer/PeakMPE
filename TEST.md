@@ -28,14 +28,15 @@ LinnStrument because its `MPE` setting is Off. Nothing in this series
 touches D003 now.) L3 saves over D002; L3.12 makes it the Init sound with
 `MPE` On again.
 
-**Done so far (2026-11-16): L1, L2.1 to L2.4** (`Position` 64). My first
-L2.5 was wrong: it had you hold a pad and expected the note to go on. The
-Peak ends all notes when it loads a patch, and pressing **Compare** loads the
-stored one, so the note stops and the pad has to be pressed again (stock
-does the same in the simulator; what you saw is not a fault of v0.19). The
-steps from L2.5 on are rewritten for that. **Go on at L2.5**; nothing needs
-to be set up again if the Peak is as you left it (Frequency at about
-10 o'clock, row in the middle).
+**Done (2026-11-16): L1 and all of L2** (`Position` 64 in L2.4; Compare
+with the row up gives the blend back and keeps your edit). **Go on at
+L3.** If the Peak was switched off or another patch was selected since L2,
+do L2.1 to L2.3 again first (select D001, then D002; the MORPH page;
+Frequency to about 10 o'clock), then L3.
+
+Remember for L3.6: the Peak ends all notes when it loads a patch, and
+pressing **Compare** loads one, so the pad is pressed again while
+**Compare** is held.
 
 Setup: the LinnStrument as in series K (Low Row **X=CC1**), with the hidden
 setting on **FDR** (K4), so the row keeps its position and both hands are

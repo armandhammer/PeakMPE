@@ -19,8 +19,9 @@ Then add the results to the v0.19 hardware-log row.
 **Series L so far (2026-11-16):** L2.1 to L2.4 pass (`Position` 64). The
 first L2.5 was wrong (it expected a held note to go on through Compare; stock
 ends all notes at any patch load, emulated on the stock image, and the user
-saw the note stop); the steps from L2.5 on are rewritten (press the pad again
-while Compare is held) and the user continues at L2.5.
+saw the note stop); the steps from L2.5 on were rewritten (press the pad again
+while Compare is held) and **all of L2 passed**. Open: L3 (Save over D002) and
+L4 (the rig run on GO rig).
 Not asked yet: whether Compare should also leave the undo step and a motion
 lane alone (today it clears both; inferred from the code). Still open, the
 user's choice: the stepwise closing of the filter seen in J2, the knob
@@ -31,7 +32,7 @@ hands-on testing, small fixes and then the morph from the written design
 note. Opus 5.5 (high effort for the morph, medium for test rounds) can take
 it from these files.
 
-**State on the synth:** v0.19 (`fb36f0fb…`, boot `MPEJ`, commit `709b87f`), flashed by the user 2026-11-16 17:54; no rig run yet; series L under way (L2.4 done). Before it: v0.18 (`9df89b4d…`, boot `MPEI`, commit `c19c0f8`), flashed by
+**State on the synth:** v0.19 (`fb36f0fb…`, boot `MPEJ`, commit `709b87f`), flashed by the user 2026-11-16 17:54; no rig run yet; series L under way (L2 passed; L3 and L4 open). Before it: v0.18 (`9df89b4d…`, boot `MPEI`, commit `c19c0f8`), flashed by
 the user 2026-11-16 (flash log ok, identity `02 01 00 08`; rig 136 pass, 0 fail, 5 info, run
 `2026-11-16_143231`; series J and K done). After series K `Morph` and the LinnStrument's Low Row are as the user left them (not reported). Before it: v0.17 (`e5e9e652…`, boot
 `MPEH`, commit `163e5c7`, rig 136/0/5, run `2026-11-16_105659`). Before it: v0.16 (`0f262ad9…`, boot `MPEG`, commit
