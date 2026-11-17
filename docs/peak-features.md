@@ -418,10 +418,19 @@ Measurements (step 6) can run on the rig while code is written for others.
     (`euclid.c`, one hook on the call of `arp_tick`; tests
     `tests/test_peak_euclid.py`). The setting is global, like Lock Arp,
     not per patch: a patch's Rhythm byte above 32 would index past stock's
-    table on a Peak without the patch. Ratchets are not built: an extra
-    note event makes the arp move on to its next note, so a true ratchet
-    (the same note again) needs a hook in the step itself and the voice
-    check above.
+    table on a Peak without the patch.
+    **Ratchets built 2026-11-16 (v0.21, emulated, not on the synth):**
+    Settings > ARP RATCHET with `Ratchet` (Off, x2, x3: a note sounds two
+    or three times within its step) and `Every` (1 to 8: every note, every
+    second one, and so on). The voice check came first: in the poly modes
+    each repeat takes the next voice, in Mono and MonoLG it retriggers the
+    one voice (emulated). A repeat is an extra note event in the generated
+    pattern, marked so that a second hook (on the arp's choice of the next
+    note) makes stock choose the same note again; it works with all eight
+    Types. With `Pulses` Off the ratchet plays over one note per step, not
+    over the patch's Rhythm (stock's own patterns are not rewritten). Not
+    built: a chance for the ratchet, and x4 (a step is six arp clocks, so
+    four equal parts do not fit).
 18. **Tail-aware voice stealing** (M, an experiment). Prefer an idle voice,
     then one in release, then the least disruptive. First check: what stock
     does (the search at `0x08011B70` keeps the largest age counter, inferred

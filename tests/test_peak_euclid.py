@@ -142,5 +142,5 @@ def test_euclid_page(mpe_built):
     _show(b, 8, EUCLID_PAGE, 0)
     _call(b, blob.address("mpe_ui_value_change"), -9)
     assert _show(b, 8, EUCLID_PAGE, 0)[1].split()[:2] == ["Pulses", "Off"]
-    rows = _show(b, 8, EUCLID_PAGE + 1, 0)               # the stock page after ours is still there
-    assert rows[0].startswith("MIDI ENABLE"), rows
+    rows = _show(b, 8, EUCLID_PAGE + 1, 0)               # the next page is the ARP RATCHET page
+    assert rows[0].startswith("ARP RATCHET"), rows

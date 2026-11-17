@@ -575,6 +575,28 @@ Read for Euclidean rhythms (feature list step 17). Code **observed**
   pattern starts with a rest.
 - **Swing** works on the 6-clock grid in `arp_tick`, apart from the
   patterns.
+- **Which note a step plays** is chosen at each note event by
+  `arp_step_select` `0x08015408` (called from `arp_tick` at `0x0801574E`
+  while the arp is on): by the Type's flags (state `+0x1DE`) it walks the
+  play map up or down from the last note (`+0x1DC`, direction `+0x1DD`,
+  octave `+0x1E0`), or takes the played-order list at index `+0x1CC`, at
+  random for the random types (`arp_random_seed` `0x20011178`), or all of
+  the list at once for the chord types. Every note event moves the choice
+  on, so a pattern alone cannot repeat a note.
+- **Voices for a repeated note (emulated, `work/_ratchet_voice.py`; the
+  feature list's check for ratchets):** with one key held, each step takes
+  the next voice in Mono2, Poly and Poly2, on stock and with MPE on
+  (voices 0, 1, 2, ... 7, 0); in Mono and MonoLG every step retriggers
+  voice 0. Poly2's choice depends on the levels the sound chip reports,
+  which the simulator only models.
+- **Ratchets (v0.21, emulated, `tests/test_peak_ratchet.py`):** the repeat
+  of a note is a note event with bit 7 set in its velocity. The hook on the
+  call of `arp_step_select` clears the bit and puts `+0x1CC`, `+0x1DB`,
+  `+0x1DC`, `+0x1DD`, `+0x1E0` and the seed back to what they were before
+  the note's first sounding, so stock chooses the same note again: checked
+  for all eight Types (the chord types repeat the whole chord). If the
+  chord changes between a note and its repeat, the repeat is chosen from
+  the new chord.
 - **A cost of the arp echo filter seen on the way (emulated):** with
   Arp>MIDI On, a key on the global channel released within 100 ms of the
   arp's own note off for the same note is taken for the echo and dropped

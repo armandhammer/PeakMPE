@@ -250,5 +250,13 @@ void arp_tick(void);
 /* Starts the pattern again from its first event and ends the step that is
  * sounding (0x08014F68); stock calls it after loading a pattern. observed */
 void arp_pattern_reset(void);
+/* Plays the next note of the chord by the arp's Type (0x08015408): reads and
+ * writes state +0x1CC (played-order index), +0x1DB, +0x1DC (last note),
+ * +0x1DD (direction) and +0x1E0 (octave), and the random types and ArpChance
+ * take numbers from arp_random_seed; the step sounds at the velocity in
+ * state +0x1D9. Called by arp_tick at 0x0801574E for every note event while
+ * the arp is on. observed */
+void arp_step_select(void);
+extern volatile uint32_t arp_random_seed;   /* 0x20011178: seed = seed * a + c in 0x08014D98 */
 
 #endif

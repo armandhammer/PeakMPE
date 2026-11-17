@@ -49,6 +49,8 @@
 #define MPE_G_EUC_PULSES 0x45    /* Euclidean arp rhythm (euclid.c), stored: notes per pattern, 0 or > 32 = Off, */
 #define MPE_G_EUC_STEPS 0x46     /* steps 1-32 (0 or > 32 = 16), */
 #define MPE_G_EUC_ROTATE 0x47    /* and the step the pattern starts at, modulo the steps (> 31 = 0) */
+#define MPE_G_EUC_RATCHET 0x48   /* arp ratchet, stored: 0 Off, 1 = x2, 2 = x3; other = Off */
+#define MPE_G_EUC_EVERY 0x49     /* which notes ratchet: every 1st-8th; 0 or > 8 = 1 */
 
 #define MPE_DEFAULT_MEMBERS 15
 #define MPE_DEFAULT_NOTE_RANGE 48
@@ -168,6 +170,9 @@ void euclid_arp_tick(void);      /* hook: the call of arp_tick */
 uint32_t euclid_pulses(void);    /* in effect: 0 = Off */
 uint32_t euclid_steps(void);
 uint32_t euclid_rotate(void);
+void euclid_step_select(void);   /* hook: arp_tick's call of arp_step_select */
+uint32_t euclid_ratchet(void);   /* 1 = no ratchet, 2, 3 */
+uint32_t euclid_every(void);
 
 /* morph.c */
 void morph_cc(uint32_t value);
