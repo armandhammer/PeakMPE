@@ -3,19 +3,20 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** image v0.22 (label `MPEM`, `e7b5ec86…`,
-`work/flash/peak-firmware-2.2-build2108+mpe-e7b5ec8678dd.syx`) is built
-(source commit `2d6f240`) with all checks passed (727 simulator tests, 34
-web tests, `work/build-v22.log`), 2026-11-17, and is **not flashed yet**.
-It is v0.21 plus one fix: Osc 1/2/3 Fine over MIDI (CC 15, 18, 21) reaches
-−100 (`ccpair.c`; stock drops −100 to −73, the bug of upstream PR 3;
-findings, "The parameter setter and 9-bit controls"). The user flashes it,
-then series N in `TEST.md`: N1 boot label, N2 the Fine knob unchanged, N3
-on **GO rig** (after asking what is plugged in) `work/fine_check.py`
-(dry run passes) and `hwrig run --stage all`. After the flash, add the
-hardware-log row from the flash log. Still open, the user's choice: M7
-showed about half the modulation ticks lost while a knob turns (longest gap
-9 ms): whether to make the knob overlay cheaper.
+**Next step:** none in progress; the user picks the next item. Open, the
+user's choice: M7 showed about half the modulation ticks lost while a knob
+turns (longest gap 9 ms), so whether to make the knob overlay cheaper;
+roadmap steps 3, 4, 5 and 8 (`docs/peak-features.md`); ratchet chance,
+MTS 7F, steal refinement, sostenuto.
+
+**v0.22 on the synth** (label `MPEM`, `e7b5ec86…`, source `2d6f240`):
+flashed 2026-11-17, series N passed. N1 and N2 by the user; N3 on the rig:
+`work/fine_check.py` (run `fine-2026-11-17_160400`) put CC 15 = 14 at
+−100.2 cents and CC 28 at −72.1 (28.1 apart), CC 0 the same as 14, CC 127
+the same as 114, CC 20 at −87.9; `hwrig run --stage all` (run
+`2026-11-17_160436`) 136 pass, 0 fail, 5 info. v0.22 is v0.21 plus Osc
+1/2/3 Fine over MIDI reaching −100 (`ccpair.c`; the bug of upstream PR 3;
+findings, "The parameter setter and 9-bit controls").
 
 **v0.21 on the synth:** flashed, series M passed and the rig rerun gave
 136 pass, 0 fail, 5 info (run `2026-11-17_100041`, 2026-11-17), after the

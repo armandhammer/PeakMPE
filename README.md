@@ -32,10 +32,10 @@ named below.
 **MPE for Peak 0.22**, for Peak firmware **2.2 (build 2108)** only, with
 FPGA build 469. Tested on one Peak ([docs/hardware-log.md](docs/hardware-log.md)):
 every check of the automated hardware test rig that applies to the Peak
-passes (136 of 136 measured rows over USB, on 0.21 and on each release
-before it; 0.22 adds one MIDI fix, checked in the simulator so far), a 600-run stress soak left no stuck note, a LinnStrument played
-it over DIN in one and two zones, and each feature below was tried by hand
-on the synth. Not tested on other firmware versions or other units.
+passes (136 of 136 measured rows over USB, on 0.22 and on each release
+before it), a 600-run stress soak left no stuck note, a LinnStrument played
+it over DIN in one and two zones, and each feature below was tried on the
+synth (by hand, or by the rig where the panel can't do it). Not tested on other firmware versions or other units.
 
 The patch adds 10 pages to **Settings** (36 pages instead of 26): pages 5
 to 14, right after `MIDI CONTROL`, from `MPE` to `ARP RATCHET`. Their
