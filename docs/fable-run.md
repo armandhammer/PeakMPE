@@ -36,8 +36,8 @@ is Off.
 
 **Still open, the user's choice:** MIDI Tuning for device ID `7F` and
 several notes per message; a chance for the ratchet; the stepwise closing of the filter
-seen in J2; the two decisions below; the README, which still describes
-release 0.1.
+seen in J2; the two decisions below. (The README describes 0.21 since
+2026-11-17; Strum was dropped by the user the same day.)
 
 **Model:** the Fable brief (items A to D) is worked through; what is left is
 hands-on testing, small fixes and then the morph from the written design

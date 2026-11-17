@@ -29,27 +29,103 @@ named below.
 
 ## Status
 
-**MPE for Peak 0.1**, for Peak firmware **2.2 (build 2108)** only, with FPGA
-build 469. Tested on one Peak ([docs/hardware-log.md](docs/hardware-log.md)):
+**MPE for Peak 0.21**, for Peak firmware **2.2 (build 2108)** only, with
+FPGA build 469. Tested on one Peak ([docs/hardware-log.md](docs/hardware-log.md)):
 every check of the automated hardware test rig that applies to the Peak
-passes (136 of 136 measured rows over USB), a 600-run stress soak left no
-stuck note, and a LinnStrument played it over DIN in one and two zones. Not
-tested on other firmware versions or other units.
+passes (136 of 136 measured rows over USB, on 0.21 and on each release
+before it), a 600-run stress soak left no stuck note, a LinnStrument played
+it over DIN in one and two zones, and each feature below was tried by hand
+on the synth. Not tested on other firmware versions or other units.
+
+The patch adds 10 pages to **Settings** (36 pages instead of 26): pages 5
+to 14, right after `MIDI CONTROL`, from `MPE` to `ARP RATCHET`. Their
+settings are saved with the global settings, as stock's are. Each feature
+below names its page. The three buttons beside the
+screen, Select 1 to 3, pick a line; the encoder changes it.
 
 ## What you get
 
+### MPE
+
 - **MPE receiver (MPE 1.0):** a Lower and an Upper Zone, set by the
-  sender's MPE Configuration Message or on the Peak's Settings MPE pages
-  (zone, member count, bend ranges), saved with the global settings. Both
-  zones (a LinnStrument split in two) play the one sound and share its 8
-  voices; each zone's master channel bends only its own notes.
+  sender's MPE Configuration Message or on Settings `MPE` (zone, member
+  count) and `MPE BEND RANGE` (note and master bend ranges). Both zones (a
+  LinnStrument split in two) play the one sound and share its 8 voices;
+  each zone's master channel bends only its own notes.
 - **Per note:** pitch bend (±48 semitones by default, set by RPN 0),
-  pressure (channel pressure, or polyphonic aftertouch on a member channel)
-  and Slide (CC 74, arriving as the voice's mod wheel), on top of the master
-  channel's bend.
+  pressure (channel pressure, polyphonic aftertouch or CC 11 on a member
+  channel) and Slide (CC 74, arriving as the voice's mod wheel), on top of
+  the master channel's bend.
 - **Per sound:** an `MPE` switch on the VOICE page. With it off, the sound
   plays exactly as on stock.
-- **Boot screen** `MPE1 Ver 108.469`, so you can see the patch is installed.
+- **Pressure curve:** Settings `MPE EXTRAS` > `PressCurve` chooses stock's
+  squared curve or a linear one, which gives light pressure more range.
+
+### Playing
+
+- **Glide start:** Settings `MPE EXTRAS` > `Glide`. In poly modes stock
+  glides each note from whatever its voice played last. `LastNote` glides
+  from the previous note you played; `Legato` does that only while another
+  note is held, so a detached note starts on pitch. The patch's Glide
+  settings still decide whether and how fast.
+- **Envelope sync:** Settings `MPE EXTRAS` > `EnvSync` sets the amp
+  envelope's Decay and Release to a note length (1/2 to 1/16) at the
+  current tempo.
+- **MIDI loop fix:** when a DAW sends the arpeggiator's own notes back to
+  the Peak, the arpeggiator ignores them instead of retriggering itself.
+
+### Arpeggiator
+
+- **Euclidean rhythms:** Settings `ARP EUCLID` sets `Pulses`, `Steps` and
+  `Rotate` (for example 5 in 8). The arpeggiator then plays that many notes
+  spread evenly over the steps, in place of the patch's Rhythm. `Pulses`
+  Off gives the Rhythm back.
+- **Ratchets:** Settings `ARP RATCHET` > `Ratchet` x2 or x3 plays each arp
+  note two or three times within its step; `Every` 1 to 8 ratchets only
+  every nth note.
+
+### Editing
+
+- **Quick-assign modulation:** hold **Mod** and move a slider or knob. Its
+  destination goes into the first free mod matrix slot, and the encoder
+  chooses the source.
+- **Undo and redo:** **Mod** + **Page left** undoes the last change, **Mod**
+  + **Page right** redoes it.
+- **Section copy:** Settings `COPY SECTION` copies an oscillator, an
+  envelope or an LFO onto another (Osc 1 to Osc 2, Env 2 to Env 3, and so
+  on).
+- **Parameter lock:** Settings `PARAM LOCK` keeps the FX, the Arp or the
+  Voice settings as they are when you load another patch.
+
+### Movement
+
+- **Motion recording:** hold **Mod** and press **Animate 1** (the screen says
+  `Move a control`), then move a slider or knob. Its movement is recorded
+  for one loop and then plays back in time with the tempo until you press
+  Mod + Animate 1 again. Moving the control while it plays replaces what
+  it passes over. Settings `MOTION` > `Length` sets 1, 2 or 4 bars. Not
+  stored with the patch.
+- **Patch morph:** with Settings `MORPH` > `Morph` set to `ModWheel`, the mod
+  wheel blends the patch as you have edited it (wheel down) towards the
+  patch as it is stored (wheel up). Load a patch, turn some knobs, and the
+  wheel takes your changes out and brings them back. Levels, amounts, times,
+  the filter, FX amounts and mod matrix depths move; switches, waves and the
+  arp stay as edited, so nothing switches halfway. **Save** stores what you
+  hear.
+
+### Screen
+
+- **Values in units:** turning a knob shows envelope times in ms and the
+  filter cutoff in Hz, with a value bar.
+- **Pickup arrow:** with stock's Pickup knob mode, the screen shows which
+  way to turn and how far until the knob takes over.
+- **MIDI monitor:** Settings `MIDI MONITOR` shows the last message
+  received, a message count and the DIN input's overflow count.
+- **Boot screen** `MPEL Ver 108.469`, so you can see the patch and its
+  release are installed.
+
+What stock 2.2 already does (and so isn't here), and the features that were
+looked at and dropped: [docs/peak-features.md](docs/peak-features.md).
 
 ## Install
 
@@ -78,8 +154,11 @@ modified, and you can flash stock from there
 - Switch `MPE` on for a sound on the VOICE page.
 - Route the mod wheel (where Slide arrives) and aftertouch (pressure) in the
   sound's mod matrix to hear Y and Z.
-- Set the zone on the Settings MPE pages, or let the sender's MPE
-  Configuration Message set it (a LinnStrument sends one).
+- Set the zone on Settings `MPE`, or let the sender's MPE Configuration
+  Message set it (a LinnStrument sends one).
+- With MPE on, the patch morph listens to the mod wheel (CC 1) on the zone's
+  master channel; a LinnStrument's Low Row can send it
+  ([docs/linnstrument.md](docs/linnstrument.md)).
 - **LinnStrument:** connect its MIDI OUT to the Peak's MIDI IN with a 5-pin
   MIDI cable. A step-by-step guide for first-time LinnStrument users:
   [docs/linnstrument.md](docs/linnstrument.md).
@@ -89,7 +168,7 @@ modified, and you can flash stock from there
 The official firmware stays as it is. The patch is our own C code,
 compiled for the synth's Cortex-M4 and linked against the addresses of the
 firmware functions it calls. It goes into free flash at the end of the
-image, and the firmware's call sites (37 on the Peak) are redirected into it. The
+image, and a few dozen of the firmware's call sites are redirected into it. The
 build checks the official file's SHA-256 and every patched site before it
 writes anything, and a simulator runs the patched firmware's main loop for
 the tests. More in [docs/PLAN.md](docs/PLAN.md#how-the-patch-works).
@@ -127,7 +206,9 @@ instructions the AI agent follows in this repository.
 | `patches/mpe/` | The Summit MPE patch (upstream) |
 | `docs/peak-port-plan.md`, `docs/symbols/peak-2.2-2108.csv` | The Peak port: plan, findings, status; the Peak's symbols |
 | `docs/linnstrument.md` | Playing the Peak from a LinnStrument, step by step |
-| `docs/peak-features.md` | Features beyond MPE: what stock 2.2 already does, and the build order |
+| `docs/peak-features.md` | Features beyond MPE: what stock 2.2 already does, the build order, what was dropped |
+| `docs/peak-motion-morph.md` | Motion recording and patch morph: what was found in the firmware, the design and its measurements |
+| `TEST.md` | Hands-on test steps for the synth, while a series is open |
 | `patches/peak_version_string.py`, `patches/peak_version_word.py`, `patches/peak_demo_note_hook/` (and the Summit's) | Minimal patches that test the toolchain and the bootloader |
 | `tools/patch.py`, `tools/patch_build.py` | Build a patched `.syx` from the official file and a definition ([docs/patch-howto.md](docs/patch-howto.md)) |
 | `tools/flash.py` | Firmware updater (the Components protocol), with a dry run against a simulated synth |
