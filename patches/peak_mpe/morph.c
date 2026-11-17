@@ -45,7 +45,16 @@
  *     the wheel comes down: it is still setting B.
  *   - any other change of a morphed value (a menu, a received CC, a motion
  *     lane) is seen in the next slot and becomes B as it stands.
- * Save stores what sounds, the blend. A patch load starts afresh.
+ * Save stores what sounds, the blend, and from then on that is the patch:
+ * the morph starts afresh with stored and edited the same (morph_patch_save),
+ * as after any stock Save. A patch load starts afresh too.
+ *
+ * Compare (hold to hear the stored patch): stock keeps the patch aside, loads
+ * the stored one and copies the patch back at the release. While the button
+ * is held the morph stands still and keeps what it knows, so the release
+ * finds the blend it left and goes on from there. (Taking the load as a new
+ * patch, as v0.18 did, made the blend the edit at the release: the edit was
+ * lost; emulated, tests/test_peak_morph.py.)
  */
 
 #include "mpe.h"
@@ -175,9 +184,19 @@ void morph_cc(uint32_t v)
     wheel = (uint8_t)(v & 0x7F);
 }
 
-/* A patch load: B is the new patch. */
+/* A patch load: B is the new patch. Not the load Compare makes: that patch
+ * is only listened to, and stock puts the other one back. */
 void morph_clear(void)
 {
+    if (!compare_held)
+        running = 0;
+}
+
+/* The Save button's write of the patch (settings_save_action 0x0801903E):
+ * what is stored is now what sounds, so A and B are taken anew. */
+void morph_patch_save(uint32_t number, uint32_t bank)
+{
+    patch_save(number, bank);
     running = 0;
 }
 
@@ -204,7 +223,7 @@ static int find(uint32_t id)
  * Returns the control's index for morph_applied, or -1. */
 int morph_knob(uint32_t id, uint32_t *prev, uint32_t *cur)
 {
-    if (!running || !pos)
+    if (!running || !pos || compare_held)
         return -1;
     int i = find(id);
     if (i < 0 || held(id))
@@ -230,6 +249,8 @@ void morph_applied(int i, uint32_t raw, uint32_t blended)
 /* Main-loop pass (mpe_ui_poll). */
 void morph_poll(void)
 {
+    if (compare_held)
+        return;                  /* the stored patch is being listened to: nothing to blend, nothing to start */
     uint32_t want = globals[MPE_G_MORPH] == 1 ? wheel : 0;   /* switched off: back to B, then let go */
     if (!running && !want) {
         pos = 0;

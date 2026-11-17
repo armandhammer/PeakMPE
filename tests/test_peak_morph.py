@@ -20,6 +20,9 @@ MATRIX1 = 0xFC                                           # slot 1: source A, sou
 MSG_STATE = 0x20011208
 PARAM_SET_BY_ID = 0x0800F6AC                             # (value, id): id = the CC number
 EXT_FLASH_READ_PAGE, PATCH_LOAD = 0x0800EA64, 0x0801AEB8
+BUTTON_TABLE = 0x20000AB8                                # 4 bytes a button: 4, action, argument (panel_button_event 0x08016FF0)
+BUTTON_QUEUE = 0x20003AD0                                # +0x88 64 events (button, bit 7 = pressed), +0x84 write index
+ACTION_SAVE, ACTION_COMPARE = 3, 8
 
 pytestmark = pytest.mark.slow
 
@@ -257,6 +260,123 @@ def test_a_patch_load_starts_afresh(mpe_built):
     _set(b, CC_RESONANCE, 90, ms=300)             # an edit of the new patch
     _wheel(b, 0)
     assert b.u8(PATCHES + RESONANCE) == 90
+
+
+def _button(b, action, pressed, ms=300):
+    """A panel button as the scan reports it: an event in the firmware's
+    queue, taken by the main loop (panel_button_event)."""
+    ids = [i for i in range(64) if bytes(b.uc.mem_read(BUTTON_TABLE + 4 * i, 2)) == bytes([4, action])]
+    assert len(ids) == 1, ids
+    w = b.u8(BUTTON_QUEUE + 0x84)
+    b.uc.mem_write(BUTTON_QUEUE + 0x88 + w, bytes([ids[0] | (0x80 if pressed else 0)]))
+    b.uc.mem_write(BUTTON_QUEUE + 0x84, bytes([(w + 1) & 0x3F]))
+    b.run_ms(ms)
+
+
+def _compare(b, pressed, ms=300):
+    """Compare held or let go. Held, stock keeps the patch aside (0x20012570)
+    and loads the stored one; let go, it copies the patch back."""
+    _button(b, ACTION_COMPARE, pressed, ms)
+
+
+@pytest.mark.parametrize("pos", [64, 127])
+def test_compare_with_the_wheel_up_gives_the_blend_back(mpe_built, pos):
+    b = _board(mpe_built)
+    a = _stored(b, RESONANCE)
+    edit = 100 if a < 60 else 10
+    _set(b, CC_RESONANCE, edit)
+    _wheel(b, pos)
+    assert b.u8(PATCHES + RESONANCE) == _blend(a, edit, pos)
+    _compare(b, True)
+    assert b.u8(PATCHES + RESONANCE) == a                # Compare plays the stored patch
+    _compare(b, False)
+    assert b.u8(PATCHES + RESONANCE) == _blend(a, edit, pos)
+    _wheel(b, 0)
+    assert b.u8(PATCHES + RESONANCE) == edit             # and the edit is still there
+
+
+def test_the_wheel_moved_during_compare_counts_at_the_release(mpe_built):
+    b = _board(mpe_built)
+    a = _stored(b, RESONANCE)
+    edit = 100 if a < 60 else 10
+    _set(b, CC_RESONANCE, edit)
+    _wheel(b, 100)
+    _compare(b, True)
+    _wheel(b, 30)
+    assert b.u8(PATCHES + RESONANCE) == a                # still the stored patch
+    _compare(b, False)
+    assert b.u8(PATCHES + RESONANCE) == _blend(a, edit, 30)
+    _compare(b, True)                                    # and with the wheel taken to 0 meanwhile
+    _wheel(b, 0)
+    _compare(b, False)
+    assert b.u8(PATCHES + RESONANCE) == edit
+
+
+def test_compare_does_not_start_a_morph(mpe_built):
+    """The wheel goes up while Compare is held and nothing was morphing: the
+    patch that sounds is the stored one, not an edit to blend."""
+    b = _board(mpe_built)
+    a = _stored(b, RESONANCE)
+    edit = 100 if a < 60 else 10
+    _set(b, CC_RESONANCE, edit)
+    _compare(b, True)
+    _wheel(b, 127)
+    assert b.u8(PATCHES + RESONANCE) == a
+    _wheel(b, 0)
+    _compare(b, False)
+    assert b.u8(PATCHES + RESONANCE) == edit
+    _wheel(b, 127)
+    assert b.u8(PATCHES + RESONANCE) == a
+    _wheel(b, 0)
+    assert b.u8(PATCHES + RESONANCE) == edit
+
+
+def test_save_with_the_wheel_up_stores_the_blend_and_it_is_the_patch(mpe_built):
+    b = _board(mpe_built)
+    a = _stored(b, RESONANCE)
+    edit = 100 if a < 60 else 10
+    _set(b, CC_RESONANCE, edit)
+    _wheel(b, 64)
+    mid = _blend(a, edit, 64)
+    assert b.u8(PATCHES + RESONANCE) == mid
+    for _ in range(6):                                   # Save: name, category, destination, done
+        _button(b, ACTION_SAVE, True, ms=100)
+        _button(b, ACTION_SAVE, False, ms=100)
+        if _stored(b, RESONANCE) == mid:
+            break
+    assert _stored(b, RESONANCE) == mid                  # what sounded is what is stored
+    b.run_ms(300)
+    assert b.u8(PATCHES + RESONANCE) == mid
+    _wheel(b, 127)
+    assert b.u8(PATCHES + RESONANCE) == mid              # stored and patch are the same now
+    _wheel(b, 0)
+    assert b.u8(PATCHES + RESONANCE) == mid
+    assert _call(b, mpe_built.blob.address("morph_differ")) == 0
+
+
+def test_compare_on_the_save_page_plays_the_destination_and_the_blend_comes_back(mpe_built):
+    """Save, page 2 (the destination): Compare plays the patch stored there
+    (stock, 0x0801AF44). With the wheel up the blend has to be back at the
+    release, and it is the blend that the last Save press stores."""
+    b = _board(mpe_built)
+    a = _stored(b, RESONANCE)
+    edit = 100 if a < 60 else 10
+    _set(b, CC_RESONANCE, edit)
+    _wheel(b, 64)
+    mid = _blend(a, edit, 64)
+    for _ in range(2):                                   # the name page, then the destination page
+        _button(b, ACTION_SAVE, True, ms=100)
+        _button(b, ACTION_SAVE, False, ms=100)
+    _compare(b, True)
+    assert b.u8(PATCHES + RESONANCE) == a
+    _compare(b, False)
+    assert b.u8(PATCHES + RESONANCE) == mid
+    for _ in range(2):
+        _button(b, ACTION_SAVE, True, ms=100)
+        _button(b, ACTION_SAVE, False, ms=100)
+    assert _stored(b, RESONANCE) == mid
+    _wheel(b, 0)
+    assert b.u8(PATCHES + RESONANCE) == mid
 
 
 def test_morphing_asks_for_no_page_redraw(mpe_built):

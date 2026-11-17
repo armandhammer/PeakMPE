@@ -412,6 +412,30 @@ the thumb smoothly, in Hold mode (0 to 127 over 7 pads, 0 on release) and
 in Fader mode (the whole row, the value stays). No firmware change needed;
 set-up in [linnstrument.md](linnstrument.md) section 9.
 
+**Compare and Save, v0.19 (2026-11-16; emulated, 6 more tests; series L
+checks it on the synth):**
+
+- **Compare with the wheel up lost the edit on v0.18** (emulated; how stock
+  does Compare is in the findings, "Compare and Save"). Stock loads the
+  stored patch for the time the button is held and copies the patch back
+  at the release; v0.18 took the first as a patch change and the second as
+  an edit, so the blend became the edit. From v0.19 the morph stands still
+  while Compare is held (stock's flag `0x200111F2`) and keeps what it
+  knows: the release finds the blend it left, and a wheel moved meanwhile
+  is followed from there. A morph is not started while Compare is held
+  either.
+- **Save stores what sounds, and that is then the patch.** Stock's Save
+  writes the patch as it is in RAM, so with the wheel up it stores the
+  blend. v0.18 went on with the stored patch and the edit it remembered, so
+  the wheel at 0 brought back an edit that no longer matched anything
+  stored. v0.19 hooks the write (`0x0801903E`) and takes A and B anew: both
+  are the saved sound, `Differ` reads 0, the wheel does nothing until the
+  next edit. This is the state stock leaves after any Save.
+- On the Save pages Compare plays the destination; the blend is back at the
+  release and is what the fourth press stores (emulated).
+- Not changed: pressing Compare still clears the undo step and stops a
+  motion lane (same hook; inferred from the code, not tried).
+
 ## Order
 
 1. The merged-tick counter on the diagnostics page (risk 1): small, and

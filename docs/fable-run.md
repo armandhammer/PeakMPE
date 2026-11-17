@@ -3,13 +3,22 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** nothing pending on the synth. Series K is done (2026-11-16,
-hardware log): the user plays from a LinnStrument only, and its Low Row set
-to `X=CC1` drives the morph without a firmware change (`B0 01 7F` on MIDI
-MONITOR, follows smoothly, Hold and Fader mode both work). `TEST.md` holds
-no series; the next one is L. Still open, the user's choice: Compare and
-Save during a morph, the stepwise closing of the filter seen in J2, the
-knob overlay's cost in `LateTicks`, and the two decisions below.
+**Next step:** image v0.19 (label `MPEJ`, `fb36f0fb…`,
+`work/flash/peak-firmware-2.2-build2108+mpe-fb36f0fb37d1.syx`) is built with
+all checks passed (687 simulator tests, 34 web tests, `work/build-v19.log`)
+and **not flashed yet**: the user has the flash command. It mends Compare
+during a morph (v0.18 lost the edit at the release: emulated) and makes the
+saved blend the patch after Save; see [peak-motion-morph.md](peak-motion-morph.md),
+"Compare and Save, v0.19". Then series L in `TEST.md`: L2 Compare with the
+row up, L3 Save with the row up (overwrites D003, assumed an unused Init
+Patch; L3.12 puts one back), L4 the rig run on **GO rig** after asking what
+is plugged in. Readings wanted: `Position` in L2.4 and L3.2, `current` in
+L3.1, `saved val` in L3.11 (expected current × (127 − Position) / 127).
+After the flash, add the hardware-log row from `work/flash-fb36f0fb-*.log`.
+Not asked yet: whether Compare should also leave the undo step and a motion
+lane alone (today it clears both; inferred from the code). Still open, the
+user's choice: the stepwise closing of the filter seen in J2, the knob
+overlay's cost in `LateTicks`, and the two decisions below.
 
 **Model:** the Fable brief (items A to D) is worked through; what is left is
 hands-on testing, small fixes and then the morph from the written design

@@ -230,5 +230,13 @@ extern const struct param_desc patch_param_desc[0x1A3];
 extern volatile uint8_t pickup_state[0xFB];
 /* 0x20011208: +1 flags, +2 message countdown (nonzero: a message is shown). */
 extern volatile uint8_t ui_msg_state[8];
+/* 0x200111F2: 1 while the Compare button is held. panel_button_event sets it
+ * before its handler 0x080188A8 runs: pressed, that keeps the patch aside
+ * (0x20012570) and loads the stored one through patch_load; let go, it copies
+ * the patch back (0x080130AC, no patch_load). observed */
+extern volatile uint8_t compare_held;
+/* (number, bank): the patch to its record in the patch memory; the Save
+ * button's last press (settings_save_action 0x0801903E). observed */
+void patch_save(uint32_t number, uint32_t bank);
 
 #endif

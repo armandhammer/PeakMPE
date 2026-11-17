@@ -477,6 +477,47 @@ refusal **emulated** (`tests/test_peak_morph.py`
   that. From v0.18 the coarse byte of a 9-bit pair goes to `param_write`
   and `pickup_arm` directly.
 
+## Compare and Save (2026-11-16)
+
+Read for the morph. Code **observed** (decompile), behaviour and screens
+**emulated** (`tests/test_peak_morph.py`, buttons pressed through the
+firmware's event queue); not yet on the synth with a morph running.
+
+- **Button events.** The panel scan puts one byte per event into a ring of
+  64 at `0x20003AD0+0x88` (the `button_table` index, bit 7 = pressed; write
+  index `+0x84`, read index `+0xDA`); `panel_event_read` `0x0800DDFC` takes
+  them for `panel_button_event` `0x08016FF0`.
+- **Compare** (action 8): `panel_button_event` writes `compare_held`
+  `0x200111F2` (1 pressed, 0 let go), then calls `compare_action`
+  `0x080188A8(pressed)`, which calls `patch_compare` `0x080130AC`.
+  Pressed: the patch `0x20012340` (0x201 bytes) is copied to
+  `compare_stash` `0x20012570`, then the stored record is read and loaded
+  with `patch_load` (`0x0801AF10`). Let go: the stash is copied back into
+  the patch and pushed to the sound chip (`0x08013044`), without
+  `patch_load`. In Save mode (UI mode 9) Compare works only on page 2 and
+  loads the destination's record instead (`0x0801AF44`).
+- **Save** (action 3, `settings_save_action` `0x08018FCC`): in the Settings
+  menu (mode 8) it stores the settings (screen `Settings Saved With` /
+  `PROTECT OFF`), not the patch. Elsewhere the first press opens Save mode
+  (mode 9: `SAVE RENAME      1/3`), the next two step to
+  `SAVE LOCATION    2/3` and `SAVE CATEGORY    3/3`, and the fourth calls
+  `patch_save` `0x08018F10(number, bank)`: the patch's 0x200 bytes to
+  record (number + (bank - 1) × 128) × 512 of the patch memory. It then
+  sets `patch_select` +4/+5 to the destination and shows
+  `Patch Saved To` with bank letter and number. No `patch_load`: the patch
+  in RAM is not touched.
+- **What that meant for the patch (v0.12 to v0.18).** The hook on
+  `patch_load`'s copy (`plock_copy`) cannot tell Compare's load from a
+  patch change. With a morph running, v0.18 took the stored patch as the
+  new edit and, at the release, the blend that stock copied back as an edit
+  again: after Compare at position 64 an edit of 100 against a stored 0 read
+  25 instead of 50, and at position 127 the edit was gone (emulated on
+  v0.18). From v0.19 the morph stands still while `compare_held` is set
+  and starts afresh after `patch_save` (hook at `0x0801903E`).
+- **Still so, by the same reading (inferred, not tried):** pressing Compare
+  also clears the undo step and stops a motion lane, because both are
+  cleared in the same hook.
+
 ## Main-loop pace in the simulator (2026-11-16)
 
 **Emulated** (`work/_w_probe.py`): three broadcast writes to the sound chip

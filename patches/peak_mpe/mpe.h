@@ -163,6 +163,7 @@ const char *motion_state_name(void);
 /* morph.c */
 void morph_cc(uint32_t value);
 void morph_clear(void);
+void morph_patch_save(uint32_t number, uint32_t bank);   /* hook: the Save button's patch write */
 void morph_poll(void);
 int morph_knob(uint32_t id, uint32_t *prev, uint32_t *cur);
 void morph_applied(int index, uint32_t raw, uint32_t blended);
