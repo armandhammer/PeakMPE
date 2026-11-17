@@ -6,7 +6,7 @@ A fresh session reads this first and continues at "Next step".
 **Next step:** image v0.19 (label `MPEJ`, `fb36f0fb…`,
 `work/flash/peak-firmware-2.2-build2108+mpe-fb36f0fb37d1.syx`) is built with
 all checks passed (687 simulator tests, 34 web tests, `work/build-v19.log`)
-and **not flashed yet**: the user has the flash command. It mends Compare
+and **flashed by the user 2026-11-16** (flash log ok, identity `02 01 00 08`; hardware-log row added). It mends Compare
 during a morph (v0.18 lost the edit at the release: emulated) and makes the
 saved blend the patch after Save; see [peak-motion-morph.md](peak-motion-morph.md),
 "Compare and Save, v0.19". Then series L in `TEST.md`: L2 Compare with the
@@ -14,7 +14,7 @@ row up, L3 Save with the row up (overwrites D003, assumed an unused Init
 Patch; L3.12 puts one back), L4 the rig run on **GO rig** after asking what
 is plugged in. Readings wanted: `Position` in L2.4 and L3.2, `current` in
 L3.1, `saved val` in L3.11 (expected current × (127 − Position) / 127).
-After the flash, add the hardware-log row from `work/flash-fb36f0fb-*.log`.
+Then add the results to the v0.19 hardware-log row.
 Not asked yet: whether Compare should also leave the undo step and a motion
 lane alone (today it clears both; inferred from the code). Still open, the
 user's choice: the stepwise closing of the filter seen in J2, the knob
@@ -25,7 +25,7 @@ hands-on testing, small fixes and then the morph from the written design
 note. Opus 5.5 (high effort for the morph, medium for test rounds) can take
 it from these files.
 
-**State on the synth:** v0.18 (`9df89b4d…`, boot `MPEI`, commit `c19c0f8`), flashed by
+**State on the synth:** v0.19 (`fb36f0fb…`, boot `MPEJ`, commit `709b87f`), flashed by the user 2026-11-16 17:54; no rig run and no hands-on result on it yet. Before it: v0.18 (`9df89b4d…`, boot `MPEI`, commit `c19c0f8`), flashed by
 the user 2026-11-16 (flash log ok, identity `02 01 00 08`; rig 136 pass, 0 fail, 5 info, run
 `2026-11-16_143231`; series J and K done). After series K `Morph` and the LinnStrument's Low Row are as the user left them (not reported). Before it: v0.17 (`e5e9e652…`, boot
 `MPEH`, commit `163e5c7`, rig 136/0/5, run `2026-11-16_105659`). Before it: v0.16 (`0f262ad9…`, boot `MPEG`, commit
