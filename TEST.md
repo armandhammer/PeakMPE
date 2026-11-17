@@ -196,8 +196,9 @@ smoothing). Two numbers answer it.
 3. Press **Page ◀** once (the MOTION page). **Tell me Row 4 again.**
 
 After M3.1, M5.8 and M6.5 the settings are back where they were
-(`Morph      Off`, `Pulses     Off`, `Ratchet    Off`, the arpeggiator off). The Euclid and ratchet settings are stored with the other settings only
-when you press **Save** inside the Settings menu; there is no need to.
+(`Morph      Off`, `Pulses     Off`, `Ratchet    Off`, the arpeggiator
+off). The Euclid and ratchet settings are stored with the other settings
+only when you press **Save** inside the Settings menu; there is no need to.
 
 ### M8. Regression run (I play)
 
