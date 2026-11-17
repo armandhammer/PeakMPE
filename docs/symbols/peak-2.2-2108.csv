@@ -160,3 +160,7 @@ address,name,kind,confidence,notes
 0x20003b58,button_queue,data,observed,"64 panel button events at 0x20003ad0+0x88 (button_table index, bit 7 = pressed); write index +0x84, read index +0xda; read by panel_event_read"
 0x08014f68,arp_pattern_reset,function,observed,"zeroes the pattern position (+0x54 +0x1c8 +0x1d5 +0x1d6 and four timing words) and ends the sounding step (0x08014f30); callers arp_reset, the SyncRate change 0x08015098 and arp_tick after loading a rhythm pattern"
 0x0801192c,tick_work,function,observed,"one of 12 functions from the table at 0x080426e0 in turn (index voice_state+0x1f0), then arp_tick (bl at 0x08011956); callers main init 0x0800d11c and 0x08016738"
+0x08012ccc,tuning_note_set,function,observed,"(table key xx yy zz): tuning table word at 0x20012cf4 + (key + table * 128) * 2 = xx << 8 | yy << 1 | zz >> 6; 7f 7f 7f = no change; when table is the patch's (patch+0x162) the sounding voices with that key are retuned; callers the two MIDI Tuning parsers 0x08019548 0x08019b40"
+0x08019548,mts_single_note_rx,function,observed,"SysEx parser: F0 7F 00 08 02 tt ll kk xx yy zz F7 (11 bytes, device 00, table < 17) -> tuning_note_set; emulated on stock"
+0x08019b40,mts_bulk_rx,function,observed,"SysEx parser, header 7E 00 08: sub-ID 00 + table -> sends the table's dump (0x08019a6c); sub-ID 01 -> takes a whole table through tuning_note_set"
+0x0801ae0c,sysex_rx_byte,function,observed,"(byte port): gives each received SysEx byte to seven parsers (headers in the table at 0x08042e98); caller 0x0800efc0"

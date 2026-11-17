@@ -542,7 +542,13 @@ first look; enhancements only if it shows gaps.
 
 **MTS real-time retuning:** check the SysEx handler (`0x0800D040`) for
 real-time single-note tuning before planning anything; stock may already
-have it.
+have it. **Checked 2026-11-17: it does** (code observed, emulated on the
+stock image; [findings](findings/peak-2.2-build2108.md#midi-tuning-standard-in-stock-2026-11-17)).
+`F0 7F 00 08 02 tt 01 kk xx yy zz F7` retunes one note of tuning table
+`tt` (0 to 16), sounding voices included, and the bulk dump (`7E 00 08
+00/01`) is there too. `0x0800D040` itself is a factory-test handler. Two
+limits a patch could lift: the device ID has to be `00` (not `7F`), and a
+message carries one note.
 
 ## Dropped
 

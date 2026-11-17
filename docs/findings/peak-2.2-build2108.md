@@ -580,6 +580,37 @@ Read for Euclidean rhythms (feature list step 17). Code **observed**
   on after the key was let go, until the key was pressed and released
   again. MPE notes arrive on member channels and are not affected.
 
+## MIDI Tuning Standard in stock (2026-11-17)
+
+The feature list asked whether stock already takes real-time retuning. It
+does, for one note per message. Code **observed** (decompile), the
+single-note message **emulated** on the stock image (`work/_mts.py`);
+nothing on the synth.
+
+- **SysEx parsers.** Each received byte goes to seven parsers in turn
+  (`0x0801AE0C`), each with its own header from the table at `0x08042E98`:
+  Novation's `00 20 29 ...` ones, the identity request `7E 7F 06 01`, and
+  two for tuning.
+- **Single-note tuning change, real time** (`0x08019548`, header
+  `7F 00 08 02`): `F0 7F 00 08 02 tt ll kk xx yy zz F7` with the table
+  number `tt` 0 to 16. It calls `tuning_note_set` `0x08012CCC(tt, kk, xx,
+  yy, zz)`: the note's entry in the table becomes `xx << 8 | yy << 1 |
+  zz >> 6` (a semitone and 1/256 of one; `7F 7F 7F` means no change), and
+  if `tt` is the patch's table (patch `+0x162`), voices sounding that key
+  are retuned at once. Emulated: table 1, key 60 set to 61 and 50 cents
+  read `0x3D80` afterwards (`0x3C00` before).
+- **Limits (emulated):** the device ID must be `00`; the same message to
+  `7F` (all devices) changed nothing. The parser takes exactly 11 bytes
+  after `F0`, so only one note per message: with `ll` = 2 nothing changed.
+- **Bulk dump, non-real time** (`0x08019B40`, header `7E 00 08`):
+  sub-ID `00` with a table number answers with that table's dump
+  (`0x08019A6C`); sub-ID `01` takes a whole table, 128 notes of three
+  bytes after the 16-character name (observed, not emulated).
+- The tables are 17 × 128 words at `0x20012CF4`; the Init values are the
+  key number × 256 (equal temperament).
+- **What a patch could add:** accept device ID `7F`, and more than one note
+  in a message. Both are small changes to one parser; neither is built.
+
 ## Main-loop pace in the simulator (2026-11-16)
 
 **Emulated** (`work/_w_probe.py`): three broadcast writes to the sound chip
