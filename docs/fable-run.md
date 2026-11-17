@@ -3,36 +3,49 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** image v0.19 (label `MPEJ`, `fb36f0fb…`,
-`work/flash/peak-firmware-2.2-build2108+mpe-fb36f0fb37d1.syx`) is built with
-all checks passed (687 simulator tests, 34 web tests, `work/build-v19.log`)
-and **flashed by the user 2026-11-16** (flash log ok, identity `02 01 00 08`; hardware-log row added). It mends Compare
-during a morph (v0.18 lost the edit at the release: emulated) and makes the
-saved blend the patch after Save; see [peak-motion-morph.md](peak-motion-morph.md),
-"Compare and Save, v0.19". Then series L in `TEST.md`: L2 Compare with the
-row up, L3 Save with the row up (saves over D002, the user's Init sound with
-`MPE` On; L3.12 restores it. Not D003: it holds the user's patch "Element
-Song", MPE Off, found 2026-11-16 when it was silent from the LinnStrument), L4 the rig run on **GO rig** after asking what
-is plugged in. Readings wanted: `Position` in L2.4 and L3.2, `current` in
-L3.1, `saved val` in L3.11 (expected current × (127 − Position) / 127).
-Then add the results to the v0.19 hardware-log row.
-**Series L so far (2026-11-16):** L2.1 to L2.4 pass (`Position` 64). The
-first L2.5 was wrong (it expected a held note to go on through Compare; stock
-ends all notes at any patch load, emulated on the stock image, and the user
-saw the note stop); the steps from L2.5 on were rewritten (press the pad again
-while Compare is held) and **all of L2 passed**. Open: L3 (Save over D002) and
-L4 (the rig run on GO rig).
-Not asked yet: whether Compare should also leave the undo step and a motion
-lane alone (today it clears both; inferred from the code). Still open, the
-user's choice: the stepwise closing of the filter seen in J2, the knob
-overlay's cost in `LateTicks`, and the two decisions below.
+**Next step:** image v0.20 (label `MPEK`, `323f03fb…`,
+`work/flash/peak-firmware-2.2-build2108+mpe-323f03fb4518.syx`) is built (source commit `daad110`) with
+all checks passed (704 simulator tests, 34 web tests,
+`work/build-v20.log`), in the night of 2026-11-16, and is **not flashed
+yet**. The user flashes it, then series M in `TEST.md`: M2 Save with the row
+up (the old L3; it saves over D002 and M2.12 restores it), M3 Compare keeps
+the undo step, M4 Compare leaves a motion lane playing, M5 the Euclidean arp
+rhythm, M6 two `LateTicks` readings around a knob sweep, M7 the rig run on
+**GO rig** after asking what is plugged in. Readings wanted: `current` in
+M2.2, `Position` in M2.3, `saved val` in M2.11 (expected current × (127 −
+Position) / 127), Row 4 of the MOTION page in M6.1 and M6.3. After the
+flash, add the hardware-log row from the flash log.
+
+**What v0.20 holds (all emulated, nothing on the synth):** Compare leaves
+the undo step and a motion lane alone (`tests/test_peak_compare.py`);
+Euclidean arp rhythms, Settings > ARP EUCLID, a ninth page, so Settings has
+35 (`euclid.c`, `tests/test_peak_euclid.py`); the arp echo filter drops a
+note off only while a loop is known (`tests/test_peak_arp_echo.py`).
+
+**Series L is closed:** L1 and L2 passed on v0.19 (2026-11-16; the first
+L2.5 was my mistake: stock ends all notes at any patch load, so a pad is
+pressed again while Compare is held). L3 and L4 were not done on v0.19 and
+are M2 and M7.
+
+**Decided by me in that night** (the user, going to bed: "If any decision
+needs to be made, I authorize you to make the most logical, best choice"):
+Compare leaves undo and motion alone, as the morph since v0.19; the Euclid
+setting is global, not per patch (a Rhythm byte above 32 would index past
+stock's table on an unpatched Peak); the arp echo fix; no sostenuto fix (a
+rare gesture, and the feature list dropped pedal changes); nothing built
+for MIDI Tuning (stock has single-note retuning: findings).
+
+**Still open, the user's choice:** MIDI Tuning for device ID `7F` and
+several notes per message; arp ratchets; the stepwise closing of the filter
+seen in J2; the two decisions below; the README, which still describes
+release 0.1.
 
 **Model:** the Fable brief (items A to D) is worked through; what is left is
 hands-on testing, small fixes and then the morph from the written design
 note. Opus 5.5 (high effort for the morph, medium for test rounds) can take
 it from these files.
 
-**State on the synth:** v0.19 (`fb36f0fb…`, boot `MPEJ`, commit `709b87f`), flashed by the user 2026-11-16 17:54; no rig run yet; series L under way (L2 passed; L3 and L4 open). Before it: v0.18 (`9df89b4d…`, boot `MPEI`, commit `c19c0f8`), flashed by
+**State on the synth:** v0.19 (`fb36f0fb…`, boot `MPEJ`, commit `709b87f`), flashed by the user 2026-11-16 17:54; no rig run on it; L2 of series L passed, L3 and L4 not done on it. v0.20 is built and waits for the flash. Before it: v0.18 (`9df89b4d…`, boot `MPEI`, commit `c19c0f8`), flashed by
 the user 2026-11-16 (flash log ok, identity `02 01 00 08`; rig 136 pass, 0 fail, 5 info, run
 `2026-11-16_143231`; series J and K done). After series K `Morph` and the LinnStrument's Low Row are as the user left them (not reported). Before it: v0.17 (`e5e9e652…`, boot
 `MPEH`, commit `163e5c7`, rig 136/0/5, run `2026-11-16_105659`). Before it: v0.16 (`0f262ad9…`, boot `MPEG`, commit
@@ -67,6 +80,10 @@ in a slow attack) and whether to fix the sostenuto quirk.
 | D3 Motion recorder | done in the simulator | `b1e4e9f` | `motion.c`: Mod + Animate 1 arms, the next control moved is recorded for 32 steps and loops; replace while playing; stop restores the value. Settings > MOTION: Length 1/2/4 bars, state, `LateTicks` (late-tick counter, `diag.c`). `tests/test_peak_motion.py` 10 pass; Peak regression 95 pass | emulated; not on the synth |
 | D4 Smooth | done, on the synth in v0.17 (the user: rises smoothly) | | Lane playback is a ramp from step to step, written every 16 ms; the loop start no longer jumps. `tests/test_peak_motion.py` 13 pass | emulated and heard by the user |
 | D5 Morph | done, confirmed on the synth in v0.18 (series J) | | `morph.c`: Settings > MORPH > Morph = ModWheel; CC 1 blends the edited patch (0) towards the stored one (127); 126 continuous controls, switches stay; 16 setter calls per 16 ms. `tests/test_peak_morph.py` 16 pass. Rig script `work/morph_check.py` | emulated; not on the synth |
+| E1 Compare with undo and a motion lane | done in the simulator, v0.20 | `6f56a92` | v0.19 cleared the undo step and stopped a lane at a Compare press (emulated first). Now both stand still while Compare is held; undo, paste, quick-assign and Mod + Animate 1 say `Not during Compare` | emulated; not on the synth |
+| E2 Euclidean arp rhythms (feature list step 17) | done in the simulator, v0.20 | `d1a25fd`, `daad110` | Settings > ARP EUCLID: Pulses, Steps, Rotate. Stock's 33 rhythms are lists of note and rest lengths in arp clocks; `euclid.c` builds one and points the arp at it (hook on the call of `arp_tick`). Ratchets not built | emulated; not on the synth |
+| E3 Arp echo filter | done in the simulator, v0.20 | `c267544` | With Arp>MIDI on and no loop, v0.2 to v0.19 took a key let go within 100 ms of the arp's own note off for the echo, so the arp went on (emulated). A note off is now dropped only within a minute of an echoed note on | emulated; not on the synth |
+| E4 MIDI Tuning Standard (feature list, "Later") | checked | `25c11f2` | Stock already takes `F0 7F 00 08 02 tt 01 kk xx yy zz F7` (one note, device 00) and the bulk dump; nothing built | code observed, emulated on stock |
 
 ## Verified so far
 
