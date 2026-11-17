@@ -101,6 +101,10 @@ void param_set_by_id(uint32_t value, uint32_t id);
 void param_write(uint32_t value, uint32_t id);
 /* pickup_state[offset] = 3 for offset < 0xFB (0x08016B04). observed */
 void pickup_arm(uint32_t offset);
+/* (id) -> patch offset (0x08017E68): a CC number (id < 0x100) through the
+ * table at 0x08017EB8; 0x200 above 0xD35. Called by 0x0800F614, the lookup
+ * inside param_write and param_set_by_id. observed (decompile) */
+uint32_t param_offset_of_id(uint32_t id);
 
 /* panel_button_event's read of the next button event (0x0800DDFC): low byte +1 press /
  * -1 release (0 = none), next byte the button index. observed (disassembly). */

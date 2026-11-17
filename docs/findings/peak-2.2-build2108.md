@@ -476,6 +476,41 @@ refusal **emulated** (`tests/test_peak_morph.py`
   undo, a motion lane and now the morph could not set a Fine tune below
   that. From v0.18 the coarse byte of a 9-bit pair goes to `param_write`
   and `pickup_arm` directly.
+- **Over MIDI, 2026-11-17 (emulated, `tests/test_peak_ccpair.py`):** with
+  Settings receiving CCs, CC 15 at 14-27 sent over DIN through `cc`
+  `0x0800F124` leaves Osc 1 Fine as it was on the stock image; 28-127 are
+  stored as sent (so 115-127, above +100, are taken too). The same bug was
+  reported upstream for the Summit 2.2 (michaelkollmann/gipfel_mpe pull
+  request 3, open), whose fix lowers the three minimums to 14.
+- **Who reads the descriptor's min and max** (every literal-pool word that
+  points at `patch_param_desc` `0x200017CC` in the stock image, read in the
+  decompile; observed): `param_set_by_id` (literal `0x0800F708`, the check
+  above); `ui_value_change` `0x08018448` (`0x080186D0`), the menu encoder,
+  which for a pair (msb `0xFE`) builds the 9-bit value and clamps it to min
+  and max, so there they are 9-bit bounds as intended; two handlers of the
+  stepped panel buttons, `0x08016A30` (`0x08016AAC`) and `0x08016D58`
+  (`0x08016DEC`), which cycle a button's value through min to max (Fine is
+  a pot, not one of them, inferred from the button table's use). The other
+  readers take only the name, NRPN bytes or display type (`knob_overlay`
+  `0x08016CB0`, `0x08017DB8` building the offset-to-id table, `ui_draw_page`
+  `0x08018060`, `ui_draw_values` `0x080182AC`). The knob path (`knob_poll`
+  `0x08016DF4`) does not read min or max. In the patch, `disp.c` draws the
+  knob's value bar over min to max, and `morph.c` clamps a stored value to
+  them.
+- **So the fix is in the setter's caller, not the descriptors (v0.22,
+  `ccpair.c`):** lowering the minimum to 14 would let the menu encoder take
+  a Fine on a menu page down to 9-bit 14 (below the panel's −100) and would
+  move the centre of the patch's Fine value bar. Instead `cc`'s call of
+  `param_set_by_id` for a plain CC (`bl` at `0x0800F318`; the other call,
+  `0x0800F30E`, is NRPN data entry with ids from `0x80`) goes to
+  `ccpair_param_set`: for a CC whose patch offset (`param_offset_of_id`
+  `0x08017E68`) is a pair's coarse byte, the value is clamped to half the
+  pair's range (14-114 for Fine) and written through `param_write` and
+  `pickup_arm`, as the setter writes; every other id goes to stock's
+  setter. Emulated: CC 15, 18 and 21 store 14-114 as sent, 0-13 as 14 and
+  115-127 as 114; Resonance and the FiltFreq pair (0-255) store what stock
+  stores; the descriptors are stock's; a held note's oscillator pitch drops
+  from Fine −73 (CC 28) to −100 (CC 14). Not yet on the synth.
 
 ## Compare and Save (2026-11-16)
 

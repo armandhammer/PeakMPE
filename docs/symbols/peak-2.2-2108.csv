@@ -165,3 +165,4 @@ address,name,kind,confidence,notes
 0x08019b40,mts_bulk_rx,function,observed,"SysEx parser, header 7E 00 08: sub-ID 00 + table -> sends the table's dump (0x08019a6c); sub-ID 01 -> takes a whole table through tuning_note_set"
 0x0801ae0c,sysex_rx_byte,function,observed,"(byte port): gives each received SysEx byte to seven parsers (headers in the table at 0x08042e98); caller 0x0800efc0"
 0x20011178,arp_random_seed,data,observed,"u32 seed of the arp's random numbers: 0x08014d98 does seed = seed * [0x08014db4] + [0x08014db0] and returns the high word; used by the random types and ArpChance"
+0x08017e68,param_offset_of_id,function,observed,"(id) -> patch offset: CC numbers (id < 0x100) through the u16 table at 0x08017eb8, NRPN ids by formula, 0x200 above 0xd35; caller 0x0800f614 (the lookup in param_write and param_set_by_id). Hooked caller of param_set_by_id for a plain CC: 0x0800f318 (cc), v0.22"

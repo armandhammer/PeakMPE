@@ -29,11 +29,11 @@ named below.
 
 ## Status
 
-**MPE for Peak 0.21**, for Peak firmware **2.2 (build 2108)** only, with
+**MPE for Peak 0.22**, for Peak firmware **2.2 (build 2108)** only, with
 FPGA build 469. Tested on one Peak ([docs/hardware-log.md](docs/hardware-log.md)):
 every check of the automated hardware test rig that applies to the Peak
 passes (136 of 136 measured rows over USB, on 0.21 and on each release
-before it), a 600-run stress soak left no stuck note, a LinnStrument played
+before it; 0.22 adds one MIDI fix, checked in the simulator so far), a 600-run stress soak left no stuck note, a LinnStrument played
 it over DIN in one and two zones, and each feature below was tried by hand
 on the synth. Not tested on other firmware versions or other units.
 
@@ -73,6 +73,9 @@ screen, Select 1 to 3, pick a line; the encoder changes it.
   current tempo.
 - **MIDI loop fix:** when a DAW sends the arpeggiator's own notes back to
   the Peak, the arpeggiator ignores them instead of retriggering itself.
+- **Osc Fine over MIDI:** stock ignores Osc 1, 2 and 3 Fine values from −100
+  to about −73 sent as CC 15, 18 or 21 (only the panel reaches them). The
+  patch takes the whole −100 to +100.
 
 ### Arpeggiator
 
@@ -121,7 +124,7 @@ screen, Select 1 to 3, pick a line; the encoder changes it.
   way to turn and how far until the knob takes over.
 - **MIDI monitor:** Settings `MIDI MONITOR` shows the last message
   received, a message count and the DIN input's overflow count.
-- **Boot screen** `MPEL Ver 108.469`, so you can see the patch and its
+- **Boot screen** `MPEM Ver 108.469`, so you can see the patch and its
   release are installed.
 
 What stock 2.2 already does (and so isn't here), and the features that were
