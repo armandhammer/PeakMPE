@@ -3,21 +3,16 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** image v0.21 (label `MPEL`, `e702ad11…`,
-`work/flash/peak-firmware-2.2-build2108+mpe-e702ad11175c.syx`) is built (source commit `7d0224e`) with
-all checks passed (720 simulator tests, 34 web tests,
-`work/build-v21.log`), in the night of 2026-11-16, and is **not flashed
-yet**. It holds v0.20 and the arp ratchet. (A v0.20 image without the
-ratchet, `323f03fb…`, source commit `daad110`, was built first and is still
-in `work/flash/`; it was never flashed.) The user flashes v0.21, then series
-M in `TEST.md`: M2 Save with the row up (the old L3; it saves over D002 and
-M2.12 restores it), M3 Compare keeps the undo step, M4 Compare leaves a
-motion lane playing, M5 the Euclidean arp rhythm, M6 the arp ratchet, M7 two
-`LateTicks` readings around a knob sweep, M8 the rig run on **GO rig** after
-asking what is plugged in. Readings wanted: `current` in M2.2, `Position` in
-M2.3, `saved val` in M2.11 (expected current × (127 − Position) / 127),
-Row 4 of the MOTION page in M7.1 and M7.3. After the flash, add the
-hardware-log row from the flash log.
+**Next step:** v0.21 (`e702ad11…`) is flashed and series M M1 to M7
+passed on the synth (2026-11-17, hardware log). The rig run gave 126 pass,
+3 fail, 5 info: `slide_right_note` failed because the mod wheel was at 127
+(every note 2 semitones sharp; inferred from the LinnStrument's Low Row in
+Fader mode), and `b1_zone_change` had one stray partial in 300 trials. The
+rig's clean start now resets CC 1 on channels 1 and 16 (`tools/hwrig/run.py`,
+rig tests pass). Waiting: the user's **GO rig** for a rerun, expected 136
+pass, 0 fail, 5 info; then series M is closed. Open, the user's choice: M7
+showed about half the modulation ticks lost while a knob turns (longest gap
+9 ms): whether to make the knob overlay cheaper.
 
 **What v0.20 and v0.21 hold (all emulated, nothing on the synth):** Compare leaves
 the undo step and a motion lane alone (`tests/test_peak_compare.py`);
@@ -52,7 +47,7 @@ hands-on testing, small fixes and then the morph from the written design
 note. Opus 5.5 (high effort for the morph, medium for test rounds) can take
 it from these files.
 
-**State on the synth:** v0.19 (`fb36f0fb…`, boot `MPEJ`, commit `709b87f`), flashed by the user 2026-11-16 17:54; no rig run on it; L2 of series L passed, L3 and L4 not done on it. v0.21 is built and waits for the flash. Before it: v0.18 (`9df89b4d…`, boot `MPEI`, commit `c19c0f8`), flashed by
+**State on the synth:** v0.21 (`e702ad11…`, boot `MPEL`, commit `7d0224e`), flashed by the user 2026-11-17; series M M1 to M7 passed; rig run `2026-11-17_093307` 126 pass, 3 fail, 5 info (a mod wheel left at 127, and one stray partial: hardware log); a rerun waits for **GO rig**. Before it: v0.19 (`fb36f0fb…`, boot `MPEJ`, commit `709b87f`), flashed by the user 2026-11-16 17:54; no rig run on it; L2 of series L passed. Before it: v0.18 (`9df89b4d…`, boot `MPEI`, commit `c19c0f8`), flashed by
 the user 2026-11-16 (flash log ok, identity `02 01 00 08`; rig 136 pass, 0 fail, 5 info, run
 `2026-11-16_143231`; series J and K done). After series K `Morph` and the LinnStrument's Low Row are as the user left them (not reported). Before it: v0.17 (`e5e9e652…`, boot
 `MPEH`, commit `163e5c7`, rig 136/0/5, run `2026-11-16_105659`). Before it: v0.16 (`0f262ad9…`, boot `MPEG`, commit
