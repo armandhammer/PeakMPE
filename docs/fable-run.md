@@ -3,14 +3,11 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** v0.21 (`e702ad11…`) is flashed and series M M1 to M7
-passed on the synth (2026-11-17, hardware log). The rig run gave 126 pass,
-3 fail, 5 info: `slide_right_note` failed because the mod wheel was at 127
-(every note 2 semitones sharp; inferred from the LinnStrument's Low Row in
-Fader mode), and `b1_zone_change` had one stray partial in 300 trials. The
-rig's clean start now resets CC 1 on channels 1 and 16 (`tools/hwrig/run.py`,
-rig tests pass). Waiting: the user's **GO rig** for a rerun, expected 136
-pass, 0 fail, 5 info; then series M is closed. Open, the user's choice: M7
+**Next step:** none pending. v0.21 (`e702ad11…`) is flashed, series M
+passed on the synth and the rig rerun gave 136 pass, 0 fail, 5 info (run
+`2026-11-17_100041`, 2026-11-17), after the rig's clean start learned to
+reset the mod wheel (the first run's Slide failure was a wheel left at 127
+by the LinnStrument's Low Row; hardware log). Open, the user's choice: M7
 showed about half the modulation ticks lost while a knob turns (longest gap
 9 ms): whether to make the knob overlay cheaper.
 
@@ -47,7 +44,7 @@ hands-on testing, small fixes and then the morph from the written design
 note. Opus 5.5 (high effort for the morph, medium for test rounds) can take
 it from these files.
 
-**State on the synth:** v0.21 (`e702ad11…`, boot `MPEL`, commit `7d0224e`), flashed by the user 2026-11-17; series M M1 to M7 passed; rig run `2026-11-17_093307` 126 pass, 3 fail, 5 info (a mod wheel left at 127, and one stray partial: hardware log); a rerun waits for **GO rig**. Before it: v0.19 (`fb36f0fb…`, boot `MPEJ`, commit `709b87f`), flashed by the user 2026-11-16 17:54; no rig run on it; L2 of series L passed. Before it: v0.18 (`9df89b4d…`, boot `MPEI`, commit `c19c0f8`), flashed by
+**State on the synth:** v0.21 (`e702ad11…`, boot `MPEL`, commit `7d0224e`), flashed by the user 2026-11-17; series M passed; rig 136 pass, 0 fail, 5 info (run `2026-11-17_100041`; the first run, `2026-11-17_093307`, 126/3/5 with a mod wheel left at 127: hardware log). Before it: v0.19 (`fb36f0fb…`, boot `MPEJ`, commit `709b87f`), flashed by the user 2026-11-16 17:54; no rig run on it; L2 of series L passed. Before it: v0.18 (`9df89b4d…`, boot `MPEI`, commit `c19c0f8`), flashed by
 the user 2026-11-16 (flash log ok, identity `02 01 00 08`; rig 136 pass, 0 fail, 5 info, run
 `2026-11-16_143231`; series J and K done). After series K `Morph` and the LinnStrument's Low Row are as the user left them (not reported). Before it: v0.17 (`e5e9e652…`, boot
 `MPEH`, commit `163e5c7`, rig 136/0/5, run `2026-11-16_105659`). Before it: v0.16 (`0f262ad9…`, boot `MPEG`, commit
