@@ -525,9 +525,15 @@ firmware's event queue); not yet on the synth with a morph running.
   25 instead of 50, and at position 127 the edit was gone (emulated on
   v0.18). From v0.19 the morph stands still while `compare_held` is set
   and starts afresh after `patch_save` (hook at `0x0801903E`).
-- **Still so, by the same reading (inferred, not tried):** pressing Compare
-  also clears the undo step and stops a motion lane, because both are
-  cleared in the same hook.
+- **The undo step and the motion lane (v0.12 to v0.19):** pressing Compare
+  also cleared the undo step and stopped a motion lane, because both are
+  cleared in the same hook (emulated on v0.19: after Compare `Mod` +
+  Page left said `Nothing to undo`, and the MOTION page read `Off`, the
+  control left at the lane's last value). From v0.20 the hook leaves all
+  three alone while `compare_held` is set: nothing is recorded, undone,
+  pasted or quick-assigned on the patch Compare plays, a lane keeps its
+  time but writes nothing, and both go on at the release
+  (`tests/test_peak_compare.py`, emulated; not on the synth).
 
 ## Main-loop pace in the simulator (2026-11-16)
 

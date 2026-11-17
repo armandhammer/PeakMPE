@@ -14,6 +14,11 @@
  * compare buffer; only a load into the current patch is touched. The first
  * load after power-up is skipped (the patch RAM is still empty).
  *
+ * The hook is also where the undo step, the motion lane and the morph learn of
+ * a patch load. The Compare button's load (compare_held set, 0x200111F2) is
+ * not one for them: stock copies the patch back at the release, so all three
+ * stand still while the button is held and go on afterwards.
+ *
  * Ranges (patch offsets, from the parameter table; the groups are mine):
  *   FX     0xC7-0xEB  distortion, delay, reverb, chorus
  *   Arp    0xEC-0xFA  arp mode, tempo (ClockRate), rate, type, rhythm, octaves, gate, swing, latch
@@ -46,9 +51,11 @@ void *plock_copy(void *dst, const void *src, uint32_t n)
     }
     void *r = fw_memcpy(dst, src, n);
     if (dst == (void *)patches) {
-        undo_clear();
-        motion_clear();
-        morph_clear();
+        if (!compare_held) {     /* not the load Compare makes: that patch is only listened to */
+            undo_clear();
+            motion_clear();
+            morph_clear();
+        }
         seen = 1;
         k = 0;
         for (uint32_t g = 0; g < GROUPS; g++) {

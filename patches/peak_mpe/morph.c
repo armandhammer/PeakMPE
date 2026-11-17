@@ -184,12 +184,11 @@ void morph_cc(uint32_t v)
     wheel = (uint8_t)(v & 0x7F);
 }
 
-/* A patch load: B is the new patch. Not the load Compare makes: that patch
- * is only listened to, and stock puts the other one back. */
+/* A patch load: B is the new patch. (Not called for the load Compare makes,
+ * plock_copy: that patch is only listened to, and stock puts the other back.) */
 void morph_clear(void)
 {
-    if (!compare_held)
-        running = 0;
+    running = 0;
 }
 
 /* The Save button's write of the patch (settings_save_action 0x0801903E):

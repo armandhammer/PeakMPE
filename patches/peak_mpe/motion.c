@@ -37,7 +37,9 @@
  * CC; nothing is sent to MIDI out. The recorded control's own Pickup is cleared
  * on each of its moves, so the hand always takes over at once. Controls without
  * a CC or NRPN number cannot be played back and are not taken. Not stored: a
- * patch load clears the lane.
+ * patch load clears the lane. While Compare is held the lane keeps its time
+ * but writes nothing (the stored patch is heard as it is), and goes on at the
+ * release, where stock puts the patch back with the lane's last value in it.
  */
 
 #include "mpe.h"
@@ -139,7 +141,9 @@ int motion_button(uint32_t ev, int mod_held)
     if (!mod_held)
         return 0;
     swallow = 1;
-    if (state == M_OFF) {
+    if (compare_held) {
+        ui_say("MOTION", "Not during Compare", "", "");
+    } else if (state == M_OFF) {
         state = M_ARMED;
         ui_say("MOTION", "Move a control", "to record it", "Mod+Animate1: cancel");
     } else {
@@ -151,8 +155,8 @@ int motion_button(uint32_t ev, int mod_held)
 /* A control moved (disp_knob_overlay, before stock handles the move). */
 void motion_knob(uint32_t kid, uint32_t cur, uint32_t is_hires)
 {
-    if (state == M_OFF)
-        return;
+    if (state == M_OFF || compare_held)
+        return;                              /* a move on the patch Compare plays is not the lane's */
     if (state == M_ARMED) {
         if (kid >= 0xFB || !param_id_of(kid))
             return;                          /* not playable: stay armed for another control */
@@ -223,7 +227,7 @@ void motion_poll(void)
         if (s != step)
             next_step(s, now);
     }
-    if (state != M_PLAY || touched || now - write_tick < WRITE_TICKS)
+    if (state != M_PLAY || touched || compare_held || now - write_tick < WRITE_TICKS)
         return;
     uint32_t e = now - ramp_tick;
     int32_t v = e >= ramp_len ? ramp_to

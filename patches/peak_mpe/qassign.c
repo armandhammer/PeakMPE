@@ -183,7 +183,7 @@ static void show(int32_t slot, uint32_t dest)
 /* A control with patch offset id moved while Mod is held. Called after stock drew. */
 void qa_knob(uint32_t id)
 {
-    if (!held)
+    if (!held || compare_held)     /* no assignment into the patch Compare plays: stock throws it away */
         return;
     if (shown_id1 == id + 1) {     /* already on the screen: keep it there, no redraw (flicker) */
         ui_msg_state[2] = (uint8_t)(globals[GLOBAL_MSG_TIME] + 5);

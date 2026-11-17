@@ -12,7 +12,8 @@
  * 2 s (one gesture is one undo step). Hold Mod and press Page left to undo, Page
  * right to redo (both swap the saved copy with the patch, written back through the
  * same setter, for the parameters that differ). Editing with the value buttons or
- * the encoder is not recorded. A patch load clears it.
+ * the encoder is not recorded. A patch load clears it; the Compare button does
+ * not (nothing is recorded, undone or pasted while it is held).
  *
  * The id for param_set_by_id comes from the parameter's own descriptor
  * (patch_param_desc: NRPN msb 252-254 = a CC whose number is the lsb, 255 = not
@@ -103,6 +104,8 @@ void undo_clear(void)
  * a different control, starts a new gesture and saves the patch as it is now. */
 void undo_knob(uint32_t id)
 {
+    if (compare_held)
+        return;                                /* the patch Compare plays is not edited */
     uint32_t now = mpe_ticks();
     if (last_id1 != id + 1 || now - last_move > TICKS_PER_GESTURE)
         undo_capture();
@@ -136,6 +139,10 @@ int edit_button(uint32_t ev)
     if ((int8_t)(ev & 0xFF) < 0)
         return 1;                              /* the release: nothing to do */
     int back = idx == 34;
+    if (compare_held) {                        /* stock throws that patch away at the release */
+        ui_say(back ? "UNDO" : "REDO", "Not during Compare", "", "");
+        return 1;
+    }
     if (!undo_valid || (back && undone) || (!back && !undone)) {
         ui_say("UNDO", back ? "Nothing to undo" : "Nothing to redo", "", "");
         return 1;
@@ -159,6 +166,10 @@ void section_edit(uint32_t index, int32_t delta)
         return;
     if (op == 0) {
         ui_say("COPY SECTION", "Choose a copy first", "", "");
+        return;
+    }
+    if (compare_held) {
+        ui_say("COPY SECTION", "Not during Compare", "", "");
         return;
     }
     undo_capture();

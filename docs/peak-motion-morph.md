@@ -433,8 +433,16 @@ checks it on the synth):**
   next edit. This is the state stock leaves after any Save.
 - On the Save pages Compare plays the destination; the blend is back at the
   release and is what the fourth press stores (emulated).
-- Not changed: pressing Compare still clears the undo step and stops a
-  motion lane (same hook; inferred from the code, not tried).
+- Not changed in v0.19: pressing Compare still clears the undo step and
+  stops a motion lane (same hook; emulated on v0.19 afterwards).
+  **v0.20 (2026-11-17, emulated, `tests/test_peak_compare.py`; not on the
+  synth):** Compare leaves both alone. While it is held the lane keeps its
+  time and writes nothing, so the stored patch is heard as it is; at the
+  release stock puts the patch back with the lane's last value in it and
+  the lane plays on. The undo step from before is still there afterwards.
+  Undo, redo, a section paste, a quick-assign and Mod + Animate 1 do
+  nothing while Compare is held (`Not during Compare`): the patch in RAM
+  is the stored one then, and stock throws it away at the release.
 - Stock, and not changed: pressing Compare ends the notes that are held
   (it loads a patch; findings, "Compare and Save"), so the stored patch is
   heard on a note played while the button is held. Seen on the synth in
