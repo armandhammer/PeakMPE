@@ -17,7 +17,7 @@ Core:
   bl hook:      settings_save_action's settings_save -> live state to globals
   bl hooks x4:  ui_value_change calls -> the VOICE item writes the flag itself
   byte patches: patch_param_desc[0x1A2] (the MPE flag: 0-1, Off/On, "MPE"),
-                VOICE page 1 item 3 = the flag, version labels "MPEM" (v0.22; "MPEL" = v0.21, "MPEK" = v0.20, "MPEJ" = v0.19, "MPEI" = v0.18, "MPEH" = v0.17, "MPEG" = v0.16, "MPEF" = v0.15, "MPEE" = v0.14, "MPED" = v0.13, "MPEC" = v0.12, "MPEB" = v0.11, "MPEA" = v0.10, "MPE9" = v0.9, "MPE8" = v0.8, "MPE7" = v0.7, "MPE6" = v0.6, "MPE5" = v0.5, "MPE4" = v0.4, "MPE3" = v0.3, "MPE2" = v0.2, "MPE1" = v0.1)
+                VOICE page 1 item 3 = the flag, version labels "MPEN" (v0.23; "MPEM" = v0.22, "MPEL" = v0.21, "MPEK" = v0.20, "MPEJ" = v0.19, "MPEI" = v0.18, "MPEH" = v0.17, "MPEG" = v0.16, "MPEF" = v0.15, "MPEE" = v0.14, "MPED" = v0.13, "MPEC" = v0.12, "MPEB" = v0.11, "MPEA" = v0.10, "MPE9" = v0.9, "MPE8" = v0.8, "MPE7" = v0.7, "MPE6" = v0.6, "MPE5" = v0.5, "MPE4" = v0.4, "MPE3" = v0.3, "MPE2" = v0.2, "MPE1" = v0.1)
 UI (Settings MPE pages):
   bl hook:      main_loop's first settings_load -> builds the relocated tables
   bl hook:      main_loop's sysex_rx_poll -> redraws the MPE values on change
@@ -43,6 +43,12 @@ Knob display (disp.c; v0.3):
   (and mpe_ui_poll calls disp_poll, which puts stock's custom characters back)
                 value bars on row 3; pickup arrow and distance bar
 
+LCD cache (lcdcache.c; v0.23):
+  bl hooks x2:  the escape layer's lcd_putc and lcd_cursor calls -> a character
+                the display already shows isn't sent again
+  bl hooks x2:  lcd_init (the copy becomes blank), the panel power-up after the
+                screen saver (the copy is forgotten)
+
 9-bit CC pairs over MIDI (ccpair.c; v0.22):
   bl hook:      cc's call of param_set_by_id for a plain CC -> the coarse
                 byte of a pair is held against half the pair's range, so Osc
@@ -63,7 +69,7 @@ FLAG_DESC = PATCH_PARAM_DESC + 0x1A2 * 12  # 0x08047D74: {min, max, nrpn msb, nr
 VOICE_PAGE_1 = 0x08048648  # flash initialiser of the VOICE menu's first page (RAM 0x20003438)
 
 PATCHES = [
-    # Version labels: boot screen "MPEM Ver ...", Settings "MPEMVer".
+    # Version labels: boot screen "MPEN Ver ...", Settings "MPENVer".
     # MPE1 = v0.1 (first hardware release); MPE2 = v0.2 (arp echo filter);
     # MPE3 = v0.3 (knob display: ms and Hz, bars, pickup arrow);
     # MPE4 = v0.4 (Settings MPE page: PressCurve Squared/Linear);
@@ -74,6 +80,7 @@ PATCHES = [
     # MPE9 = v0.9 (quick-assign message redrawn on every move: stock overwrote it);
     # MPEA = v0.10 (quick-assign: with Mod held a control only selects, stock draws and applies nothing);
     # MPEB = v0.11 (Settings PARAM LOCK: keep FX, Arp or Voice settings through a patch change);
+    # MPEN = v0.23 (LCD cache: a character the display already shows isn't sent again, lcdcache.c; the bar's characters load one per main-loop pass).
     # MPEM = v0.22 (Osc 1/2/3 Fine over MIDI reaches -100: the coarse byte of a 9-bit CC pair is held against half the pair's range, ccpair.c).
     # MPEL = v0.21 (arp ratchets: Settings ARP RATCHET, a note sounds two or three times in its step).
     # MPEK = v0.20 (Compare leaves the undo step and a motion lane alone: both stand still while it is held;
@@ -91,8 +98,8 @@ PATCHES = [
     # Time 127 lasts 1.45 s (about 1.5 s measured by the user, 2026-11-15) where the
     # guide says about 3 s. More than 21 makes a count 22 ms: 127 = 2.9 s, 64 = 1.5 s.
     (0x08018AEA, bytes.fromhex("0a2b"), bytes.fromhex("152b"), "ui_msg_countdown: one count per 22 ms instead of 11 (cmp r3, #21)"),
-    (0x080452FB, b" Version ", b"MPEM Ver ", "boot screen label (.data initialiser of RAM 0x200000EB)"),
-    (0x080445E8, b"Version\x00", b"MPEMVer\x00", "Settings 2/28 SYSTEM item name"),
+    (0x080452FB, b" Version ", b"MPEN Ver ", "boot screen label (.data initialiser of RAM 0x200000EB)"),
+    (0x080445E8, b"Version\x00", b"MPENVer\x00", "Settings 2/28 SYSTEM item name"),
     # The flag's reserved descriptor: max 0 -> 1, display 0 -> 0x0F (Off/On,
     # as KeySync/FadeSync/Common on the Peak). NRPN stays 255:0. The name
     # pointer is a hook below.
@@ -106,7 +113,7 @@ PATCHES = [
 SOURCES = ["mpe_settings.c", "mpe_route.c", "mpe_voice.c", "mpe_ui.c",
            "mpe_expr.c", "mpe_bend.c", "mpe_pressure.c", "mpe_slide.c",
            "arp_echo.c", "disp.c", "envsync.c", "qassign.c", "paramlock.c", "section.c", "diag.c", "motion.c",
-           "morph.c", "euclid.c", "ccpair.c"]
+           "morph.c", "euclid.c", "ccpair.c", "lcdcache.c"]
 
 MIDI_CHANNEL_FILTER = 0x0800EED0
 VOICE_DISPATCH = 0x08012984
@@ -137,6 +144,10 @@ PATCH_SAVE = 0x08018F10
 ARP_TICK = 0x08015554
 ARP_STEP_SELECT = 0x08015408
 PARAM_SET_BY_ID = 0x0800F6AC
+LCD_PUTC = 0x080168C8
+LCD_CURSOR = 0x080168B4
+LCD_INIT = 0x080169E4
+LCD_POWER_ON = 0x08016804
 
 # (kind, site, expected original, patch symbol, why)
 HOOKS = [
@@ -197,4 +208,9 @@ HOOKS = [
     ("bl", 0x08016C72, FORMAT_VALUE, "disp_fmt_cur", "knob_overlay: the 'current' value"),
     ("bl", 0x08016C90, FORMAT_VALUE, "disp_fmt_saved", "knob_overlay: the 'saved val' value"),
     ("bl", 0x0800F318, PARAM_SET_BY_ID, "ccpair_param_set", "cc: a plain CC to the setter (Osc Fine's coarse byte, ccpair.c)"),
+    # LCD cache (lcdcache.c).
+    ("bl", 0x0800D1FA, LCD_PUTC, "lcd_cache_putc", "escape layer: the only call of lcd_putc for text"),
+    ("bl", 0x0800D216, LCD_CURSOR, "lcd_cache_cursor", "escape layer: the only call of lcd_cursor"),
+    ("bl", 0x0800D202, LCD_INIT, "lcd_cache_init", "boot: lcd_init (ends with a clear)"),
+    ("bl", 0x08016932, LCD_POWER_ON, "lcd_cache_power_on", "lcd_display_on: the panel's power-up after the screen saver"),
 ]

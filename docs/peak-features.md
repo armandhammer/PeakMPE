@@ -291,6 +291,13 @@ Measurements (step 6) can run on the rig while code is written for others.
    and note names: stock already prints `FixedNote` and `SplitPoint` as note
    names (display types 0x40/0x41) and Transpose is a Settings page number,
    not a knob, so there was nothing to add to the overlay.
+   **Cost, v0.23 (`lcdcache.c`, emulated):** series M7 measured about half
+   the 1 kHz modulation ticks lost while a knob turned (observed). Stock
+   rewrites the whole overlay on every knob event (37 writes, about 1.9 ms
+   of busy-waited bus time) and v0.22's bar doubled it; with the LCD cache
+   only changed characters are sent (about 4 per event, 0.2 ms), and the
+   bar's characters load one per main-loop pass. Findings, "The patch's
+   LCD cache".
 10. **Pickup feedback** (M). Show which way to turn and how far, as an arrow
     and a bar closing on the saved value, in place of stock's numbers.
     **Built (v0.3, `disp.c`; checked on the synth by the user, 2026-11-13):**

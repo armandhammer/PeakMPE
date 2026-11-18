@@ -201,6 +201,52 @@ strings read from the image (`.data` is copied from flash `0x08045210` to RAM
   codes and `lcd.glyph(code)` bitmaps; the pots are not modelled, so a
   test calls `knob_overlay` directly with the arguments above, as `knob_poll`
   does.
+- **Who writes to the LCD (2026-11-17, observed in the disassembly).** All
+  text goes through two calls in the escape layer: `0x0800D1FA` (the
+  wrapper `0x0800D1F8` → `lcd_putc`; wrapper callers `lcd_putc_esc`
+  `0x0800D23C` and three in `0x0800D5FE`-`0x0800D620`) and `0x0800D216`
+  (the wrapper `0x0800D214` → `lcd_cursor`, about 70 callers, the cursor
+  escape among them). `lcd_putc` has one other caller, `lcd_init`'s clear
+  (`0x08016A28`); `lcd_cursor` none. The direct callers of `lcd_write_cmd`
+  are `lcd_load_cgram`, `lcd_cursor`, `lcd_putc`'s clear, `lcd_init`, and two
+  small functions: `lcd_display_on` `0x08016924` (if the display is off:
+  `lcd_power_on` `0x08016804`, which sets PB1, a 1 ms wait, command `0x0C`)
+  and `lcd_display_off` `0x08016950` (command `0x08`, `lcd_power_off`, called
+  by the screen-saver timeout `0x08016970` when more than 599,999 counts of
+  the ms counter, literal `0x08016994`, have passed since the last
+  `lcd_display_on`: about 10 minutes). PB1 is likely the panel's supply
+  (inferred); whether the display keeps its RAM while it is off was not
+  checked. `lcd_write_data` is called only by `lcd_load_cgram`, `lcd_putc` and
+  `lcd_init`. `lcd_init` (through `0x0800D200`) has one caller, `0x0800E7E2`.
+  The 1 ms waits poll a u16 that only the timer interrupt advances
+  (`0x20003BA2`, delay `0x0800E50C`).
+- **Stock redraws unchanged text (2026-11-17, emulated,
+  `work/_overlay_writes.py`).** A knob event with the overlay already up
+  rewrites the parameter name and both value rows: 34 data writes and 3
+  cursor commands on Filter Frequency, of which 33 data writes put back the
+  character the cell already held. v0.22's bar row made it 68. A Settings
+  page drawn over itself: 56 writes, all unchanged. At about 51 µs a write
+  (above), that is about 1.9 ms of a stock knob event and 3.5 ms of v0.22's,
+  in the main loop, against the 1 ms modulation tick; series M7 measured
+  about half the ticks lost while a knob turned on v0.21 (observed).
+- **The patch's LCD cache (v0.23, `lcdcache.c`; emulated).** Hooks on the
+  two escape-layer calls keep a copy of the 128 DDRAM cells: a cursor
+  escape only records the position, a character equal to the copy is not
+  sent, a different one is sent after an address command when the
+  display's own address isn't there. Unknown cells (`0xFF`, a code
+  `lcd_putc` never sends) are always written; the copy is blank after
+  `lcd_init`'s clear (hook `0x0800D202`), forgotten when the panel is powered
+  up after the screen saver (hook `0x08016932`), and a character past column
+  19, where the controller's next address isn't known, is written at its
+  address and the copy forgotten (none at boot). Fed the same random stream
+  of characters, cursor escapes, clears and ignored codes, stock and the
+  patch end with the same 128 cells after every chunk
+  (`tests/test_peak_lcdcache.py`). A knob turn of 40 events on Filter
+  Frequency: stock 37 writes per event, the patch 2 to 7 (average 3.8),
+  about 0.2 ms; a page drawn over itself: 0. The bar's seven characters
+  (56 writes) now load one per main-loop pass, so no pass holds more than a
+  stock knob event (`work/_turn_cost.py`, `tests/test_peak_disp.py`). Not
+  yet measured on the synth.
 
 ## Voice allocation and stealing (2026-11-15)
 

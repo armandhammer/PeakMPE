@@ -3,11 +3,20 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** none in progress; the user picks the next item. Open, the
-user's choice: M7 showed about half the modulation ticks lost while a knob
-turns (longest gap 9 ms), so whether to make the knob overlay cheaper;
-roadmap steps 3, 4, 5 and 8 (`docs/peak-features.md`); ratchet chance,
-MTS 7F, steal refinement, sostenuto.
+**Next step:** image v0.23 (label `MPEN`, `988f7a59…`,
+`work/flash/peak-firmware-2.2-build2108+mpe-988f7a59aa42.syx`, log
+`work/build-v23.log`) is built, 2026-11-17, and **not flashed yet**. It is
+v0.22 plus the LCD cache (`lcdcache.c`: only changed characters are sent;
+the bar's characters load one per main-loop pass), the user's pick from
+my three proposals (the knob overlay first; then release velocity as a
+per-voice mod source, step 8, and the blank-settings guard, step 3).
+Emulated: a knob event 37 writes on stock, about 4 now; the display
+identical to stock's for a random stream (findings, "The patch's LCD
+cache"). The user flashes it, then series O in `TEST.md` (O4 repeats M7's
+LateTicks; O5 the rig on **GO rig**, after asking what is plugged in).
+After the flash, add the hardware-log row from the flash log. Still open:
+step 4 looks done in practice (strike it?); chord memory and scale
+quantise may be controller jobs (ask).
 
 **v0.22 on the synth** (label `MPEM`, `e7b5ec86…`, source `2d6f240`):
 flashed 2026-11-17, series N passed. N1 and N2 by the user; N3 on the rig:

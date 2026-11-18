@@ -104,7 +104,7 @@ void ui_say(const char *l0, const char *l1, const char *l2, const char *l3)
     const char *rows[4] = {l0, l1, l2, l3};
     holding = 0;
     for (uint32_t r = 0; r < 4; r++) {
-        lcd_cursor(0, r);
+        lcd_cache_cursor(0, r);
         uint32_t n = 0;
         for (const char *s = rows[r]; *s && n < 20; s++, n++)
             lcd_putc_esc((uint8_t)*s);

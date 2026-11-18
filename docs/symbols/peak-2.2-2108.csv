@@ -166,3 +166,7 @@ address,name,kind,confidence,notes
 0x0801ae0c,sysex_rx_byte,function,observed,"(byte port): gives each received SysEx byte to seven parsers (headers in the table at 0x08042e98); caller 0x0800efc0"
 0x20011178,arp_random_seed,data,observed,"u32 seed of the arp's random numbers: 0x08014d98 does seed = seed * [0x08014db4] + [0x08014db0] and returns the high word; used by the random types and ArpChance"
 0x08017e68,param_offset_of_id,function,observed,"(id) -> patch offset: CC numbers (id < 0x100) through the u16 table at 0x08017eb8, NRPN ids by formula, 0x200 above 0xd35; caller 0x0800f614 (the lookup in param_write and param_set_by_id). Hooked caller of param_set_by_id for a plain CC: 0x0800f318 (cc), v0.22"
+0x08016804,lcd_power_on,function,observed,"(): GPIOB BSRR (literal 0x40020418) = 2, sets PB1; only caller lcd_display_on 0x08016932; the panel supply enable (inferred)"
+0x08016810,lcd_power_off,function,observed,"(): GPIOB BSRR = 0x20000, clears PB1; only caller lcd_display_off 0x0801695e"
+0x08016924,lcd_display_on,function,observed,"(): if the display is off (flag at literal 0x0801694c +4): lcd_power_on, 1 ms delay, cmd 0x0C, flag = 1; stores the ms counter at the literal either way; callers include lcd_init and the panel event paths"
+0x08016950,lcd_display_off,function,observed,"(): cmd 0x08, 1 ms delay, lcd_power_off, flag = 0; only caller the screen-saver timeout 0x08016988"

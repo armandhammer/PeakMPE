@@ -125,6 +125,7 @@ UI_STATE = 0x20011200
 UI_DRAW_PAGE = 0x08017F14
 UI_DRAW_VALUES = 0x08018070
 LCD_WRITE_CMD = 0x08016840
+LCD_PUTC_ESC = 0x0800D21C
 
 
 @pytest.fixture(scope="module")
@@ -237,7 +238,12 @@ def _show(b, mode, page, item):
     b.uc.mem_write(menu, bytes([page]))
     rec = int.from_bytes(b.uc.mem_read(menu + 4 + 4 * page, 4), "little")
     b.uc.mem_write(rec + 5, bytes([item]))
-    _call(b, LCD_WRITE_CMD, 0x01)                 # clear the display, as a page change does
+    # Blank the display as a page change's clear would. Through stock's escape
+    # layer (09 col row, spaces), so the patch's LCD cache sees it; code 8
+    # itself waits 1 ms on a counter that only an interrupt advances.
+    for row in range(4):
+        for c in (9, 0, row) + (0x20,) * 20:
+            _call(b, LCD_PUTC_ESC, c)
     _call(b, UI_DRAW_PAGE)
     _call(b, UI_DRAW_VALUES)
     return b.display.lcd.text()

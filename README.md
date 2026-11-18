@@ -29,11 +29,12 @@ named below.
 
 ## Status
 
-**MPE for Peak 0.22**, for Peak firmware **2.2 (build 2108)** only, with
+**MPE for Peak 0.23**, for Peak firmware **2.2 (build 2108)** only, with
 FPGA build 469. Tested on one Peak ([docs/hardware-log.md](docs/hardware-log.md)):
 every check of the automated hardware test rig that applies to the Peak
 passes (136 of 136 measured rows over USB, on 0.22 and on each release
-before it), a 600-run stress soak left no stuck note, a LinnStrument played
+before it; 0.23 changes how the screen is written, checked in the simulator
+so far), a 600-run stress soak left no stuck note, a LinnStrument played
 it over DIN in one and two zones, and each feature below was tried on the
 synth (by hand, or by the rig where the panel can't do it). Not tested on other firmware versions or other units.
 
@@ -124,7 +125,11 @@ screen, Select 1 to 3, pick a line; the encoder changes it.
   way to turn and how far until the knob takes over.
 - **MIDI monitor:** Settings `MIDI MONITOR` shows the last message
   received, a message count and the DIN input's overflow count.
-- **Boot screen** `MPEM Ver 108.469`, so you can see the patch and its
+- **Lighter screen updates:** the screen is sent only the characters that
+  change. Stock rewrites whole lines, and every character holds up the
+  per-note modulation for about 0.05 ms; while a knob turns this is about
+  a tenth of stock's screen traffic.
+- **Boot screen** `MPEN Ver 108.469`, so you can see the patch and its
   release are installed.
 
 What stock 2.2 already does (and so isn't here), and the features that were

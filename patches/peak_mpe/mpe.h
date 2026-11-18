@@ -128,6 +128,10 @@ void arp_echo_tick(void);
 /* Once per main-loop pass: restores stock's custom characters once the
  * overlay's message time has run out. */
 void disp_poll(void);
+/* lcdcache.c: the display's characters are only sent when they change. */
+void lcd_cache_cursor(uint32_t col, uint32_t row);
+void lcd_cache_lost_ac(void);
+extern uint32_t lcd_cache_spills;
 
 /* --- Tempo-synced envelope times (envsync.c) ---------------------------- */
 void envsync_tick(void);   /* 1 kHz, from mpe_mod_update */

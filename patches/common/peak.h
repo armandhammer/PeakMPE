@@ -221,6 +221,15 @@ void lcd_write_data(uint32_t byte);
 void lcd_load_cgram(void);
 /* (code): one character through the escape state machine (9 = cursor). */
 void lcd_putc_esc(uint32_t code);
+/* (code): one character to the display (0xBA space, 0xBB-0xBF -> 0x95-code,
+ * 0-7, 0x10-0x7F, 0x1F as is; 8 = clear). Called only by the escape layer
+ * (0x0800D1FA) and lcd_init. */
+void lcd_putc(uint32_t code);
+/* (): reset, function set, CGRAM, clear (boot; called through 0x0800D200). */
+void lcd_init(void);
+/* (): sets PB1 (GPIOB BSRR = 2), called by lcd_display_on 0x08016924 when the
+ * display was off; the panel's supply enable (inferred). */
+void lcd_power_on(void);
 
 /* patch_param_desc: 12-byte records by patch offset (RAM 0x200017CC). */
 struct param_desc {
