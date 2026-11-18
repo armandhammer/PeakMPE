@@ -22,6 +22,7 @@
  *                   controls that differ (morph.c)
  *   ARP EUCLID      Pulses (Off, 1-32), Steps (1-32), Rotate (euclid.c)
  *   ARP RATCHET     Ratchet (Off, x2, x3), Every (1-8) (euclid.c)
+ *   RELEASE VEL     Source (Off, ExprPED1, BrthPED2) (relvel.c)
  * The Summit's read-only "Channels" item (CH CLASH) is left out: the Peak has
  * no Multi parts whose channels a zone could take.
  * The items are kind 3 (global settings) with records 0x30-0x38, which stock
@@ -65,15 +66,15 @@ struct mpe_page {
 };
 
 #define STOCK_DESCS 0x22           /* Peak global_param_desc: records 0x00-0x21, then other data */
-#define MPE_G_LAST MPE_G_EUC_EVERY     /* the last record of new_descs */
+#define MPE_G_LAST MPE_G_RELVEL        /* the last record of new_descs */
 #define MPE_DESCS (MPE_G_LAST + 1)
 #define MPE_PAGE_AT 4              /* after MIDI CONTROL (stock page 3) */
-#define MPE_PAGES 10
+#define MPE_PAGES 11
 #define STOCK_PAGES PEAK_SETTINGS_PAGES
 #define UI_MODE_SETTINGS PEAK_UI_SETTINGS
 #define UI_MODE (ui_state[0])
 
-enum { DISP_ZONE = 0xE0, DISP_MEMBERS, DISP_NOTE, DISP_MASTER, DISP_CURVE, DISP_ENVSYNC, DISP_LOCK_FX, DISP_LOCK_ARP, DISP_LOCK_VOICE, DISP_SECT, DISP_DOIT, DISP_DLAST, DISP_DCOUNT, DISP_DOVF, DISP_GLIDE, DISP_MLEN, DISP_MSTATE, DISP_LATE, DISP_MORPH, DISP_MPOS, DISP_MDIFF, DISP_EPULSES, DISP_ESTEPS, DISP_EROTATE, DISP_ERATCHET, DISP_EEVERY, DISP_END };
+enum { DISP_ZONE = 0xE0, DISP_MEMBERS, DISP_NOTE, DISP_MASTER, DISP_CURVE, DISP_ENVSYNC, DISP_LOCK_FX, DISP_LOCK_ARP, DISP_LOCK_VOICE, DISP_SECT, DISP_DOIT, DISP_DLAST, DISP_DCOUNT, DISP_DOVF, DISP_GLIDE, DISP_MLEN, DISP_MSTATE, DISP_LATE, DISP_MORPH, DISP_MPOS, DISP_MDIFF, DISP_EPULSES, DISP_ESTEPS, DISP_EROTATE, DISP_ERATCHET, DISP_EEVERY, DISP_RELVEL, DISP_END };
 
 #define FIELD 8                    /* value field: columns 11-18, the mark is at 19 */
 
@@ -98,6 +99,7 @@ static const char title_motion[] = "MOTION";
 static const char title_morph[] = "MORPH";
 static const char title_euclid[] = "ARP EUCLID";
 static const char title_ratchet[] = "ARP RATCHET";
+static const char title_relvel[] = "RELEASE VEL";
 
 static const struct mpe_desc new_descs[] = {
     {0, 2, 0x40, 0x2E, DISP_ZONE, "Zone"},
@@ -126,6 +128,7 @@ static const struct mpe_desc new_descs[] = {
     {0, 31, 0x40, 0x3C, DISP_EROTATE, "Rotate"},
     {0, 2, 0x40, 0x3D, DISP_ERATCHET, "Ratchet"},     /* records 0x48, 0x49: stored in the globals */
     {1, 8, 0x40, 0x3E, DISP_EEVERY, "Every"},
+    {0, 2, 0x40, 0x3F, DISP_RELVEL, "Source"},        /* record 0x4A: stored in the globals */
 };
 
 /* Last drawn per item. Only compared with what would be drawn now, so its
@@ -194,6 +197,8 @@ static void build_tables(void)
     page_init(&mpe_pages[9], title_ratchet);
     page_item(&mpe_pages[9], MPE_G_EUC_RATCHET);
     page_item(&mpe_pages[9], MPE_G_EUC_EVERY);
+    page_init(&mpe_pages[10], title_relvel);
+    page_item(&mpe_pages[10], MPE_G_RELVEL);
 
     struct mpe_page **stock = (struct mpe_page **)(settings_menu + 4);
     uint32_t n = 0;
@@ -391,6 +396,12 @@ static void render_view(const struct mpe_live *v, uint32_t display, char *out)
         put_str(&p, names[n > 2 ? 0 : n]);
         break;
     }
+    case DISP_RELVEL: {
+        static const char *const names[] = {"Off", "ExprPED1", "BrthPED2"};   /* the guide's source names */
+        uint8_t n = globals[MPE_G_RELVEL];
+        put_str(&p, names[n > 2 ? 0 : n]);
+        break;
+    }
     }
     *p = 0;
 }
@@ -509,7 +520,8 @@ static void edit_setting(uint16_t index, int32_t delta)
         v = globals[MPE_G_GLIDE] > 2 ? 0 : globals[MPE_G_GLIDE];
         break;
     case MPE_G_MOTION_LEN:
-        v = globals[MPE_G_MOTION_LEN] > 2 ? 0 : globals[MPE_G_MOTION_LEN];
+    case MPE_G_RELVEL:
+        v = globals[index] > 2 ? 0 : globals[index];
         break;
     case MPE_G_LOCK_FX:
     case MPE_G_LOCK_FX + 1:

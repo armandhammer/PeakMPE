@@ -741,6 +741,40 @@ within 2% and tripped at v0.18 (2.1%); it now holds the note's own writes
 to 0.5% and the paced ones to 15%. On the synth the pace is not a concern
 so far: v0.17 lost 9 modulation ticks in 10 s, all of them page draws.
 
+## Pedal sources and the note-off velocity (2026-11-17)
+
+From the decompile and the disassembly (**observed** unless marked).
+
+- **`note_off` ignores the velocity.** `note_off` `0x0800F4B0` gets a
+  pointer to the message's data bytes and reads only the note (`*param_1`);
+  the second byte, the note-off velocity, is never read. `note_on` with
+  velocity 0 calls it the same way. The arp path (`arp_note_off`) doesn't
+  read it either. So stock has no use for release velocity anywhere, and
+  the guide's matrix source list (Direct to Noise, 24 entries; the same
+  list as the pointer table at `0x08046480`) has no release-velocity source.
+- **The two pedal sources.** `mod_update` `0x0801088C` sends `n` = 2 and
+  `n` = 3 (`voice_mod_write(0xA, n, value)`, parameters `0x62`/`0x63` to
+  every voice) on every tick at `0x080109C0` and `0x08010A0E`, plus
+  `part_mod_write(2/3)` just after. The values are `parts+8` and `parts+9`,
+  each smoothed by 1/8 of the step per tick (`voice_state+0x38`/`+0x3C`,
+  16.16; 127 becomes `0x7FFF`). `parts+8` is set by CC 11 (the `cc` handler's
+  case `0xB`, `FUN_08011D74`) and by the pedal input code at `0x080171C4`,
+  which also sends CC 11 out; `parts+9` by CC 2 (`FUN_08011D80`). So
+  `0x62` is the source the guide calls `ExprPED1` and `0x63` `BrthPED2`
+  (inferred from that and from the source list's order after `ModWheel`
+  0x60 and `AftTouch` 0x61; the matrix source indices are 3 and 4).
+- **The patch's release velocity (v0.24, `relvel.c`; emulated in
+  `tests/test_peak_relvel.py`):** with Settings `RELEASE VEL` > `Source`
+  on a pedal source, that broadcast is dropped and `mpe_note_release`
+  writes the note-off's velocity (`<< 8`, 127 = `0x7FFF`; a note-on with
+  velocity 0 counts as 64) into the source of each gated voice with that
+  note, then calls stock's `voice_release`. In the simulator the source
+  write comes right before the voice's release command (`0x3F`, command 3),
+  only for the released voice, and with MPE on only for the note-off's
+  channel. Not yet run on the synth: whether the chip applies the new
+  source value to the release time before the release command arrives
+  (both are direct SPI writes, microseconds apart) is the open question.
+
 ## Dead ends
 
 - `cmp r4, #0xf0` hits at `0x08011CA4` and `0x0801258C` are literal pools

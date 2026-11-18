@@ -269,6 +269,17 @@ Measurements (step 6) can run on the rig while code is written for others.
    and hear it on a per-voice destination. Only then work out how source IDs
    are stored and listed, to add release velocity, random per note and voice
    index as real choices in the matrix.
+   **Release velocity built (v0.24, `relvel.c`, emulated; not yet on the
+   synth):** no new source ID. Settings `RELEASE VEL` > `Source` lends one
+   of the two pedal sources (`ExprPED1`, `BrthPED2`, parameters 0x62/0x63):
+   its per-tick broadcast is dropped and each note-off writes its velocity
+   into that source of the voices it releases, just before their release
+   command. Route the source to `AmpEnv R`; the chip reads the release time
+   at note-off (step 6), so each note gets its own. First check on the
+   synth (series P): that the chip applies the source to the release time
+   in the few microseconds before the release command, and that the
+   per-voice 0x62/0x63 reach only their voice, as 0x60 does. Random per
+   note and voice index could lend a source the same way; not built.
 
 ### 3. Screen
 

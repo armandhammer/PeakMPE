@@ -132,7 +132,8 @@ def test_ratchet_page(mpe_built):
     _show(b, 8, RATCHET_PAGE, 1)
     _call(b, blob.address("mpe_ui_value_change"), 20)
     assert _show(b, 8, RATCHET_PAGE, 0)[2].split() == ["Every", "8"]
-    rows = _show(b, 8, RATCHET_PAGE + 1, 0)              # the stock page after ours is still there
+    assert _show(b, 8, RATCHET_PAGE + 1, 0)[0].startswith("RELEASE VEL ")
+    rows = _show(b, 8, RATCHET_PAGE + 2, 0)              # the stock page after ours is still there
     assert rows[0].startswith("MIDI ENABLE"), rows
 
 

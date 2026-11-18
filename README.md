@@ -29,16 +29,16 @@ named below.
 
 ## Status
 
-**MPE for Peak 0.23**, for Peak firmware **2.2 (build 2108)** only, with
+**MPE for Peak 0.24**, for Peak firmware **2.2 (build 2108)** only, with
 FPGA build 469. Tested on one Peak ([docs/hardware-log.md](docs/hardware-log.md)):
 every check of the automated hardware test rig that applies to the Peak
 passes (136 of 136 measured rows over USB, on 0.23 and on each release
-before it), a 600-run stress soak left no stuck note, a LinnStrument played
+before it; 0.24 adds release velocity, checked in the simulator so far), a 600-run stress soak left no stuck note, a LinnStrument played
 it over DIN in one and two zones, and each feature below was tried on the
 synth (by hand, or by the rig where the panel can't do it). Not tested on other firmware versions or other units.
 
-The patch adds 10 pages to **Settings** (36 pages instead of 26): pages 5
-to 14, right after `MIDI CONTROL`, from `MPE` to `ARP RATCHET`. Their
+The patch adds 11 pages to **Settings** (37 pages instead of 26): pages 5
+to 15, right after `MIDI CONTROL`, from `MPE` to `RELEASE VEL`. Their
 settings are saved with the global settings, as stock's are. Each feature
 below names its page. The three buttons beside the
 screen, Select 1 to 3, pick a line; the encoder changes it.
@@ -60,6 +60,12 @@ screen, Select 1 to 3, pick a line; the encoder changes it.
   plays exactly as on stock.
 - **Pressure curve:** Settings `MPE EXTRAS` > `PressCurve` chooses stock's
   squared curve or a linear one, which gives light pressure more range.
+- **Release velocity:** Settings `RELEASE VEL` > `Source` set to `ExprPED1`
+  or `BrthPED2` puts each note-off's velocity (how fast a note is let go,
+  if the controller sends it) into that mod source, for that note only.
+  Route the source to `AmpEnv R` (or a mod envelope's release) in the mod
+  matrix and each note gets its own release. While it's on, that pedal
+  (or CC 11 / CC 2) no longer drives the source. Works with MPE on or off.
 
 ### Playing
 
@@ -128,7 +134,7 @@ screen, Select 1 to 3, pick a line; the encoder changes it.
   change. Stock rewrites whole lines, and every character holds up the
   per-note modulation for about 0.05 ms. Measured on the synth, turning a
   knob for 5 s lost 17 modulation ticks, against about 2,600 before.
-- **Boot screen** `MPEN Ver 108.469`, so you can see the patch and its
+- **Boot screen** `MPEO Ver 108.469`, so you can see the patch and its
   release are installed.
 
 What stock 2.2 already does (and so isn't here), and the features that were

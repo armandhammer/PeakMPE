@@ -236,6 +236,7 @@ void mpe_note_release(uint8_t note, uint8_t part)
                 hidden |= (uint8_t)(1u << v);
             }
     }
+    relvel_release(note);
     voice_release(note, part);
     for (uint32_t v = 0; v < MPE_VOICES; v++)
         if (hidden & (1u << v) && voice_note[v] == 0xFF)

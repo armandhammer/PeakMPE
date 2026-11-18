@@ -41,5 +41,7 @@ extern int16_t mpe_bend_in;      /* osc_pitch's part-bend literal (0x08010C24) p
 
 #define AFTERTOUCH_N 1           /* voice_mod_write n: param 0x61 */
 #define MODWHEEL_N 0             /* voice_mod_write n: param 0x60 */
+#define RELVEL_EXPR_N 2          /* param 0x62: ExprPED1 (relvel.c) */
+#define RELVEL_BREATH_N 3        /* param 0x63: BrthPED2 */
 
 #endif

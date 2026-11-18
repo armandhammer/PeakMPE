@@ -51,6 +51,7 @@
 #define MPE_G_EUC_ROTATE 0x47    /* and the step the pattern starts at, modulo the steps (> 31 = 0) */
 #define MPE_G_EUC_RATCHET 0x48   /* arp ratchet, stored: 0 Off, 1 = x2, 2 = x3; other = Off */
 #define MPE_G_EUC_EVERY 0x49     /* which notes ratchet: every 1st-8th; 0 or > 8 = 1 */
+#define MPE_G_RELVEL 0x4A        /* release velocity into a source (relvel.c): 0 Off, 1 ExprPED1, 2 BrthPED2; other = Off */
 
 #define MPE_DEFAULT_MEMBERS 15
 #define MPE_DEFAULT_NOTE_RANGE 48
@@ -177,6 +178,10 @@ uint32_t euclid_rotate(void);
 void euclid_step_select(void);   /* hook: arp_tick's call of arp_step_select */
 uint32_t euclid_ratchet(void);   /* 1 = no ratchet, 2, 3 */
 uint32_t euclid_every(void);
+
+/* relvel.c */
+void relvel_note(const uint8_t *msg);   /* every channel message, before routing */
+void relvel_release(uint8_t note);      /* note_off is about to release note */
 
 /* morph.c */
 void morph_cc(uint32_t value);

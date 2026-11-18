@@ -17,7 +17,7 @@ Core:
   bl hook:      settings_save_action's settings_save -> live state to globals
   bl hooks x4:  ui_value_change calls -> the VOICE item writes the flag itself
   byte patches: patch_param_desc[0x1A2] (the MPE flag: 0-1, Off/On, "MPE"),
-                VOICE page 1 item 3 = the flag, version labels "MPEN" (v0.23; "MPEM" = v0.22, "MPEL" = v0.21, "MPEK" = v0.20, "MPEJ" = v0.19, "MPEI" = v0.18, "MPEH" = v0.17, "MPEG" = v0.16, "MPEF" = v0.15, "MPEE" = v0.14, "MPED" = v0.13, "MPEC" = v0.12, "MPEB" = v0.11, "MPEA" = v0.10, "MPE9" = v0.9, "MPE8" = v0.8, "MPE7" = v0.7, "MPE6" = v0.6, "MPE5" = v0.5, "MPE4" = v0.4, "MPE3" = v0.3, "MPE2" = v0.2, "MPE1" = v0.1)
+                VOICE page 1 item 3 = the flag, version labels "MPEO" (v0.24; "MPEN" = v0.23, "MPEM" = v0.22, "MPEL" = v0.21, "MPEK" = v0.20, "MPEJ" = v0.19, "MPEI" = v0.18, "MPEH" = v0.17, "MPEG" = v0.16, "MPEF" = v0.15, "MPEE" = v0.14, "MPED" = v0.13, "MPEC" = v0.12, "MPEB" = v0.11, "MPEA" = v0.10, "MPE9" = v0.9, "MPE8" = v0.8, "MPE7" = v0.7, "MPE6" = v0.6, "MPE5" = v0.5, "MPE4" = v0.4, "MPE3" = v0.3, "MPE2" = v0.2, "MPE1" = v0.1)
 UI (Settings MPE pages):
   bl hook:      main_loop's first settings_load -> builds the relocated tables
   bl hook:      main_loop's sysex_rx_poll -> redraws the MPE values on change
@@ -49,6 +49,12 @@ LCD cache (lcdcache.c; v0.23):
   bl hooks x2:  lcd_init (the copy becomes blank), the panel power-up after the
                 screen saver (the copy is forgotten)
 
+Release velocity (relvel.c; v0.24):
+  bl hooks x2:  mod_update's broadcast ExprPED1 / BrthPED2 writes -> dropped for
+                the source Settings RELEASE VEL names
+  (in mpe_channel_filter and mpe_note_release) the note-off's velocity goes to
+                that source of the voices about to be released
+
 9-bit CC pairs over MIDI (ccpair.c; v0.22):
   bl hook:      cc's call of param_set_by_id for a plain CC -> the coarse
                 byte of a pair is held against half the pair's range, so Osc
@@ -69,7 +75,7 @@ FLAG_DESC = PATCH_PARAM_DESC + 0x1A2 * 12  # 0x08047D74: {min, max, nrpn msb, nr
 VOICE_PAGE_1 = 0x08048648  # flash initialiser of the VOICE menu's first page (RAM 0x20003438)
 
 PATCHES = [
-    # Version labels: boot screen "MPEN Ver ...", Settings "MPENVer".
+    # Version labels: boot screen "MPEO Ver ...", Settings "MPEOVer".
     # MPE1 = v0.1 (first hardware release); MPE2 = v0.2 (arp echo filter);
     # MPE3 = v0.3 (knob display: ms and Hz, bars, pickup arrow);
     # MPE4 = v0.4 (Settings MPE page: PressCurve Squared/Linear);
@@ -80,6 +86,7 @@ PATCHES = [
     # MPE9 = v0.9 (quick-assign message redrawn on every move: stock overwrote it);
     # MPEA = v0.10 (quick-assign: with Mod held a control only selects, stock draws and applies nothing);
     # MPEB = v0.11 (Settings PARAM LOCK: keep FX, Arp or Voice settings through a patch change);
+    # MPEO = v0.24 (release velocity into ExprPED1 or BrthPED2 per voice: Settings RELEASE VEL, relvel.c).
     # MPEN = v0.23 (LCD cache: a character the display already shows isn't sent again, lcdcache.c; the bar's characters load one per main-loop pass).
     # MPEM = v0.22 (Osc 1/2/3 Fine over MIDI reaches -100: the coarse byte of a 9-bit CC pair is held against half the pair's range, ccpair.c).
     # MPEL = v0.21 (arp ratchets: Settings ARP RATCHET, a note sounds two or three times in its step).
@@ -98,8 +105,8 @@ PATCHES = [
     # Time 127 lasts 1.45 s (about 1.5 s measured by the user, 2026-11-15) where the
     # guide says about 3 s. More than 21 makes a count 22 ms: 127 = 2.9 s, 64 = 1.5 s.
     (0x08018AEA, bytes.fromhex("0a2b"), bytes.fromhex("152b"), "ui_msg_countdown: one count per 22 ms instead of 11 (cmp r3, #21)"),
-    (0x080452FB, b" Version ", b"MPEN Ver ", "boot screen label (.data initialiser of RAM 0x200000EB)"),
-    (0x080445E8, b"Version\x00", b"MPENVer\x00", "Settings 2/28 SYSTEM item name"),
+    (0x080452FB, b" Version ", b"MPEO Ver ", "boot screen label (.data initialiser of RAM 0x200000EB)"),
+    (0x080445E8, b"Version\x00", b"MPEOVer\x00", "Settings 2/28 SYSTEM item name"),
     # The flag's reserved descriptor: max 0 -> 1, display 0 -> 0x0F (Off/On,
     # as KeySync/FadeSync/Common on the Peak). NRPN stays 255:0. The name
     # pointer is a hook below.
@@ -113,7 +120,7 @@ PATCHES = [
 SOURCES = ["mpe_settings.c", "mpe_route.c", "mpe_voice.c", "mpe_ui.c",
            "mpe_expr.c", "mpe_bend.c", "mpe_pressure.c", "mpe_slide.c",
            "arp_echo.c", "disp.c", "envsync.c", "qassign.c", "paramlock.c", "section.c", "diag.c", "motion.c",
-           "morph.c", "euclid.c", "ccpair.c", "lcdcache.c"]
+           "morph.c", "euclid.c", "ccpair.c", "lcdcache.c", "relvel.c"]
 
 MIDI_CHANNEL_FILTER = 0x0800EED0
 VOICE_DISPATCH = 0x08012984
@@ -190,6 +197,8 @@ HOOKS = [
     ("bl", 0x08010972, VOICE_MOD_WRITE, "mpe_wheel_write", "mod_update: broadcast 0x60 to all voices"),
     ("bl", 0x08010A7C, VOICE_MOD_WRITE, "mpe_pressure_write_voice", "mod_update: voice pressure (AftTouch) write, Linear curve"),
     ("bl", 0x08010A84, PART_MOD_WRITE, "mpe_pressure_write_part", "mod_update: part pressure write, same value"),
+    ("bl", 0x080109C0, VOICE_MOD_WRITE, "relvel_pedal_write", "mod_update: broadcast ExprPED1 (0x62) to all voices"),
+    ("bl", 0x08010A0E, VOICE_MOD_WRITE, "relvel_pedal_write", "mod_update: broadcast BrthPED2 (0x63) to all voices"),
     ("bl", 0x08010E70, MOD_UPDATE, "mpe_mod_update", "mod_tick -> mod_update(), before the voice loop"),
     # Arp echo filter.
     ("bl", 0x08015202, ARP_MIDI_NOTE_ON, "arp_echo_note_on", "arp_step: arp step note on to MIDI"),

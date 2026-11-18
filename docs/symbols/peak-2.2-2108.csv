@@ -170,3 +170,6 @@ address,name,kind,confidence,notes
 0x08016810,lcd_power_off,function,observed,"(): GPIOB BSRR = 0x20000, clears PB1; only caller lcd_display_off 0x0801695e"
 0x08016924,lcd_display_on,function,observed,"(): if the display is off (flag at literal 0x0801694c +4): lcd_power_on, 1 ms delay, cmd 0x0C, flag = 1; stores the ms counter at the literal either way; callers include lcd_init and the panel event paths"
 0x08016950,lcd_display_off,function,observed,"(): cmd 0x08, 1 ms delay, lcd_power_off, flag = 0; only caller the screen-saver timeout 0x08016988"
+0x08011d68,modwheel_store,function,observed,"(value) -> parts+6; cc case 1"
+0x08011d74,expression_store,function,observed,"(value) -> parts+8 (ExprPED1, inferred); callers cc case 0xb (CC 11), the pedal input code 0x080171c4 (which also sends CC 11), 0x08018ba8"
+0x08011d80,breath_store,function,observed,"(value) -> parts+9 (BrthPED2, inferred); callers cc case 2 (CC 2), 0x080171c4, 0x08018ba8"
