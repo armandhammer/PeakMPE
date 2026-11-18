@@ -245,8 +245,15 @@ strings read from the image (`.data` is copied from flash `0x08045210` to RAM
   Frequency: stock 37 writes per event, the patch 2 to 7 (average 3.8),
   about 0.2 ms; a page drawn over itself: 0. The bar's seven characters
   (56 writes) now load one per main-loop pass, so no pass holds more than a
-  stock knob event (`work/_turn_cost.py`, `tests/test_peak_disp.py`). Not
-  yet measured on the synth.
+  stock knob event (`work/_turn_cost.py`, `tests/test_peak_disp.py`).
+  **On the synth (v0.23, 2026-11-17, observed):** the M7 measurement again,
+  `LateTicks` read before and after about 5 s of turning Filter Frequency:
+  17 ticks lost (`253 5` → `270 4`), the idle rate, against 2,645 on v0.21,
+  and the longest gap 4 ms against 9. No leftover characters on the
+  overlay or the Settings pages, and the overlay complete after the screen
+  saver (user, series O). So the lost ticks were the screen writes
+  (inferred: the cache is the only change between the two images that
+  touches the main loop's knob path).
 
 ## Voice allocation and stealing (2026-11-15)
 

@@ -296,8 +296,9 @@ Measurements (step 6) can run on the rig while code is written for others.
    rewrites the whole overlay on every knob event (37 writes, about 1.9 ms
    of busy-waited bus time) and v0.22's bar doubled it; with the LCD cache
    only changed characters are sent (about 4 per event, 0.2 ms), and the
-   bar's characters load one per main-loop pass. Findings, "The patch's
-   LCD cache".
+   bar's characters load one per main-loop pass. On the synth (series O4,
+   2026-11-17): 17 ticks lost over a knob turn against 2,645 on v0.21.
+   Findings, "The patch's LCD cache".
 10. **Pickup feedback** (M). Show which way to turn and how far, as an arrow
     and a bar closing on the saved value, in place of stock's numbers.
     **Built (v0.3, `disp.c`; checked on the synth by the user, 2026-11-13):**
