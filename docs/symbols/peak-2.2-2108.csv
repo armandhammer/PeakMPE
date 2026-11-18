@@ -40,7 +40,7 @@ address,name,kind,confidence,notes
 0x0801a47c,sysex_rx_poll,function,inferred,main-loop SysEx state machine (state at 0x20011214+0x67c); void(void); main_loop site 0x0800d1c4
 0x08018800,ui_mode_switch,function,observed,(mode): ui_state[0] = mode; callers only in the panel UI (no NRPN mode request on the Peak)
 0x08018448,ui_value_change,function,observed,(delta); callers 0x08016fc2 (encoder) 0x080170f2 0x080170fa (buttons) 0x08018708 (ui_page_step)
-0x08017604,format_value,function,observed,(display value); kind 3 site in ui_draw_values 0x080181d8
+0x08017604,format_value,function,observed,(display value); kind 3 site in ui_draw_values 0x080181d8; prints at the LCD cursor (emulated: display 0x17 Coarse semitones, 0x33 WaveMore with 64-73 = *User 1-10, 0x34 LFO wave, 0x22 chorus Mode)
 0x08017eec,ui_current_page_index,function,observed,menu->cur of menus[ui_state[0]]
 0x08018070,ui_draw_values,function,observed,kind 3 reads global_param_desc through the literal 0x080182b8
 0x08017f14,ui_draw_page,function,observed,kind 3 item name through the literal 0x0801806c

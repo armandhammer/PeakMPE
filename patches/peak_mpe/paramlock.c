@@ -20,8 +20,10 @@
  * stand still while the button is held and go on afterwards.
  *
  * Ranges (patch offsets, from the parameter table; the groups are mine):
- *   FX     0xC7-0xEB  distortion, delay, reverb, chorus
- *   Arp    0xEC-0xFA  arp mode, tempo (ClockRate), rate, type, rhythm, octaves, gate, swing, latch
+ *   FX     0xC7-0xEC  distortion, delay, reverb, chorus (0xEC is the chorus Mode,
+ *                      Chorus/Flanger/Phlanger, format_value 0x22; v0.25 and before
+ *                      had it in Arp)
+ *   Arp    0xED-0xFA  tempo (ClockRate), rate, type, rhythm, octaves, gate, swing, latch
  *   Voice  0x22-0x2F  mode, unison, detune, spread, glide, diverge, drift, noise LPF/HPF, key sync
  */
 
@@ -29,7 +31,7 @@
 
 #define GROUPS 3
 static const struct { uint8_t lo, hi; } ranges[GROUPS] = {
-    {0xC7, 0xEB}, {0xEC, 0xFA}, {0x22, 0x2F},
+    {0xC7, 0xEC}, {0xED, 0xFA}, {0x22, 0x2F},
 };
 
 static uint8_t seen;   /* a patch has been loaded since power-up (zero-initialised patch RAM) */
@@ -37,7 +39,7 @@ static uint8_t seen;   /* a patch has been loaded since power-up (zero-initialis
 /* The firmware's copy in patch load (0x0801AECC): the same arguments as stock. */
 void *plock_copy(void *dst, const void *src, uint32_t n)
 {
-    uint8_t keep[0x40];
+    uint8_t keep[(0xEC - 0xC7 + 1) + (0xFA - 0xED + 1) + (0x2F - 0x22 + 1)];   /* all three groups: 66 (v0.25 and before had 64) */
     uint8_t take = 0;
     uint32_t k = 0;
     if (seen && dst == (void *)patches) {

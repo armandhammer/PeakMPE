@@ -503,6 +503,39 @@ on the synth.
   read index. It wraps after 255; no other code reads or writes it (the
   diagnostics page of the patch shows it).
 
+## Value scales for the randomiser (2026-11-18)
+
+- **`format_value` `0x08017604` `(display, value)` prints at the LCD
+  cursor** (`lcd_cursor`/`lcd_putc_esc`); it returns nothing useful.
+  Called in the simulator with the cursor set and the display read back
+  (emulated, `work/_rand_fmt.py`):
+  - display `0x17` (Osc Coarse, 9-bit value): `0` = -12.0, `128` = +0.0,
+    `255` = +12.0, about 10.6 per semitone; whole semitones at 0, 10,
+    19/20, 30/31, 41/42, 52/53 (-7), 62/63, 73/74 (-5), 84/85, 94/95,
+    105/106, 116/117, 127/128 (0), 138/139, 149/150, 160/161, 170/171,
+    181/182 (+5), 192/193, 202/203 (+7), 213/214, 224/225, 235/236,
+    245, 255 (+12).
+  - display `0x04` (Fine, LFO-to-pitch, 9-bit): value - 128 (Fine's
+    28-228 is -100 to +100 cents).
+  - display `0x33` (`WaveMore`): 4 `BS sine` to 63 `Yeah` are the 60
+    factory tables; **64-73 are `*User 1` to `*User 10`**.
+  - display `0x34` (LFO 1/2 wave, `0xAF`/`0xBD`): `Triangle`, `Sawtooth`,
+    `Square`, `Rand S/H`.
+  - display `0x15` (Osc Range 63-66): 16', 8', 4', 2'.
+  - display `0x07` (envelope Repeats): 0 `Off`, 127 `On`; `0x06` (LFO
+    Repeats): 0 `Off`, 127 is 127.
+  - display `0x22` (patch offset **`0xEC`**): `Chorus`, `Flanger`,
+    `Phlanger`: `0xEC` is the **chorus Mode**, not an arp setting.
+    PARAM LOCK v0.11-v0.25 had it in the Arp group (`0xEC-0xFA`) and its
+    save buffer was 64 bytes for the 66 of all three groups (two bytes
+    past it on the stack; harmless in the simulator, inferred harmless on
+    the synth: series E and later passed with all locks used). v0.26
+    moves `0xEC` to FX and sizes the buffer for 66.
+- **Filter Shape 0/1/2 = low/band/high-pass and Slope 0/1 = 12/24 dB**
+  (inferred from the string order `LOW`, `BAND`, `HIGH`, `12dB`, `24dB`
+  at `0x0804440C`-`0x0804442C`; Slope 1 = 24 dB agrees with the units
+  measurements, docs/peak-units.md).
+
 ## The parameter setter and 9-bit controls (2026-11-16)
 
 Found while building the patch morph. Code **observed** (decompile), the

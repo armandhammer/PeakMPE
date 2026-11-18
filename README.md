@@ -29,16 +29,16 @@ named below.
 
 ## Status
 
-**MPE for Peak 0.25**, for Peak firmware **2.2 (build 2108)** only, with
+**MPE for Peak 0.26**, for Peak firmware **2.2 (build 2108)** only, with
 FPGA build 469. Tested on one Peak ([docs/hardware-log.md](docs/hardware-log.md)):
 every check of the automated hardware test rig that applies to the Peak
 passes (136 of 136 measured rows over USB, on 0.25 and on each release
-before it, 0.25 included), a 600-run stress soak left no stuck note, a LinnStrument played
+before it; 0.26 adds the section randomiser, checked in the simulator so far), a 600-run stress soak left no stuck note, a LinnStrument played
 it over DIN in one and two zones, and each feature below was tried on the
 synth (by hand, or by the rig where the panel can't do it). Not tested on other firmware versions or other units.
 
-The patch adds 11 pages to **Settings** (37 pages instead of 26): pages 5
-to 15, right after `MIDI CONTROL`, from `MPE` to `RELEASE VEL`. Their
+The patch adds 12 pages to **Settings** (38 pages instead of 26): pages 5
+to 16, right after `MIDI CONTROL`, from `MPE` to `RANDOMISE`. Their
 settings are saved with the global settings, as stock's are. Each feature
 below names its page. The three buttons beside the
 screen, Select 1 to 3, pick a line; the encoder changes it.
@@ -113,6 +113,16 @@ screen, Select 1 to 3, pick a line; the encoder changes it.
   on).
 - **Parameter lock:** Settings `PARAM LOCK` keeps the FX, the Arp or the
   Voice settings as they are when you load another patch.
+- **Section randomiser:** Settings `RANDOMISE` rolls new values for one
+  section of the sound (`Osc 1`, `Osc 2`, `Osc 3`, `Mixer`, `Filter`,
+  `Amp Env`, `Mod Env1`, `Mod Env2`, `LFO 1`, `LFO 2`, `FX`, or `All`).
+  `Amount` goes from a nudge (10 %: each value moves a tenth of the way
+  to a random one) to a fresh roll (100 %). Values stay inside ranges
+  meant to keep the sound playable: Osc 2 and 3 only move by musical
+  intervals, the filter isn't left closed, resonance stays below
+  self-oscillation, the mixer and FX levels are capped together, and a
+  note with no sustain still decays slowly enough to hear. Turn `Roll` up to roll;
+  **Mod** + **Page left** takes it back. Nothing is saved until you save.
 
 ### Movement
 
@@ -142,7 +152,7 @@ screen, Select 1 to 3, pick a line; the encoder changes it.
   change. Stock rewrites whole lines, and every character holds up the
   per-note modulation for about 0.05 ms. Measured on the synth, turning a
   knob for 5 s lost 17 modulation ticks, against about 2,600 before.
-- **Boot screen** `MPEP Ver 108.469`, so you can see the patch and its
+- **Boot screen** `MPEQ Ver 108.469`, so you can see the patch and its
   release are installed.
 
 What stock 2.2 already does (and so isn't here), and the features that were

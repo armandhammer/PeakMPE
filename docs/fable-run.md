@@ -3,12 +3,21 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** v0.25 is on the synth and series Q passed; no series open
-(the next is R). From the 2026-11-18 proposals still open: the section
-randomiser and the front-panel panic; and the user's answer on dropping
-the rest of step 8, striking step 4, and chord memory / scale quantise. Step 3 (blank-settings guard) closed on 2026-11-18
+**Next step:** v0.26 (section randomiser, `rand.c`) is built and waits
+for the user's flash; then series R in TEST.md (R5 runs the regression
+and `work/rand_check.py`). Still open from the 2026-11-18 proposals: the
+front-panel panic; and the user's answer on dropping the rest of step 8,
+striking step 4, and chord memory / scale quantise. Step 3 (blank-settings guard) closed on 2026-11-18
 without a firmware change (see below). Also open: step 4 looks done in practice
 (strike it?); chord memory and scale quantise may be controller jobs (ask).
+
+**v0.26 built** (label `MPEQ`): Settings > RANDOMISE (Section, Amount,
+Roll) rolls one section inside safe ranges, then enforces that
+section's checks (`rand.c` header). Emulated (`tests/test_peak_rand.py`,
+10 tests). Also PARAM LOCK: `0xEC` is the chorus Mode (format_value
+display `0x22`), moved from Arp to FX; the save buffer now holds all 66
+bytes (findings, "Value scales for the randomiser"). The user picked the
+randomiser on 2026-11-18.
 
 **v0.25 on the synth** (label `MPEP`, `88758957…`, source `899805f`):
 flashed 2026-11-18; series Q passed: rig 136/0/5 (`2026-11-18_120448`),

@@ -52,6 +52,9 @@
 #define MPE_G_EUC_RATCHET 0x48   /* arp ratchet, stored: 0 Off, 1 = x2, 2 = x3; other = Off */
 #define MPE_G_EUC_EVERY 0x49     /* which notes ratchet: every 1st-8th; 0 or > 8 = 1 */
 #define MPE_G_RELVEL 0x4A        /* release velocity into a source (relvel.c): 0 Off, 1 ExprPED1, 2 BrthPED2; other = Off */
+#define MPE_G_RAND_SECT 0x4B     /* Settings records, not stored: RANDOMISE Section, Amount, Roll (rand.c) */
+#define MPE_G_RAND_AMT 0x4C
+#define MPE_G_RAND_ROLL 0x4D
 
 #define MPE_DEFAULT_MEMBERS 15
 #define MPE_DEFAULT_NOTE_RANGE 48
@@ -157,6 +160,11 @@ int edit_button(uint32_t ev);    /* Mod held: Page left/right = undo/redo; 1 = t
 const char *section_name(uint32_t i);
 uint32_t section_op(void);
 void section_edit(uint32_t index, int32_t delta);
+/* rand.c */
+void rand_edit(uint32_t index, int32_t delta);   /* Settings > RANDOMISE */
+const char *rand_section_name(void);
+uint32_t rand_amount(void);      /* 1-10 = 10-100 % */
+uint32_t rand_roll(uint32_t section, uint32_t amount);  /* the number of controls written */
 uint32_t param_id_of(uint32_t offset);            /* the setter's id for a patch offset, 0 = not settable */
 void param_put(uint32_t offset, uint32_t value);  /* set a patch byte through stock's setter, if it has an id */
 void diag_tick(void);            /* once per modulation tick */

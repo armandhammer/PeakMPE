@@ -398,7 +398,8 @@ Measurements (step 6) can run on the rig while code is written for others.
     simulator), and its copy into the patch (`0x0801AECC`, the byte loop at
     `0x0801D736`) is hooked to save the locked ranges and write them back
     before the push to the sound chip. Ranges (mine, from the parameter table):
-    FX `0xC7-0xEB`, Arp `0xEC-0xFA` (includes the tempo), Voice `0x22-0x2F`
+    FX `0xC7-0xEC`, Arp `0xED-0xFA` (includes the tempo), Voice `0x22-0x2F`
+    (v0.11-v0.25 had `0xEC`, the chorus Mode, in Arp; fixed in v0.26)
     (mode, unison, glide, diverge, drift, noise filters). Initialise and
     Compare loads are covered too (any load into the current patch); the first
     load after power-up is not. The mod matrix and per-patch MPE flag are not in
@@ -565,7 +566,7 @@ built.
 ### Later
 
 Adaptive just intonation (per-voice pitch path, fixed root first), chord
-memory, scale quantise, patch randomiser by section, patch change timed to
+memory, scale quantise, patch change timed to
 the bar, opt-in patch dump on program change (USB only), per-port MIDI
 filters, a stuck-note watchdog that looks for inconsistent state rather than
 note age (2.2 fixed the hanging-note bug, and our 400-run soak found none).
@@ -593,6 +594,21 @@ exact length, through stock's `tuning_note_set`, so sounding notes on the
 patch's table move at once. Tests `tests/test_peak_mts.py`; rig check
 `work/mts_check.py`. Not taken: the bank forms (sub-ID `07`), the
 scale/octave forms (`08 08`, `08 09`), the dump request to `7F`.
+
+**Patch randomiser by section:** the guide has no randomise function.
+**Built (v0.26, `rand.c`; emulated, not yet on the synth):** Settings >
+RANDOMISE has Section (Osc 1-3, Mixer, Filter, Amp Env, Mod Env1/2, LFO
+1/2, FX, All), Amount (10-100 %, 50 % until changed) and Roll. A roll gives
+each continuous control of the section a fresh value inside a safe range
+and moves it there by Amount; a switch is picked afresh with a chance of
+Amount. Then the section's checks (mixer level and headroom, filter open
+for its shape, an amp envelope that sounds, FX headroom) are enforced: at
+100 % always, below only when the patch passed them before the roll.
+Values go in through stock's setter, as section copy; the roll is one
+undo step. Ranges and checks are in `rand.c`'s header; tests
+`tests/test_peak_rand.py`; rig check of the rules `work/rand_check.py`.
+Not touched: pitch modulation depths, the mod matrix, the arp, the voice
+settings, VCA Gain and Patch Level.
 
 ## Dropped
 
