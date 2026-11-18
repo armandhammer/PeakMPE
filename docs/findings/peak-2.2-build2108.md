@@ -781,8 +781,10 @@ From the decompile and the disassembly (**observed** unless marked).
   at +40, base release 30, one note per take: t20 by note-off velocity
   1 gives 0.118 s (twice), 40 gives 0.235, 64 gives 0.455, 100 gives
   1.571, 127 gives 3.956 and 3.736. A take at velocity 1 right after one
-  at 127 is as short as the first (no carry-over). Per-voice reach on chords is checked by ear (TEST.md P5),
-  not measured.
+  at 127 is as short as the first (no carry-over). By ear (user,
+  LinnStrument in MPE): two held notes lifted at different speeds keep
+  their own release, so the per-voice write reaches only its voice (not
+  measured).
 
 ## Dead ends
 

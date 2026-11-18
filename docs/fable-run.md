@@ -3,14 +3,13 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** v0.24 is on the synth; series P waits only for P5 (by ear
-with the LinnStrument, then `Source` back to `Off`); then delete series P
-from TEST.md. My remaining proposal from 2026-11-17: the
+**Next step:** v0.24 is on the synth and series P passed; no series open
+(the next is Q). My remaining proposal from 2026-11-17: the
 blank-settings guard (step 3). Also open: step 4 looks done in practice
 (strike it?); chord memory and scale quantise may be controller jobs (ask).
 
 **v0.24 on the synth** (label `MPEO`, `99c71886…`, source `1688724`):
-flashed 2026-11-18; P1–P4 passed. Release velocity as a per-voice mod source.
+flashed 2026-11-18; series P passed (P5 by ear: per-note tails). Release velocity as a per-voice mod source.
 The guide's matrix has no such source and `note_off` never reads the
 velocity (findings, "Pedal sources and the note-off velocity"). Settings
 `RELEASE VEL` > `Source` lends `ExprPED1` or `BrthPED2`: its broadcast is
