@@ -582,7 +582,8 @@ stock image; [findings](findings/peak-2.2-build2108.md#midi-tuning-standard-in-s
 00/01`) is there too. `0x0800D040` itself is a factory-test handler. Two
 limits a patch could lift: the device ID has to be `00` (not `7F`), and a
 message carries one note.
-**Both lifted (v0.25, `mts.c`; emulated, not yet on the synth):** a second
+**Both lifted (v0.25, `mts.c`; on the synth 2026-11-18, every rig row
+within 0.2 cents of its target):** a second
 parser runs after stock's on every SysEx byte (hook on `sysex_rx_byte`'s
 call of the single-note parser, `0x0801AE42`) and takes the single-note
 change with device ID `7F` or `00` and any number of notes, and the bulk

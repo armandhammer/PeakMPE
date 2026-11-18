@@ -746,6 +746,13 @@ nothing on the synth.
   clock byte inside a message doesn't end it; the bulk dump to `7F` sets
   all 128 keys of its table only; a held note on the patch's table moves
   at once (`voice_pitch`).
+- **On the synth (2026-11-18, v0.25, over USB; observed,
+  `work/mts_check.py`):** with the sound on table 16, a device-`7F`
+  single-note change moved A4 by +49.8 cents (target +50), a device-`00`
+  message with two notes moved A4 +24.9 and C5 +99.9 cents (+25, +100),
+  a device-`7F` bulk dump with every key one semitone down gave -100.2
+  cents, and a held A4 retuned by a device-`7F` message moved +49.8 cents
+  within the note. Reference A4 440.02 Hz.
 
 ## Main-loop pace in the simulator (2026-11-16)
 
