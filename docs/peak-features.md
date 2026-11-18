@@ -199,9 +199,14 @@ Measurements (step 6) can run on the rig while code is written for others.
    +31,318 of 32,767 (emulated). Details in the
    [findings](findings/peak-2.2-build2108.md). MPE voices already clamp
    their own bend.
-3. **Blank-settings-chip guard** (S). `settings_load` trusts the stored
-   indices (port plan 2b item 4). First check: the simulator with a blank
-   DataFlash.
+3. ~~**Blank-settings-chip guard**~~ **Closed without a firmware change
+   (2026-11-18).** On the Peak, `settings_load` reads no index from a blank
+   chip (the patch loader skips `0xFFFF`), and the patch's stored settings
+   already fall back to their defaults at 0xFF; `tests/test_peak_blank.py`
+   checks both (emulated). Stock itself doesn't run on an unformatted chip
+   (the 0xFF edit buffer turns on the arp, which reads through a null
+   pointer); that needs a factory format, which isn't worth carrying in
+   the patch. Details in the [findings](findings/peak-2.2-build2108.md).
 4. **Combined definition, shared hooks and the golden baseline** (M).
    Restructure into the one definition described above, MPE first, with
    the dispatch hooks and the resource report. Done when the MPE image built

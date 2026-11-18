@@ -786,6 +786,39 @@ From the decompile and the disassembly (**observed** unless marked).
   their own release, so the per-voice write reaches only its voice (not
   measured).
 
+## A blank settings chip (2026-11-18)
+
+Roadmap step 3. The simulator normally seeds a blank DataFlash; with that
+switched off (`tests/test_peak_blank.py`) the chip reads 0xFF everywhere.
+
+- **`settings_load` reads no index from a blank chip** (observed in the
+  decompile, emulated). `settings_load` `0x0801AFD8` copies the 0x200 bytes
+  at `0x300000` into the globals and passes `globals+6` (u16) to the patch
+  loader `0x0801AF78`, which returns at once when bit 15 is set, as it is
+  for `0xFFFF`. Only `+0x1E`/`+0x1F` are forced to 1. So the Summit's "copies
+  from arbitrary RAM" (port plan 2b item 4) doesn't happen on the Peak.
+- **Stock itself doesn't run on a blank chip** (emulated). No patch loads,
+  so the edit buffer stays 0xFF; that turns the arp on, and the arp reads
+  its pattern through a null pointer (`FUN_08015518`, `pc=0x0801552A`,
+  pointer at arp state `+8`). The simulator stops there, stock and patched
+  alike, half a second after boot. On a unit address 0 is the boot alias,
+  so it would read bytes rather than fault (inferred). A blank chip needs
+  a format (Init Patch in 512 slots, multis, globals), which the Peak
+  application doesn't contain; it only happens on a chip that was never
+  formatted or was wiped outside the application.
+- **The patch's stored settings tolerate any byte** (observed in the source,
+  emulated). Globals `0x30`-`0x38`, `0x3E`-`0x40`, `0x45`-`0x4A` read 0xFF
+  on a blank chip (or on a unit whose bytes were never written); every
+  reader falls back to its default (`mpe.h`). With all of them at 0xFF the
+  MPE pages show the defaults (Zone Off, Members 15, bend 48/2, Squared,
+  Off, Stock, locks Off, 1 bar, Morph Off, Pulses Off, Steps 16, Rotate 0,
+  Ratchet Off, Every 1, Source Off) and a note plays and releases as stock,
+  with `BrthPED2` still broadcast.
+- **Conclusion:** no guard in the patch. The patch's own part is already
+  safe; the rest is stock's behaviour on an unformatted chip, and fixing it
+  would mean writing a factory format into the patch for a state a user
+  doesn't reach.
+
 ## Dead ends
 
 - `cmp r4, #0xf0` hits at `0x08011CA4` and `0x0801258C` are literal pools

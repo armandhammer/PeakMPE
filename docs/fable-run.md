@@ -4,9 +4,15 @@ The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
 **Next step:** v0.24 is on the synth and series P passed; no series open
-(the next is Q). My remaining proposal from 2026-11-17: the
-blank-settings guard (step 3). Also open: step 4 looks done in practice
+(the next is Q). Step 3 (blank-settings guard) closed on 2026-11-18
+without a firmware change (see below). Also open: step 4 looks done in practice
 (strike it?); chord memory and scale quantise may be controller jobs (ask).
+
+**Step 3 closed** (2026-11-18): on a blank chip `settings_load` reads no
+index (the patch loader skips `0xFFFF`) and our stored settings fall back
+to their defaults; stock itself stops in the arp on an unformatted chip,
+which needs a factory format, not a guard. `tests/test_peak_blank.py`
+(3 tests, emulated). No new image.
 
 **v0.24 on the synth** (label `MPEO`, `99c71886…`, source `1688724`):
 flashed 2026-11-18; series P passed (P5 by ear: per-note tails). Release velocity as a per-voice mod source.

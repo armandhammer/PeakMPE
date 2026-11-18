@@ -88,7 +88,8 @@ confirmed on the Peak yet (inferred). Phase 1 checks each one.
    a stuck note. Unconfirmed whether that caused upstream's stuck note.
 4. **Blank settings chip.** `settings_load` trusts stored indices, so a
    blank DataFlash makes it copy from arbitrary RAM. Only matters on a
-   factory-fresh or wiped chip.
+   factory-fresh or wiped chip. **Peak (2026-11-18):** doesn't apply; the
+   patch loader skips `0xFFFF` (roadmap step 3, closed).
 
 **Improvement ideas** (beyond MPE v1, roughly by value for LinnStrument play;
 superseded by the checked and ranked list in [peak-features.md](peak-features.md)):
