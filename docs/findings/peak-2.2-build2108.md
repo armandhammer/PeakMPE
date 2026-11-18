@@ -763,6 +763,9 @@ From the decompile and the disassembly (**observed** unless marked).
   `0x62` is the source the guide calls `ExprPED1` and `0x63` `BrthPED2`
   (inferred from that and from the source list's order after `ModWheel`
   0x60 and `AftTouch` 0x61; the matrix source indices are 3 and 4).
+  **Observed on the synth 2026-11-18** (v0.24, run
+  `relvel-2026-11-18_083855`): CC 11 moves matrix source 3 (`ExprPED1`),
+  and writes to `n` = 3 move matrix source 4 (`BrthPED2`).
 - **The patch's release velocity (v0.24, `relvel.c`; emulated in
   `tests/test_peak_relvel.py`):** with Settings `RELEASE VEL` > `Source`
   on a pedal source, that broadcast is dropped and `mpe_note_release`
@@ -771,9 +774,15 @@ From the decompile and the disassembly (**observed** unless marked).
   note, then calls stock's `voice_release`. In the simulator the source
   write comes right before the voice's release command (`0x3F`, command 3),
   only for the released voice, and with MPE on only for the note-off's
-  channel. Not yet run on the synth: whether the chip applies the new
-  source value to the release time before the release command arrives
-  (both are direct SPI writes, microseconds apart) is the open question.
+  channel.
+- **On the synth (2026-11-18, v0.24; observed):** the chip applies the
+  source value written microseconds before the release command to that
+  release, so no deferral is needed. `BrthPED2` x `Direct` to `AmpEnv R`
+  at +40, base release 30, one note per take: t20 by note-off velocity
+  1 gives 0.118 s (twice), 40 gives 0.235, 64 gives 0.455, 100 gives
+  1.571, 127 gives 3.956 and 3.736. A take at velocity 1 right after one
+  at 127 is as short as the first (no carry-over). Per-voice reach on chords is checked by ear (TEST.md P5),
+  not measured.
 
 ## Dead ends
 

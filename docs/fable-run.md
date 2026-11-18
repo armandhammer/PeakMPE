@@ -3,22 +3,24 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** v0.24 (release velocity, `relvel.c`) is built and waits for
-the user's flash; then series P in TEST.md (P3 checks that the LinnStrument
-sends release velocity, P4 runs `work/relvel_check.py --source breath` and
-the regression run). My remaining proposal from 2026-11-17: the
+**Next step:** v0.24 is on the synth; series P waits only for P5 (by ear
+with the LinnStrument, then `Source` back to `Off`); then delete series P
+from TEST.md. My remaining proposal from 2026-11-17: the
 blank-settings guard (step 3). Also open: step 4 looks done in practice
 (strike it?); chord memory and scale quantise may be controller jobs (ask).
 
-**v0.24 built** (label `MPEO`): release velocity as a per-voice mod source.
+**v0.24 on the synth** (label `MPEO`, `99c71886…`, source `1688724`):
+flashed 2026-11-18; P1–P4 passed. Release velocity as a per-voice mod source.
 The guide's matrix has no such source and `note_off` never reads the
 velocity (findings, "Pedal sources and the note-off velocity"). Settings
 `RELEASE VEL` > `Source` lends `ExprPED1` or `BrthPED2`: its broadcast is
 dropped and each note-off writes its velocity into that source of the
 voices it releases, before their release command. Emulated
-(`tests/test_peak_relvel.py`, 7 tests). Open on the synth: whether the chip
-applies the source to the release time in the microseconds before the
-release command.
+(`tests/test_peak_relvel.py`, 7 tests). On the synth: the chip applies the
+source to the release that follows microseconds later, no deferral needed;
+t20 0.118 s at note-off velocity 1 to 3.7–4.0 s at 127, no carry-over
+(run `relvel-2026-11-18_083855`); rig run `2026-11-18_083318` 136 pass,
+0 fail, 5 info; the LinnStrument sends release velocity (P3).
 
 **v0.23 on the synth** (label `MPEN`, `988f7a59…`, source `c09c231`):
 flashed 2026-11-17, series O passed. The LCD cache (`lcdcache.c`: only
