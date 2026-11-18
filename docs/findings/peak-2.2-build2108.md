@@ -727,6 +727,25 @@ nothing on the synth.
   key number × 256 (equal temperament).
 - **What a patch could add:** accept device ID `7F`, and more than one note
   in a message. Both are small changes to one parser; neither is built.
+- **Stock's parsers in detail (observed, decompile).** Each SysEx byte
+  reaches `sysex_rx_byte` from `midi_parse_byte` (`0x0800EFC0`); its calls
+  of the seven parsers are at `0x0801AE12` to `0x0801AE4A`, the single-note
+  one at `0x0801AE42`. `mts_single_note_rx` collects 10 bytes, compares the
+  first four with `7F 00 08 02`, then needs `F7` as the 11th; `ll` is never
+  read. It locks to the port of its `F0` until the message ends, and any
+  other status byte ends the message (a real-time byte too, if one
+  arrives). `mts_bulk_rx` takes `7E 00 08 01 tt`, then 401 bytes (name,
+  data, checksum) and `F7`; it doesn't test the checksum and doesn't call
+  `mark_changed` (the single-note parser does). The tables are 17 x 128
+  u16 (not words).
+- **The patch's parser (v0.25, `mts.c`; emulated in
+  `tests/test_peak_mts.py`):** after stock's, on every byte. Device ID `7F`
+  and three notes in one message reach the table (and `00` with three
+  notes); device `00` with one note is still stock's; wrong lengths,
+  device `10`, table 17 and a message cut by a note-on change nothing; a
+  clock byte inside a message doesn't end it; the bulk dump to `7F` sets
+  all 128 keys of its table only; a held note on the patch's table moves
+  at once (`voice_pitch`).
 
 ## Main-loop pace in the simulator (2026-11-16)
 

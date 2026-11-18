@@ -582,6 +582,16 @@ stock image; [findings](findings/peak-2.2-build2108.md#midi-tuning-standard-in-s
 00/01`) is there too. `0x0800D040` itself is a factory-test handler. Two
 limits a patch could lift: the device ID has to be `00` (not `7F`), and a
 message carries one note.
+**Both lifted (v0.25, `mts.c`; emulated, not yet on the synth):** a second
+parser runs after stock's on every SysEx byte (hook on `sysex_rx_byte`'s
+call of the single-note parser, `0x0801AE42`) and takes the single-note
+change with device ID `7F` or `00` and any number of notes, and the bulk
+dump with device ID `7F`; the one case stock handles (device `00`, one
+note) stays stock's. As stock, a message is applied at its `F7` at its
+exact length, through stock's `tuning_note_set`, so sounding notes on the
+patch's table move at once. Tests `tests/test_peak_mts.py`; rig check
+`work/mts_check.py`. Not taken: the bank forms (sub-ID `07`), the
+scale/octave forms (`08 08`, `08 09`), the dump request to `7F`.
 
 ## Dropped
 

@@ -29,11 +29,11 @@ named below.
 
 ## Status
 
-**MPE for Peak 0.24**, for Peak firmware **2.2 (build 2108)** only, with
+**MPE for Peak 0.25**, for Peak firmware **2.2 (build 2108)** only, with
 FPGA build 469. Tested on one Peak ([docs/hardware-log.md](docs/hardware-log.md)):
 every check of the automated hardware test rig that applies to the Peak
 passes (136 of 136 measured rows over USB, on 0.24 and on each release
-before it), a 600-run stress soak left no stuck note, a LinnStrument played
+before it; 0.25 adds MIDI tuning, checked in the simulator so far), a 600-run stress soak left no stuck note, a LinnStrument played
 it over DIN in one and two zones, and each feature below was tried on the
 synth (by hand, or by the rig where the panel can't do it). Not tested on other firmware versions or other units.
 
@@ -79,6 +79,14 @@ screen, Select 1 to 3, pick a line; the encoder changes it.
   current tempo.
 - **MIDI loop fix:** when a DAW sends the arpeggiator's own notes back to
   the Peak, the arpeggiator ignores them instead of retriggering itself.
+- **Microtuning from tuning software:** stock retunes a note of a tuning
+  table over MIDI (MIDI Tuning Standard), but only when the message is
+  addressed to device 00 and carries one note. The patch also takes the
+  "all devices" address (7F) that tuning software usually sends, several
+  notes in one message, and a whole table (bulk dump) sent to 7F. Notes
+  already sounding move at once. Pick the table with the patch's
+  `TuningTable`; a received tuning is kept only if you save that table on
+  its Settings `TUNINGTABLE` page.
 - **Osc Fine over MIDI:** stock ignores Osc 1, 2 and 3 Fine values from −100
   to about −73 sent as CC 15, 18 or 21 (only the panel reaches them). The
   patch takes the whole −100 to +100.
@@ -134,7 +142,7 @@ screen, Select 1 to 3, pick a line; the encoder changes it.
   change. Stock rewrites whole lines, and every character holds up the
   per-note modulation for about 0.05 ms. Measured on the synth, turning a
   knob for 5 s lost 17 modulation ticks, against about 2,600 before.
-- **Boot screen** `MPEO Ver 108.469`, so you can see the patch and its
+- **Boot screen** `MPEP Ver 108.469`, so you can see the patch and its
   release are installed.
 
 What stock 2.2 already does (and so isn't here), and the features that were

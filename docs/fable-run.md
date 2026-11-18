@@ -3,10 +3,19 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** v0.24 is on the synth and series P passed; no series open
-(the next is Q). Step 3 (blank-settings guard) closed on 2026-11-18
+**Next step:** v0.25 (MIDI Tuning Standard, `mts.c`) is built and waits
+for the user's flash; then series Q in TEST.md (Q3 runs
+`work/mts_check.py`, which sends tuning SysEx to table 16 in RAM, after the
+regression run). Step 3 (blank-settings guard) closed on 2026-11-18
 without a firmware change (see below). Also open: step 4 looks done in practice
 (strike it?); chord memory and scale quantise may be controller jobs (ask).
+
+**v0.25 built** (label `MPEP`): the MIDI Tuning Standard messages stock
+drops. A second parser after stock's single-note one takes device ID `7F`
+and several notes per single-note change, and the bulk dump to `7F`
+(findings, "MIDI Tuning Standard in stock"). Emulated
+(`tests/test_peak_mts.py`, 8 tests). The user picked it from three
+proposals (MTS, section randomiser, front-panel panic) on 2026-11-18.
 
 **Step 3 closed** (2026-11-18): on a blank chip `settings_load` reads no
 index (the patch loader skips `0xFFFF`) and our stored settings fall back
