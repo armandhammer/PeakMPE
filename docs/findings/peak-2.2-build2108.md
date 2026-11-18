@@ -535,6 +535,14 @@ on the synth.
   (inferred from the string order `LOW`, `BAND`, `HIGH`, `12dB`, `24dB`
   at `0x0804440C`-`0x0804442C`; Slope 1 = 24 dB agrees with the units
   measurements, docs/peak-units.md).
+- **On the synth (observed, 2026-11-18, v0.26, run `rand-2026-11-18_160152`):** 150 rolls of
+  the rules and 50 free rolls of the same controls, C4 held 1.5 s on D002: none silent (loudest
+  50 ms under -60 dBFS or within 6 dB of the pre-roll) and none clipped in either group. The
+  rules hold the level down (peaks above -6 dBFS: 2 of 150 against 17 of 50 free). With the
+  rules, band-pass (shape 1, cutoff 100-220) is about 12 dB quieter than low- or high-pass
+  (median -37.1 against -25.1 and -26.3 dB); free band-pass rolls were louder (median
+  -20.2), with resonance (r = 0.51 over all free rolls) and drive (0.26-0.30) the strongest
+  links to level, both of which the rules cap.
 
 ## The parameter setter and 9-bit controls (2026-11-16)
 

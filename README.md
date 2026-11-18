@@ -32,8 +32,10 @@ named below.
 **MPE for Peak 0.26**, for Peak firmware **2.2 (build 2108)** only, with
 FPGA build 469. Tested on one Peak ([docs/hardware-log.md](docs/hardware-log.md)):
 every check of the automated hardware test rig that applies to the Peak
-passes (136 of 136 measured rows over USB, on 0.25 and on each release
-before it; 0.26 adds the section randomiser, checked in the simulator so far), a 600-run stress soak left no stuck note, a LinnStrument played
+passes (136 of 136 measured rows over USB on each release up to 0.25; on
+0.26 the stress test's silence row failed once by its level rule, as it
+has before, and passed when re-run; 200 randomiser rolls measured on the
+rig, none silent or clipped), a 600-run stress soak left no stuck note, a LinnStrument played
 it over DIN in one and two zones, and each feature below was tried on the
 synth (by hand, or by the rig where the panel can't do it). Not tested on other firmware versions or other units.
 

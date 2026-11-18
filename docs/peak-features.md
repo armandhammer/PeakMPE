@@ -596,7 +596,7 @@ patch's table move at once. Tests `tests/test_peak_mts.py`; rig check
 scale/octave forms (`08 08`, `08 09`), the dump request to `7F`.
 
 **Patch randomiser by section:** the guide has no randomise function.
-**Built (v0.26, `rand.c`; emulated, not yet on the synth):** Settings >
+**Built (v0.26, `rand.c`; on the synth 2026-11-18, series R):** Settings >
 RANDOMISE has Section (Osc 1-3, Mixer, Filter, Amp Env, Mod Env1/2, LFO
 1/2, FX, All), Amount (10-100 %, 50 % until changed) and Roll. A roll gives
 each continuous control of the section a fresh value inside a safe range
@@ -608,7 +608,9 @@ Values go in through stock's setter, as section copy; the roll is one
 undo step. Ranges and checks are in `rand.c`'s header; tests
 `tests/test_peak_rand.py`; rig check of the rules `work/rand_check.py`.
 Not touched: pitch modulation depths, the mod matrix, the arp, the voice
-settings, VCA Gain and Patch Level.
+settings, VCA Gain and Patch Level. On the rig, 150 rolls of the rules:
+none silent or clipped; band-pass rolls about 12 dB quieter than the
+other shapes (hardware log, v0.26).
 
 ## Dropped
 

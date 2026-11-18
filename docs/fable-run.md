@@ -3,15 +3,22 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** v0.26 (section randomiser, `rand.c`) is built and waits
-for the user's flash; then series R in TEST.md (R5 runs the regression
-and `work/rand_check.py`). Still open from the 2026-11-18 proposals: the
+**Next step:** nothing in progress; v0.26 is on the synth (series R
+passed). Offered: lift band-pass rolls, which come out about 12 dB
+quieter than the other shapes (hardware log, v0.26). Still open from the 2026-11-18 proposals: the
 front-panel panic; and the user's answer on dropping the rest of step 8,
 striking step 4, and chord memory / scale quantise. Step 3 (blank-settings guard) closed on 2026-11-18
 without a firmware change (see below). Also open: step 4 looks done in practice
 (strike it?); chord memory and scale quantise may be controller jobs (ask).
 
-**v0.26 built** (label `MPEQ`): Settings > RANDOMISE (Section, Amount,
+**v0.26 on the synth** (label `MPEQ`, `c9b1606a…`, source `fd3495c`):
+flashed 2026-11-18; series R passed (R3 and R4 by ear, "sounds fine").
+Rig 135/1/5 (`2026-11-18_155552`): the one fail is `stuck_notes_stress`
+by the RMS rule alone (pre-roll -87.9), 2/2 when re-run (`2026-11-18_160130`).
+`work/rand_check.py` (`rand-2026-11-18_160152`): 150 rule rolls and 50
+free, none silent or clipped in either; peaks above -6 dBFS 2/150
+against 17/50; band-pass rule rolls about 12 dB quieter (median -37.1
+dB). Settings > RANDOMISE (Section, Amount,
 Roll) rolls one section inside safe ranges, then enforces that
 section's checks (`rand.c` header). Emulated (`tests/test_peak_rand.py`,
 10 tests). Also PARAM LOCK: `0xEC` is the chorus Mode (format_value
