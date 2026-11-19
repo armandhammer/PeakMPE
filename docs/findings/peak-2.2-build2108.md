@@ -829,6 +829,24 @@ within 2% and tripped at v0.18 (2.1%); it now holds the note's own writes
 to 0.5% and the paced ones to 15%. On the synth the pace is not a concern
 so far: v0.17 lost 9 modulation ticks in 10 s, all of them page draws.
 
+**Per hook (2026-11-19, emulated, `work/_ablate.py`):** in the test's
+window (note on, 20 ms, note off, 20 ms) stock makes 283 paced writes and
+v0.28 245. The main thread gets 6,000 instructions per 50 µs slot less
+the interrupts', and the main loop passes about 70 times a millisecond
+(2,957 calls of `mpe_ui_poll` in the window), so a hook on its path that
+costs 60 instructions costs about 4 % of the paced writes. Taking one
+hook out at a time (stock's call back in its place), with v0.28 plus the
+Settings-mode test moved before `ui_current_page` (248): `mpe_ui_poll`
++11, `mpe_globals_apply_poll` +9, the Euclid arp tick +8, the per-tick
+`mpe_osc_pitch_tick` +4 (an interrupt: its time comes out of the main
+thread's), `qa_panel_read` +2, the rest 0. **v0.29** runs the patch's
+UI polls and its settings check once per 1 kHz tick (stock's
+`sysex_rx_poll` and `globals_apply_poll` still on every pass) and takes
+a short path to `arp_tick` when the Euclid rhythm and ratchet are off:
+267 (94 %). A code hook over all of flash sees only part of what runs
+(`work/_loop_profile.py` counted 718,000 instructions in a window that
+has 4.8 million), so per-function counts from it are not used.
+
 ## Pedal sources and the note-off velocity (2026-11-17)
 
 From the decompile and the disassembly (**observed** unless marked).

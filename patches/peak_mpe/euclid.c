@@ -155,6 +155,11 @@ void euclid_arp_tick(void)
 {
     uint8_t *a = arp_state_ptr;
     uint8_t **pattern = (uint8_t **)(a + A_PATTERN);
+    uint8_t pv = globals[MPE_G_EUC_PULSES], rv = globals[MPE_G_EUC_RATCHET];
+    if ((pv == 0 || pv > MAX_STEPS) && (rv == 0 || rv >= MAX_RATCHET) && *pattern != events) {
+        arp_tick();              /* rhythm and ratchet off, stock's pattern in place: as stock, */
+        return;                  /* without the getters below on every main-loop pass */
+    }
     uint32_t k = euclid_pulses(), ratchet = euclid_ratchet();
     if (k || ratchet > 1) {
         uint32_t every = euclid_every();

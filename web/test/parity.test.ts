@@ -41,7 +41,7 @@ const py = python();
 // [descriptor, expected output .syx SHA-256, product, stock version, messages in the official file]
 const CASES = [
   [summitRaw, "28916b05a90e56f8091644031af03b01d1f7e10b0160ac2e6e1017ad8c08ac96", "Summit", "2126", 8719],
-  [peakRaw, "2bb99433525899cfc17d6207b858736893e5e3f9dd0199a6639e7ffe75f331c6", "Peak", "2108", 7784],
+  [peakRaw, "bf0328938594a2315db51d8306ee06357036e2d13b47606f13418a30f62ce3ed", "Peak", "2108", 7784],
 ] as const;
 
 for (const [raw, outSha, product, stockVersion, stockMessages] of CASES) {

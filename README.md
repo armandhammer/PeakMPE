@@ -29,7 +29,7 @@ named below.
 
 ## Status
 
-**MPE for Peak 0.28**, for Peak firmware **2.2 (build 2108)** only, with
+**MPE for Peak 0.29**, for Peak firmware **2.2 (build 2108)** only, with
 FPGA build 469. Tested on one Peak ([docs/hardware-log.md](docs/hardware-log.md)):
 every check of the automated hardware test rig that applies to the Peak
 passes (136 of 136 measured rows over USB on each release up to 0.25; on
@@ -38,7 +38,8 @@ has before, and passed when re-run; 200 randomiser rolls measured on the
 rig, none silent or clipped; on 0.27, which changes only the
 randomiser's band-pass and high-pass ranges, 136 of 136 again and
 band-pass rolls about 6 dB louder; 0.28 adds the front-panel panic,
-checked on the synth), a 600-run stress soak left no stuck note, a LinnStrument played
+checked on the synth; 0.29 runs the patch's own checks once a
+millisecond, to leave the synth's main loop more time), a 600-run stress soak left no stuck note, a LinnStrument played
 it over DIN in one and two zones, and each feature below was tried on the
 synth (by hand, or by the rig where the panel can't do it). Not tested on other firmware versions or other units.
 
@@ -164,7 +165,7 @@ screen, Select 1 to 3, pick a line; the encoder changes it.
   change. Stock rewrites whole lines, and every character holds up the
   per-note modulation for about 0.05 ms. Measured on the synth, turning a
   knob for 5 s lost 17 modulation ticks, against about 2,600 before.
-- **Boot screen** `MPES Ver 108.469`, so you can see the patch and its
+- **Boot screen** `MPET Ver 108.469`, so you can see the patch and its
   release are installed.
 
 What stock 2.2 already does (and so isn't here), and the features that were

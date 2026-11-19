@@ -93,8 +93,10 @@ def test_mpe_off_writes_as_stock(mpe_image):
     assert set(ws) == set(wm)
     # Three broadcast writes are paced by the main loop (712 of each in 100 ms
     # idle on stock), so they count its passes, not what a note does. The
-    # patch's polls make a pass about 12% longer in the simulator's time model
-    # (630 of each, v0.18; 637 on v0.17). Everything else must match stock.
+    # patch's hooks make a pass longer in the simulator's time model: in this
+    # window 283 on stock, 245 on v0.28, 267 on v0.29 (its polls once per
+    # 1 kHz tick; work/_ablate.py measures each hook). Everything else must
+    # match stock.
     per_pass = {(24, 0), (24, 3), (24, 13)}
     rest_s = sum(v for k, v in ws.items() if k not in per_pass)
     rest_m = sum(v for k, v in wm.items() if k not in per_pass)

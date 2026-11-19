@@ -87,9 +87,15 @@ static inline __attribute__((always_inline)) void take_globals(void)
 
 /* Replaces main_loop's globals_apply_poll call: runs it, then takes over a
  * changed Settings layout and refreshes the routing. */
+static uint32_t taken;       /* the modulation tick take_globals last ran in */
+
 void mpe_globals_apply_poll(void)
 {
     globals_apply_poll();
+    uint32_t now = mpe_ticks();  /* once per 1 kHz tick, not on each of the ~70 passes in it */
+    if (now == taken)
+        return;
+    taken = now;
     take_globals();
 }
 

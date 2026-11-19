@@ -475,14 +475,25 @@ static int on_mpe_page(const uint8_t *page)
  * main-loop pass (the Peak has no mode_request_poll, which the Summit patch
  * wraps): redraws the MPE values when what they show changed (RPN, the
  * flag). */
+static uint32_t polled;      /* the modulation tick the polls below last ran in */
+
 void mpe_ui_poll(void)
 {
     sysex_rx_poll();
+    /* The main loop passes about 70 times a millisecond (emulated); nothing below
+     * needs more than one look per 1 kHz tick, and each look costs the loop
+     * (test_mpe_off_writes_as_stock; findings, "Main-loop pace in the simulator"). */
+    uint32_t now = mpe_ticks();
+    if (now == polled)
+        return;
+    polled = now;
     disp_poll();
     envsync_poll();
     ui_hold_poll();
     motion_poll();
     morph_poll();
+    if (UI_MODE != UI_MODE_SETTINGS)   /* before ui_current_page: only a Settings page can be ours */
+        return;
     const uint8_t *page = ui_current_page();
     if (!on_mpe_page(page) || ui_message_active())
         return;

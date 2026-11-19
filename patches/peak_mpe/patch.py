@@ -13,14 +13,14 @@ Core:
   bl hook:      voice_alloc's voice_glide call -> binds the chosen voice
   bl hook:      voice_candidates' voice_env_read -> reuses the trigger's read
   bl hooks x3:  note_off's voice_release calls -> release by channel
-  bl hook:      main_loop's globals_apply_poll -> Settings layout to live state
+  bl hook:      main_loop's globals_apply_poll -> Settings layout to live state (once per 1 kHz tick, v0.29)
   bl hook:      settings_save_action's settings_save -> live state to globals
   bl hooks x4:  ui_value_change calls -> the VOICE item writes the flag itself
   byte patches: patch_param_desc[0x1A2] (the MPE flag: 0-1, Off/On, "MPE"),
-                VOICE page 1 item 3 = the flag, version labels "MPES" (v0.28; "MPER" = v0.27, "MPEQ" = v0.26, "MPEP" = v0.25, "MPEO" = v0.24, "MPEN" = v0.23, "MPEM" = v0.22, "MPEL" = v0.21, "MPEK" = v0.20, "MPEJ" = v0.19, "MPEI" = v0.18, "MPEH" = v0.17, "MPEG" = v0.16, "MPEF" = v0.15, "MPEE" = v0.14, "MPED" = v0.13, "MPEC" = v0.12, "MPEB" = v0.11, "MPEA" = v0.10, "MPE9" = v0.9, "MPE8" = v0.8, "MPE7" = v0.7, "MPE6" = v0.6, "MPE5" = v0.5, "MPE4" = v0.4, "MPE3" = v0.3, "MPE2" = v0.2, "MPE1" = v0.1)
+                VOICE page 1 item 3 = the flag, version labels "MPET" (v0.29; "MPES" = v0.28, "MPER" = v0.27, "MPEQ" = v0.26, "MPEP" = v0.25, "MPEO" = v0.24, "MPEN" = v0.23, "MPEM" = v0.22, "MPEL" = v0.21, "MPEK" = v0.20, "MPEJ" = v0.19, "MPEI" = v0.18, "MPEH" = v0.17, "MPEG" = v0.16, "MPEF" = v0.15, "MPEE" = v0.14, "MPED" = v0.13, "MPEC" = v0.12, "MPEB" = v0.11, "MPEA" = v0.10, "MPE9" = v0.9, "MPE8" = v0.8, "MPE7" = v0.7, "MPE6" = v0.6, "MPE5" = v0.5, "MPE4" = v0.4, "MPE3" = v0.3, "MPE2" = v0.2, "MPE1" = v0.1)
 UI (Settings MPE pages):
   bl hook:      main_loop's first settings_load -> builds the relocated tables
-  bl hook:      main_loop's sysex_rx_poll -> redraws the MPE values on change
+  bl hook:      main_loop's sysex_rx_poll -> the patch's polls, once per 1 kHz tick (v0.29), and the MPE values' redraw
   bl hook:      ui_draw_values' kind 3 format_value -> the MPE value formatter
   bl hooks x3:  ui_current_page_index where stock acts on a Settings page number
   pointers x3:  global_param_desc's three literals
@@ -90,7 +90,7 @@ FLAG_DESC = PATCH_PARAM_DESC + 0x1A2 * 12  # 0x08047D74: {min, max, nrpn msb, nr
 VOICE_PAGE_1 = 0x08048648  # flash initialiser of the VOICE menu's first page (RAM 0x20003438)
 
 PATCHES = [
-    # Version labels: boot screen "MPES Ver ...", Settings "MPESVer".
+    # Version labels: boot screen "MPET Ver ...", Settings "MPETVer".
     # MPE1 = v0.1 (first hardware release); MPE2 = v0.2 (arp echo filter);
     # MPE3 = v0.3 (knob display: ms and Hz, bars, pickup arrow);
     # MPE4 = v0.4 (Settings MPE page: PressCurve Squared/Linear);
@@ -101,6 +101,7 @@ PATCHES = [
     # MPE9 = v0.9 (quick-assign message redrawn on every move: stock overwrote it);
     # MPEA = v0.10 (quick-assign: with Mod held a control only selects, stock draws and applies nothing);
     # MPEB = v0.11 (Settings PARAM LOCK: keep FX, Arp or Voice settings through a patch change);
+    # MPET = v0.29 (main-loop headroom: the per-pass polls once per 1 kHz tick).
     # MPES = v0.28 (front-panel panic: Mod + Audition, panic.c).
     # MPER = v0.27 (RANDOMISE: band-pass cutoff 64-150 with resonance, high-pass up to 110, from the rig).
     # MPEQ = v0.26 (Settings RANDOMISE: one section rolled inside safe ranges, rand.c; PARAM LOCK's chorus Mode and buffer).
@@ -124,8 +125,8 @@ PATCHES = [
     # Time 127 lasts 1.45 s (about 1.5 s measured by the user, 2026-11-15) where the
     # guide says about 3 s. More than 21 makes a count 22 ms: 127 = 2.9 s, 64 = 1.5 s.
     (0x08018AEA, bytes.fromhex("0a2b"), bytes.fromhex("152b"), "ui_msg_countdown: one count per 22 ms instead of 11 (cmp r3, #21)"),
-    (0x080452FB, b" Version ", b"MPES Ver ", "boot screen label (.data initialiser of RAM 0x200000EB)"),
-    (0x080445E8, b"Version\x00", b"MPESVer\x00", "Settings 2/28 SYSTEM item name"),
+    (0x080452FB, b" Version ", b"MPET Ver ", "boot screen label (.data initialiser of RAM 0x200000EB)"),
+    (0x080445E8, b"Version\x00", b"MPETVer\x00", "Settings 2/28 SYSTEM item name"),
     # The flag's reserved descriptor: max 0 -> 1, display 0 -> 0x0F (Off/On,
     # as KeySync/FadeSync/Common on the Peak). NRPN stays 255:0. The name
     # pointer is a hook below.

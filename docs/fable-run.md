@@ -3,8 +3,20 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** ask the user what next (the Later list in peak-features;
-main-loop headroom and the stray 50 Hz partial were also offered).
+**Next step:** v0.29 (main-loop headroom) is built and waits for the
+user's flash; then series V in TEST.md (V2 runs the regression and the
+editor check). After that, ask what next (the Later list in
+peak-features; the stray 50 Hz partial was also offered).
+
+**v0.29 built** (label `MPET`, `bf032893…`; chosen by the user
+2026-11-19): the paced writes of `test_mpe_off_writes_as_stock` from 245
+(v0.28) to 267 of stock's 283 (limit 241). Measured per hook with
+`work/_ablate.py` (findings, "Main-loop pace in the simulator"): the
+UI polls and the settings check now run once per 1 kHz tick, the
+Settings-mode test comes before `ui_current_page`, and the Euclid tick
+goes straight to `arp_tick` when rhythm and ratchet are off. Left:
+`mpe_osc_pitch_tick` (+4, a fast path with MPE off would have to keep
+the pressure and bend hand-back) and `qa_panel_read` (+2).
 Run `tools/editor_check.py --yes` after each new image's rig run.
 
 **Editor baseline on the synth** (series U, 2026-11-19): Components
