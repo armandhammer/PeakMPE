@@ -87,9 +87,9 @@ def test_requests_answer_as_stock(mpe_built):
     steps = [
         ("identity", IDENTITY, 100),
         ("current patch", req(0x40), 400),
-        ("A001", req(0x41, 0, 0, 0), 400),
-        ("D002", req(0x41, 0, 3, 1), 400),
-        ("D128", req(0x41, 0, 3, 127), 400),
+        ("A000", req(0x41, 0, 1, 0), 400),
+        ("D002", req(0x41, 0, 4, 2), 400),
+        ("D127", req(0x41, 0, 4, 127), 400),
         ("settings", req(0x44), 400),
         ("wave block 0 0", req(0x46, 0, 0), 400),
         ("wave block 10 4", req(0x46, 10, 4), 400),
@@ -126,7 +126,7 @@ def test_writes_read_back_as_stock(mpe_built):
     def first(image, steps):
         return play(image, steps)
 
-    base = first(_stock(), [("cur", req(0x40), 400), ("d010", req(0x41, 0, 3, 9), 400),
+    base = first(_stock(), [("cur", req(0x40), 400), ("d010", req(0x41, 0, 4, 10), 400),
                             ("wave", req(0x46, 10, 4), 400), ("name", req(0x47, 73), 100)])
     cur = _renamed(base["cur"][0], b"Edited Current  ")
     d010 = _renamed(base["d010"][0], b"Stored D010     ")
@@ -137,7 +137,7 @@ def test_writes_read_back_as_stock(mpe_built):
     name[15:22] = b"Baseln "
     steps = [
         ("write current", cur, 400), ("read current", req(0x40), 400),
-        ("write D010", d010, 1500), ("read D010", req(0x41, 0, 3, 9), 400),
+        ("write D010", d010, 1500), ("read D010", req(0x41, 0, 4, 10), 400),
         ("write wave", list(wave), 1500), ("read wave", req(0x46, 10, 4), 400),
         ("write name", list(name), 1500), ("read name", req(0x47, 73), 100),
     ]

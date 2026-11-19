@@ -10,9 +10,9 @@ sends a sound), and records what comes back:
   identity       F0 7E 7F 06 01 F7
   current        40           the edit buffer (changes with every rig setup:
                               compared within the run, by the round trip)
-  D002           41 bank 3 patch 1 (the rig's test patch)
+  D002           41 bank 4 (D) patch 2 (the rig's test patch; banks 1-4 = A-D)
   settings       44
-  wave b.p       46 block b (0-10), part p (0-4)   55 requests
+  wave b.p       46 block b (0-10), part p (0-4)   55 requests (block 10 not compared)
   wave name n    47 n (0-73)
   tuning t       F0 7E 00 08 00 t F7, t 0-16 (stock's tuning-table dump)
   bank D         4A bank 4: 128 patches
@@ -47,7 +47,10 @@ IDENTITY = bytes([0xF0, 0x7E, 0x7F, 0x06, 0x01, 0xF7])
 READS = {0x40, 0x41, 0x44, 0x46, 0x47, 0x4A}
 WRITE_CURRENT = 0x00
 PATCH_LEN = 527                     # F0, header, command, 5 bytes, 512 data, F7
-VOLATILE = {"current"}              # not compared between runs
+# Not compared between runs: the edit buffer (every rig setup changes it) and
+# wavetable block 10 (blocks 0-9 are the user slots; block 10 changed between
+# two runs a minute apart on 2026-11-19: inferred a working buffer).
+VOLATILE = {"current"} | {f"wave 10.{q}" for q in range(5)}
 
 
 def req(cmd, b10=0, b11=0, b12=0):
@@ -79,7 +82,7 @@ def allowed(msg):
 def plan():
     """(label, message, expected answers, seconds to wait)."""
     p = [("identity", IDENTITY, 1, 1.0), ("current", req(0x40), 1, 1.0),
-         ("D002", req(0x41, 0, 3, 1), 1, 1.0), ("settings", req(0x44), 1, 1.0)]
+         ("D002", req(0x41, 0, 4, 2), 1, 1.0), ("settings", req(0x44), 1, 1.0)]
     p += [(f"wave {b}.{q}", req(0x46, b, q), 1, 1.0) for b in range(11) for q in range(5)]
     p += [(f"wave name {n}", req(0x47, n), 1, 1.0) for n in range(74)]
     p += [(f"tuning {t}", tuning_dump(t), 1, 1.0) for t in range(17)]

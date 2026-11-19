@@ -940,7 +940,7 @@ not known.
   | Request | Answer (emulated) |
   |---|---|
   | `40` | `00` + the edit buffer, 527 bytes |
-  | `41 00 bank patch` (bank 0-3 = A-D, patch 0-127; inferred) | `01` + that stored patch, 527 bytes |
+  | `41 00 bank patch` (bank 1-4 = A-D, patch 0-127 as on the screen; observed on the synth) | `01` + that stored patch, 527 bytes |
   | `44` | `04` + the settings, 527 bytes |
   | `46 block part` (block < 11, part < 5) | `06` + block, part, 514 bytes (531) |
   | `47 n` (n < 74) | `07` + n and a 7-character wavetable name: 0 `Sine   `, 73 `User 10` |
@@ -962,6 +962,19 @@ not known.
   the first 3 s of a bank dump, the write and read-back of each kind,
   and MIDI out for notes with the arp on and Arp>Midi On, CCs, a program
   change and All Notes Off: the same bytes, step by step.
+- **On the synth** (v0.28 over USB, `tools/editor_check.py`, run `editor-2026-11-19_085344`;
+  **observed**): every request answered once at the emulated length; the
+  identity as emulated; wavetable names 0-63 the factory tables (`Sine   `,
+  `Triangl`, ...), 64-73 `User 1 ` to `User 10`; the tuning tables named
+  `Peak Table 00` and on; request 4A with bank 4 sent the 128 patches of
+  bank D, each tagged 4 and its number (D003 `Element Song`), and D002's
+  answer to 41 equals its copy in the bank dump: **banks are 1-4 for A-D,
+  patches 0-127 as on the screen.** The edit buffer sent back as write 00
+  read back the same. Wavetable block 10 changed between two runs a
+  minute apart (5 to 149 bytes of a part; blocks 0-9 did not): inferred a
+  working buffer, not a user slot. Components (user, series U) shows the
+  firmware as `2.2, build 2108, FPGA 469` and reads the patches and the
+  user wavetable list.
 
 ## A blank settings chip (2026-11-18)
 

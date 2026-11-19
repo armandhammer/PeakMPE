@@ -229,8 +229,8 @@ Measurements (step 6) can run on the rig while code is written for others.
    reverb tails ring out. Message `PANIC` / `All notes off`. Tests
    `tests/test_peak_panic.py` (with control cases that fail without the
    panic); findings, "All sound off, all notes off and the panic".
-   **Editor/MIDI baseline built (2026-11-19; emulated, the rig run waits
-   for series U):** the editor protocol read from stock's SysEx parsers
+   **Editor/MIDI baseline built (2026-11-19; on the synth the same day,
+   series U: Components reads the Peak; `editor-2026-11-19_085344` is the first hardware baseline):** the editor protocol read from stock's SysEx parsers
    (findings, "The editor protocol"). `tests/test_peak_editor.py` plays
    fixed sessions into stock and the patch and requires the same bytes
    out: every editor request, a bank dump's start, each write read back,

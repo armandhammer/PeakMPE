@@ -3,8 +3,15 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** series U in TEST.md (Components by hand, then GO rig runs
-`tools/editor_check.py`, the first hardware baseline). No new image.
+**Next step:** ask the user what next (the Later list in peak-features;
+main-loop headroom and the stray 50 Hz partial were also offered).
+Run `tools/editor_check.py --yes` after each new image's rig run.
+
+**Editor baseline on the synth** (series U, 2026-11-19): Components
+reads the Peak (2.2 build 2108, FPGA 469; patches; User 1-10).
+`tools/editor_check.py` run `editor-2026-11-19_085344` is the first baseline; banks are
+1-4 for A-D (the first run asked for C001 as D002 and was set aside);
+wavetable block 10 is not compared (it changes between runs).
 
 **Editor/MIDI baseline** (chosen by the user 2026-11-19): instead of
 recording Components (on Windows Chrome holds the Peak's MIDI port while
