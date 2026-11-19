@@ -874,6 +874,39 @@ From the decompile and the disassembly (**observed** unless marked).
   their own release, so the per-voice write reaches only its voice (not
   measured).
 
+## All sound off, all notes off and the panic (2026-11-18)
+
+Read for the front-panel panic (v0.28, `panic.c`). Code **observed**
+(decompile); behaviour **emulated** (`tests/test_peak_panic.py`).
+
+- **The guide has no panic and no button combinations** (Peak hardware
+  overview and Peak in detail, read 2026-11-18). Audition plays middle C
+  (note 60) while held; Mod is one of the nine menu buttons.
+- **CC 120** (value 0) in `cc` `0x0800F124` calls `all_sound_off`
+  `0x08011E90`: `voices_all_release(1)` (FPGA 10:0x17 = 10,
+  `voice_state`+0x238 = 1, a release command to every voice, gates and the
+  sustain and sostenuto holds cleared), then `0x08011E00` (FPGA 8:0x12
+  and 8:0x13 = 0, part parameters 7, 4 and 9 = 0, 10 = 0xC800).
+  **CC 123 to 127** (value 0; CC 126 with any value) call `0x08011E54`,
+  `voices_all_release(0)`. CC 121 is taken and ignored; CC 122 calls
+  `0x08018BE4`.
+- **Neither touches the held keys or the arp.** The keys held are a
+  bitmap at `note_state` `0x200127D4`+0xD8 (`held_note_add` `0x0800F364`;
+  all clear = the next note starts a phrase) and the mono modes' last
+  note at +0x1D3; the arp keeps its keys at arp state +0x168 and its play
+  map at +0x178 (`arp_clear` `0x08014DB8` empties the play map and its
+  counts, as `patch_load` does; not +0x168). Emulated on v0.28 without
+  the panic: in Mono, a key whose note-off never came sounds again when
+  a later key is let go, and the arp plays on for keys whose note-offs
+  never came; with the panic both stop.
+- **The panic** (Mod + Audition, taken in `qa_panel_read` with its
+  release, so Audition's note does not sound): `all_sound_off`, the
+  held-key bitmap and last note, the arp's keys and play map, the MPE
+  voice bindings and per-note channels, and every channel's stored bend,
+  pressure and slide. The delay and reverb tails are left: CC 120 does
+  not cut them either (inferred from the v0.27 randomiser run, where a
+  take after a loud delay started at -16.6 dB).
+
 ## A blank settings chip (2026-11-18)
 
 Roadmap step 3. The simulator normally seeds a blank DataFlash; with that

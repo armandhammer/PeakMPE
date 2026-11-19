@@ -29,7 +29,7 @@ named below.
 
 ## Status
 
-**MPE for Peak 0.27**, for Peak firmware **2.2 (build 2108)** only, with
+**MPE for Peak 0.28**, for Peak firmware **2.2 (build 2108)** only, with
 FPGA build 469. Tested on one Peak ([docs/hardware-log.md](docs/hardware-log.md)):
 every check of the automated hardware test rig that applies to the Peak
 passes (136 of 136 measured rows over USB on each release up to 0.25; on
@@ -37,7 +37,8 @@ passes (136 of 136 measured rows over USB on each release up to 0.25; on
 has before, and passed when re-run; 200 randomiser rolls measured on the
 rig, none silent or clipped; on 0.27, which changes only the
 randomiser's band-pass and high-pass ranges, 136 of 136 again and
-band-pass rolls about 6 dB louder), a 600-run stress soak left no stuck note, a LinnStrument played
+band-pass rolls about 6 dB louder; 0.28 adds the front-panel panic,
+checked in the simulator so far), a 600-run stress soak left no stuck note, a LinnStrument played
 it over DIN in one and two zones, and each feature below was tried on the
 synth (by hand, or by the rig where the panel can't do it). Not tested on other firmware versions or other units.
 
@@ -91,6 +92,11 @@ screen, Select 1 to 3, pick a line; the encoder changes it.
   already sounding move at once. Pick the table with the patch's
   `TuningTable`; a received tuning is kept only if you save that table on
   its Settings `TUNINGTABLE` page.
+- **Panic:** hold **Mod** and press **Audition**. Every note stops at once,
+  and what stock's All Sound Off leaves behind is cleared too: keys whose
+  note-off never came (in Mono they would sound again), a latched or stuck
+  arp chord, and each channel's per-note bend, pressure and slide. The
+  screen says `PANIC` / `All notes off`. Delay and reverb tails ring out.
 - **Osc Fine over MIDI:** stock ignores Osc 1, 2 and 3 Fine values from −100
   to about −73 sent as CC 15, 18 or 21 (only the panel reaches them). The
   patch takes the whole −100 to +100.
@@ -158,7 +164,7 @@ screen, Select 1 to 3, pick a line; the encoder changes it.
   change. Stock rewrites whole lines, and every character holds up the
   per-note modulation for about 0.05 ms. Measured on the synth, turning a
   knob for 5 s lost 17 modulation ticks, against about 2,600 before.
-- **Boot screen** `MPER Ver 108.469`, so you can see the patch and its
+- **Boot screen** `MPES Ver 108.469`, so you can see the patch and its
   release are installed.
 
 What stock 2.2 already does (and so isn't here), and the features that were

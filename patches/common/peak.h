@@ -185,6 +185,15 @@ extern uint8_t globals[0x200];                /* global settings, ext flash 0x30
  * slot, +0x54+4v smoothed aftertouch, +0x1E6 last allocated voice,
  * +0x1F4+v gate. observed */
 extern volatile uint8_t voice_state[0x200];
+/* The keys held (0x200127D4): +0xD8 a bitmap of 128 notes (all clear = the
+ * next note starts a phrase), +0x1D3 the last note in the mono modes (0xFF
+ * none), +0x1CD sustain. held_note_add 0x0800F364, note_off. observed */
+extern volatile uint8_t note_state[0x200];
+#define HELD_KEYS (&note_state[0xD8])
+#define LAST_NOTE (note_state[0x1D3])
+/* What CC 120 (value 0) runs (0x08011E90): every voice released at once and
+ * the sound chip's part values reset. Not the arp, not the held keys. observed */
+void all_sound_off(void);
 extern volatile uint8_t voice_env_state[PEAK_VOICES];   /* 3 = release or idle */
 extern volatile uint16_t voice_env_level[PEAK_VOICES];  /* above 0x200 = still sounding */
 
@@ -260,6 +269,9 @@ extern uint8_t *volatile arp_state_ptr;
 /* Once per tick from 0x0801192C (call at 0x08011956): tempo, the flags, the
  * patch's Rhythm into the state when it changed, then the steps. observed */
 void arp_tick(void);
+/* Empties the arp's play map (+0x178) and its counts, as a patch load does
+ * (0x08014DB8); not the keys-held map +0x168. observed */
+void arp_clear(void);
 /* Starts the pattern again from its first event and ends the step that is
  * sounding (0x08014F68); stock calls it after loading a pattern. observed */
 void arp_pattern_reset(void);

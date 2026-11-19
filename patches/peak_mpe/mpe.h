@@ -173,6 +173,8 @@ void diag_late_text(char *out);  /* that reading as text, at most 8 characters *
 
 /* --- Motion recording (motion.c) --------------------------------------- */
 int motion_button(uint32_t ev, int mod_held);     /* 1 = taken (Mod + Animate 1 and its release) */
+int panic_button(uint32_t ev, int mod_held);      /* 1 = taken (Mod + Audition and its release) */
+void panic(void);                                 /* every note off, arp and MPE state cleared */
 void motion_knob(uint32_t id, uint32_t cur, uint32_t hires);
 void motion_poll(void);          /* main loop, from mpe_ui_poll */
 void motion_clear(void);         /* a patch load */

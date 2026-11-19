@@ -173,3 +173,6 @@ address,name,kind,confidence,notes
 0x08011d68,modwheel_store,function,observed,"(value) -> parts+6; cc case 1"
 0x08011d74,expression_store,function,observed,"(value) -> parts+8 (ExprPED1, inferred); callers cc case 0xb (CC 11), the pedal input code 0x080171c4 (which also sends CC 11), 0x08018ba8"
 0x08011d80,breath_store,function,observed,"(value) -> parts+9 (BrthPED2, inferred); callers cc case 2 (CC 2), 0x080171c4, 0x08018ba8"
+0x08011e90,all_sound_off,function,observed,"CC 120 with value 0 in cc 0x0800f124: voices_all_release(1) (FPGA 10:0x17 = 10, voice_state+0x238 = 1, release command to all voices, gates and pedal flags cleared) then 0x08011e00 (FPGA 8:0x12 and 8:0x13 = 0, part params 7 4 9 = 0 and 10 = 0xc800). CC 123-127 (value 0, or 126 any value) call 0x08011e54 = voices_all_release(0) instead; neither touches the arp or the held-key list"
+0x08014db8,arp_clear,function,observed,"zeroes the arp play map (arp state +0x178, 16 bytes) and +0x1ca +0x1cb +0x1cc; not the keys-held map +0x168; callers arp_reset 0x08014fa8, 0x08015554, patch_load"
+0x200127d4,note_state,data,observed,"held_note_add 0x0800f364: +0x58+note velocity, +0xd8 held-key bitmap (16 bytes; all clear = the next note starts a phrase, 0x0800f338), +0x1d3 the last note (0xff none; note_off reads it in the mono modes), +0x1cd sustain"

@@ -87,8 +87,13 @@ void qa_button(uint32_t ev)
 uint32_t qa_panel_read(void)
 {
     uint32_t ev = panel_event_read();
+    if (!(ev & 0xFF))              /* most passes: no event (every handler below ignores it; this
+                                    * keeps the main loop's pass short, test_mpe_off_writes_as_stock) */
+        return ev;
     qa_button(ev);
     if (motion_button(ev, held))   /* Mod + Animate 1: motion recording (motion.c) */
+        return 0;
+    if (panic_button(ev, held))    /* Mod + Audition: panic (panic.c) */
         return 0;
     if (held && edit_button(ev))   /* Mod + Page left/right: undo / redo (section.c) */
         return 0;

@@ -3,8 +3,20 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** the front-panel panic (step 5), chosen by the user on
-2026-11-18: check the guide, trace stock's CC 120/123, then build.
+**Next step:** v0.28 (front-panel panic, `panic.c`) is built and waits
+for the user's flash; then series T in TEST.md (T4 runs the regression).
+
+**v0.28 built** (label `MPES`, `2bb99433…`): Mod + Audition runs
+stock's CC 120 (`all_sound_off` `0x08011E90`) and clears the held keys,
+the arp's keys and play map, the MPE bindings and per-channel expression
+(findings, "All sound off, all notes off and the panic"). The guide has
+no panic and no button combinations. Emulated (`tests/test_peak_panic.py`,
+6 tests with control cases). The first full run failed
+`test_mpe_off_writes_as_stock`: the main-loop-paced writes came to 240
+of stock's 283 in its window (limit 85 %; v0.27 243, emulated).
+`qa_panel_read` now returns at once when there is no button event: 245.
+The patch's main-loop margin is narrow; a new per-pass poll should be
+measured with `work/_passcount.py`.
 
 **Roadmap decisions** (the user, 2026-11-18): step 4 struck (done in
 practice); the rest of step 8 (random per note, voice index) optional,

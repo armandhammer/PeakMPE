@@ -222,6 +222,14 @@ Measurements (step 6) can run on the rig while code is written for others.
    and anything our features have queued (arp, strum). Plus a recorded
    baseline of the Novation editor's traffic (Components) and of MIDI out
    for a fixed set of actions, kept as a regression check.
+   **Panic built (v0.28, `panic.c`; emulated, not yet on the synth):**
+   hold **Mod** and press **Audition**. Stock's CC 120, then the held keys,
+   the arp's keys and play map (a latched or stuck chord stops), the MPE
+   voice bindings and every channel's bend, pressure and slide. Delay and
+   reverb tails ring out. Message `PANIC` / `All notes off`. Tests
+   `tests/test_peak_panic.py` (with control cases that fail without the
+   panic); findings, "All sound off, all notes off and the panic". The
+   editor/MIDI baseline is not built.
 
 ### 2. Expression, first part
 
