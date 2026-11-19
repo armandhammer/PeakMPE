@@ -3,10 +3,13 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** v0.29 (main-loop headroom) is built and waits for the
-user's flash; then series V in TEST.md (V2 runs the regression and the
-editor check). After that, ask what next (the Later list in
-peak-features; the stray 50 Hz partial was also offered).
+**Next step:** ask the user what next (the Later list in peak-features;
+the stray 50 Hz partial was also offered). After each new image's rig
+run, also run `tools/editor_check.py --yes`.
+
+**v0.29 on the synth** (label `MPET`, source `02b2ec2`): flashed
+2026-11-19; series V passed. Rig 136/0/5 (`2026-11-19_103004`); editor check
+`editor-2026-11-19_103529`: every answer the same but the settings dump, in one byte: data byte 0x31 (globals +0x31, Members; the dump's data byte n is globals +n, inferred from the known values around it) 0 -> 15, which the patch reads as the same setting (0 = 15); most likely written by V1's Zone edit (inferred), in RAM only.
 
 **v0.29 built** (label `MPET`, `bf032893…`; chosen by the user
 2026-11-19): the paced writes of `test_mpe_off_writes_as_stock` from 245

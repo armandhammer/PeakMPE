@@ -39,7 +39,7 @@ rig, none silent or clipped; on 0.27, which changes only the
 randomiser's band-pass and high-pass ranges, 136 of 136 again and
 band-pass rolls about 6 dB louder; 0.28 adds the front-panel panic,
 checked on the synth; 0.29 runs the patch's own checks once a
-millisecond, to leave the synth's main loop more time), a 600-run stress soak left no stuck note, a LinnStrument played
+millisecond, to leave the synth's main loop more time, rig 136 of 136), a 600-run stress soak left no stuck note, a LinnStrument played
 it over DIN in one and two zones, and each feature below was tried on the
 synth (by hand, or by the rig where the panel can't do it). Not tested on other firmware versions or other units.
 

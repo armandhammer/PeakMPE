@@ -846,6 +846,8 @@ a short path to `arp_tick` when the Euclid rhythm and ratchet are off:
 267 (94 %). A code hook over all of flash sees only part of what runs
 (`work/_loop_profile.py` counted 718,000 instructions in a window that
 has 4.8 million), so per-function counts from it are not used.
+On the synth (v0.29, series V; observed): the rig run `2026-11-19_103004` gave 136 pass, 0 fail, 5 info,
+and the editor check `editor-2026-11-19_103529` against the series U baseline: every answer the same but the settings dump, in one byte: data byte 0x31 (globals +0x31, Members; the dump's data byte n is globals +n, inferred from the known values around it) 0 -> 15, which the patch reads as the same setting (0 = 15); most likely written by V1's Zone edit (inferred), in RAM only.
 
 ## Pedal sources and the note-off velocity (2026-11-17)
 
