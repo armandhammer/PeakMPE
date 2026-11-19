@@ -593,9 +593,17 @@ built.
 
 Adaptive just intonation (per-voice pitch path, fixed root first), random
 per note and voice index as lent sources (step 8), patch change timed to
-the bar, opt-in patch dump on program change (USB only), per-port MIDI
-filters, a stuck-note watchdog that looks for inconsistent state rather than
+the bar, per-port MIDI filters, a stuck-note watchdog that looks for inconsistent state rather than
 note age (2.2 fixed the hanging-note bug, and our 400-run soak found none).
+
+**Patch dump on patch change:** **built (v0.30, `pdump.c`; emulated, not
+yet on the synth).** Settings PATCH DUMP > Send (Off, USB): after a
+stored patch loads (program change, the patch buttons, a cued patch) the
+Peak sends it over USB as the editor's current-patch answer (00).
+Compare, Initialise and patches received by SysEx send nothing, nor
+does the power-up load. Tests `tests/test_peak_pdump.py`; rig check
+`tools/editor_check.py --pdump`; findings, "Patch selection and the
+patch dump".
 
 **Plug-in communication:** too vague to plan. The baseline in step 5 is the
 first look; enhancements only if it shows gaps.

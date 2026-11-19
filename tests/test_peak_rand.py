@@ -275,3 +275,13 @@ def test_param_lock_chorus_mode_is_fx(mpe_built):
         b.uc.mem_write(PATCHES + o, bytes([v]))
     _call(b, PATCH_LOAD, INIT_PATCH)
     assert [b.u8(PATCHES + o) for o in (0xC7, 0xEC, 0xED, 0xFA, 0x22, 0x2F)] == [11, 1, 90, 1, 2, 1]
+
+
+def test_mixer_rolls_keep_a_loud_oscillator_within_the_headroom(board, mpe_built):
+    """Mixer rolls at 100 % pass the mixer check. (v0.30's mixer_fix change was
+    found by the full-roll test above, one roll in 40; this one doesn't hit
+    that case with the old code: coverage, not a regression test.)"""
+    b, blob = board, mpe_built.blob
+    for _ in range(150):
+        _roll(b, blob, S_MIXER, 10)
+        assert _checks(_patch(b), S_MIXER)["mixer"]

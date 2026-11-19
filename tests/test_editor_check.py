@@ -47,3 +47,13 @@ def test_split_and_compare():
     now = {"current": ec.summarize([a]), "settings": ec.summarize([b]), "D002": ec.summarize([a])}
     before = {"current": ec.summarize([b]), "settings": ec.summarize([b]), "D002": ec.summarize([b])}
     assert ec.compare(now, before) == ["D002"]           # "current" changes with every setup
+
+
+def test_pdump_sends_only_the_rig_slot_select():
+    msgs = ec.pdump_messages(1)
+    assert msgs == [bytes([0xB0, 32, 4]), bytes([0xC0, 2])]
+    for m in msgs:
+        assert ec.allowed(m) == m
+    for m in (bytes([0xB0, 0, 3]), bytes([0xB0, 32, 5]), bytes([0xB0, 32, 0]), bytes([0xB0, 7, 100]), bytes([0x90, 60, 100])):
+        with pytest.raises(ValueError):
+            ec.allowed(m)

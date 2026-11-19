@@ -194,6 +194,15 @@ extern volatile uint8_t note_state[0x200];
 /* What CC 120 (value 0) runs (0x08011E90): every voice released at once and
  * the sound chip's part values reset. Not the arp, not the held keys. observed */
 void all_sound_off(void);
+/* The main loop's SysEx state (0x20011214): +0x67C what sysex_rx_poll is
+ * answering (0 = nothing), +0x67F the port (0 = USB, else DIN). observed */
+extern volatile uint8_t sysex_state[0x900];
+/* Request 40's handler (0x08019F58): sysex_rx_poll sends the current patch
+ * (editor answer 00) to port on its next pass. observed, emulated */
+void editor_patch_request(uint8_t port);
+/* (number bank): patch_select +5 and +4, the loaded patch's place
+ * (0x08018C58; only caller patch_select_load 0x0801AF78). observed */
+void patch_select_set(uint8_t number, uint8_t bank);
 extern volatile uint8_t voice_env_state[PEAK_VOICES];   /* 3 = release or idle */
 extern volatile uint16_t voice_env_level[PEAK_VOICES];  /* above 0x200 = still sounding */
 

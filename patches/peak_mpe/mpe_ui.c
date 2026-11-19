@@ -24,6 +24,7 @@
  *   ARP RATCHET     Ratchet (Off, x2, x3), Every (1-8) (euclid.c)
  *   RELEASE VEL     Source (Off, ExprPED1, BrthPED2) (relvel.c)
  *   RANDOMISE       Section, Amount (10-100 %), Roll (rand.c)
+ *   PATCH DUMP      Send (Off, USB) (pdump.c)
  * The Summit's read-only "Channels" item (CH CLASH) is left out: the Peak has
  * no Multi parts whose channels a zone could take.
  * The items are kind 3 (global settings) with records 0x30-0x38, which stock
@@ -67,15 +68,15 @@ struct mpe_page {
 };
 
 #define STOCK_DESCS 0x22           /* Peak global_param_desc: records 0x00-0x21, then other data */
-#define MPE_G_LAST MPE_G_RAND_ROLL     /* the last record of new_descs */
+#define MPE_G_LAST MPE_G_PDUMP         /* the last record of new_descs */
 #define MPE_DESCS (MPE_G_LAST + 1)
 #define MPE_PAGE_AT 4              /* after MIDI CONTROL (stock page 3) */
-#define MPE_PAGES 12
+#define MPE_PAGES 13
 #define STOCK_PAGES PEAK_SETTINGS_PAGES
 #define UI_MODE_SETTINGS PEAK_UI_SETTINGS
 #define UI_MODE (ui_state[0])
 
-enum { DISP_ZONE = 0xE0, DISP_MEMBERS, DISP_NOTE, DISP_MASTER, DISP_CURVE, DISP_ENVSYNC, DISP_LOCK_FX, DISP_LOCK_ARP, DISP_LOCK_VOICE, DISP_SECT, DISP_DOIT, DISP_DLAST, DISP_DCOUNT, DISP_DOVF, DISP_GLIDE, DISP_MLEN, DISP_MSTATE, DISP_LATE, DISP_MORPH, DISP_MPOS, DISP_MDIFF, DISP_EPULSES, DISP_ESTEPS, DISP_EROTATE, DISP_ERATCHET, DISP_EEVERY, DISP_RELVEL, DISP_RSECT, DISP_RAMT, DISP_ROLL, DISP_END };
+enum { DISP_ZONE = 0xE0, DISP_MEMBERS, DISP_NOTE, DISP_MASTER, DISP_CURVE, DISP_ENVSYNC, DISP_LOCK_FX, DISP_LOCK_ARP, DISP_LOCK_VOICE, DISP_SECT, DISP_DOIT, DISP_DLAST, DISP_DCOUNT, DISP_DOVF, DISP_GLIDE, DISP_MLEN, DISP_MSTATE, DISP_LATE, DISP_MORPH, DISP_MPOS, DISP_MDIFF, DISP_EPULSES, DISP_ESTEPS, DISP_EROTATE, DISP_ERATCHET, DISP_EEVERY, DISP_RELVEL, DISP_RSECT, DISP_RAMT, DISP_ROLL, DISP_PDUMP, DISP_END };
 
 #define FIELD 8                    /* value field: columns 11-18, the mark is at 19 */
 
@@ -102,6 +103,7 @@ static const char title_euclid[] = "ARP EUCLID";
 static const char title_ratchet[] = "ARP RATCHET";
 static const char title_relvel[] = "RELEASE VEL";
 static const char title_rand[] = "RANDOMISE";
+static const char title_pdump[] = "PATCH DUMP";
 
 static const struct mpe_desc new_descs[] = {
     {0, 2, 0x40, 0x2E, DISP_ZONE, "Zone"},
@@ -134,6 +136,7 @@ static const struct mpe_desc new_descs[] = {
     {0, 0, 0xFF, 0x00, DISP_RSECT, "Section"},        /* records 0x4B-0x4D: not stored (rand.c) */
     {0, 0, 0xFF, 0x00, DISP_RAMT, "Amount"},
     {0, 0, 0xFF, 0x00, DISP_ROLL, "Roll"},
+    {0, 1, 0x40, 0x40, DISP_PDUMP, "Send"},           /* record 0x4E: stored in the globals */
 };
 
 /* Last drawn per item. Only compared with what would be drawn now, so its
@@ -208,6 +211,8 @@ static void build_tables(void)
     page_item(&mpe_pages[11], MPE_G_RAND_SECT);
     page_item(&mpe_pages[11], MPE_G_RAND_AMT);
     page_item(&mpe_pages[11], MPE_G_RAND_ROLL);
+    page_init(&mpe_pages[12], title_pdump);
+    page_item(&mpe_pages[12], MPE_G_PDUMP);
 
     struct mpe_page **stock = (struct mpe_page **)(settings_menu + 4);
     uint32_t n = 0;
@@ -421,6 +426,9 @@ static void render_view(const struct mpe_live *v, uint32_t display, char *out)
         put_str(&p, names[n > 2 ? 0 : n]);
         break;
     }
+    case DISP_PDUMP:
+        put_str(&p, pdump_on() ? "USB" : "Off");
+        break;
     }
     *p = 0;
 }
@@ -492,6 +500,7 @@ void mpe_ui_poll(void)
     ui_hold_poll();
     motion_poll();
     morph_poll();
+    pdump_poll();
     if (UI_MODE != UI_MODE_SETTINGS)   /* before ui_current_page: only a Settings page can be ours */
         return;
     const uint8_t *page = ui_current_page();
@@ -527,7 +536,7 @@ static void edit_setting(uint16_t index, int32_t delta)
         }
         return;
     }
-    if (index >= MPE_G_RAND_SECT) {     /* RANDOMISE (rand.c), not stored */
+    if (index >= MPE_G_RAND_SECT && index <= MPE_G_RAND_ROLL) {   /* RANDOMISE (rand.c), not stored */
         rand_edit(index, delta);
         if (index != MPE_G_RAND_ROLL)  /* Roll draws its own message */
             ui_draw_values();
@@ -563,6 +572,7 @@ static void edit_setting(uint16_t index, int32_t delta)
     case MPE_G_LOCK_FX + 1:
     case MPE_G_LOCK_FX + 2:
     case MPE_G_MORPH:
+    case MPE_G_PDUMP:
         v = globals[index] == 1;
         break;
     case MPE_G_EUC_PULSES:

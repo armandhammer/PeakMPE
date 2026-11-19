@@ -565,6 +565,15 @@ on the synth.
   rolls median -31.1 dB (was -37.1), 2 of 24 under -40 (was 9 of 25);
   low-pass -24.9, high-pass -27.4; none clipped.
 
+**A mixer-fix flaw (v0.26 to v0.29; emulated):** `mixer_fix` lifted the loudest
+oscillator to 128-255 and then scaled all five levels by 420 / sum, which could
+take that oscillator back under 100 (128 with a sum of 600 gives 89), so the
+rule it enforces failed. `test_full_rolls_of_everything_stay_in_range_and_pass_the_checks`
+caught one such roll in 40 on the v0.30 build (its timing gave other seeds).
+v0.30 keeps the loudest oscillator and scales the other four into what it
+leaves of 420. Not seen on the rig (`work/rand_check.py`: no rule roll
+silent, v0.26 and v0.27).
+
 ## The parameter setter and 9-bit controls (2026-11-16)
 
 Found while building the patch morph. Code **observed** (decompile), the
@@ -995,6 +1004,35 @@ not known.
   working buffer, not a user slot. Components (user, series U) shows the
   firmware as `2.2, build 2108, FPGA 469` and reads the patches and the
   user wavetable list.
+
+## Patch selection and the patch dump (2026-11-19)
+
+Read for v0.30's patch dump (`pdump.c`). Code **observed** (decompile);
+behaviour **emulated** (`tests/test_peak_pdump.py`).
+
+- **`program_change`** `0x0800F0EC` (channel handler 4) loads a stored
+  patch only when settings byte `0x15` (Bank/Patch) has bit 0 (receive)
+  set; the bank is the last bank select kept at `note_state`+0x1E5 (0xFF:
+  keep the current bank), then cleared. The simulator boots with `0x15` =
+  0, so a program change there loads nothing unless a test sets it.
+- **`patch_select_load`** `0x0801AF78` (bank | number << 8): checks the
+  bank (1-4), loads the stored patch (`0x0801AF10`: DataFlash read and
+  `patch_load`), calls `patch_select_set` `0x08018C58` (only `patch_select`
+  +4 bank, +5 number) and `mark_changed`. Callers: `program_change`,
+  `0x08018C74` (inferred: the panel's patch selection) and `settings_load`
+  (power-up). Compare (`0x0801AF10` directly), Initialise and the SysEx
+  patch receivers call `patch_load` without it.
+- **The main loop's SysEx answers** go to `sysex_state`+0x67F: port 0 is
+  USB (`0x0801D484`), anything else DIN (`0x0800EE48`). Request 40's
+  handler `0x08019F58` (`editor_patch_request`) only sets +0x67C = 2 and
+  the port; `sysex_rx_poll` sends the current patch on its next pass.
+- **v0.30** hooks `patch_select_load`'s call of `patch_select_set`
+  (`0x0801AFC2`): with Settings PATCH DUMP > Send = USB (globals `0x4E`,
+  stored; 0 on the synth before, inferred unused by stock) it calls
+  `editor_patch_request(0)` once the main loop runs, or on the next tick
+  while another answer is being sent. Emulated: a program change sends
+  one 527-byte answer 00 holding the patch now loaded; Off sends nothing;
+  the editor's own write 00 is not echoed.
 
 ## A blank settings chip (2026-11-18)
 

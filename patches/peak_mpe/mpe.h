@@ -55,6 +55,7 @@
 #define MPE_G_RAND_SECT 0x4B     /* Settings records, not stored: RANDOMISE Section, Amount, Roll (rand.c) */
 #define MPE_G_RAND_AMT 0x4C
 #define MPE_G_RAND_ROLL 0x4D
+#define MPE_G_PDUMP 0x4E         /* patch dump on patch change (pdump.c), stored: 0 Off, 1 USB; other = Off */
 
 #define MPE_DEFAULT_MEMBERS 15
 #define MPE_DEFAULT_NOTE_RANGE 48
@@ -175,6 +176,11 @@ void diag_late_text(char *out);  /* that reading as text, at most 8 characters *
 int motion_button(uint32_t ev, int mod_held);     /* 1 = taken (Mod + Animate 1 and its release) */
 int panic_button(uint32_t ev, int mod_held);      /* 1 = taken (Mod + Audition and its release) */
 void panic(void);                                 /* every note off, arp and MPE state cleared */
+
+/* pdump.c */
+int pdump_on(void);
+void pdump_patch_selected(uint8_t number, uint8_t bank);   /* hook: patch_select_load's patch_select_set */
+void pdump_poll(void);                            /* once per 1 kHz tick */
 void motion_knob(uint32_t id, uint32_t cur, uint32_t hires);
 void motion_poll(void);          /* main loop, from mpe_ui_poll */
 void motion_clear(void);         /* a patch load */

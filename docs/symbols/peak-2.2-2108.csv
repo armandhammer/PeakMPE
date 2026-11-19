@@ -185,3 +185,7 @@ address,name,kind,confidence,notes
 0x08019ce0,editor_wave_send,function,observed,"(block < 11, part < 5, port): answer 06, header F0 00 20 29 01 10 00 7E 06, five zeros, block, part, 0x202 bytes from 0x08013720"
 0x08019d68,editor_wave_name_send,function,observed,"(n < 0x4a, port): answer 07 with the 7-character name of wavetable n (0x080137bc: < 0x40 factory, else user slot n - 0x40)"
 0x080137d4,wave_name_set,function,observed,"write 07: data[0] = user slot (0-9), data[1..7] the name (a 0 ends it, padded with spaces); emulated: written as slot 9, read back by request 47 0x49"
+0x20011214,sysex_state,data,observed,"the SysEx parsers' buffers and states; +0x67c what sysex_rx_poll answers (1 identity, 2 current patch, 3 stored patch, 4 settings, 5 a bank; 0 none), +0x67d-+0x67f its arguments, +0x67f the port (0 = USB via 0x0801d484, else DIN via 0x0800ee48)"
+0x08019f58,editor_patch_request,function,observed,"(port): sysex_state+0x67c = 2, +0x67f = port; editor request 40; sysex_rx_poll then sends the current patch as answer 00 (emulated)"
+0x0801af78,patch_select_load,function,observed,"(bank | number << 8; bit 7 of the low byte = keep the bank): bank 1-4 checked, then loads the stored patch (0x0801af10), patch_select_set, mark_changed; callers 0x0800f0ec (program change), 0x08018c74, settings_load (power-up)"
+0x08018c58,patch_select_set,function,observed,"(number bank): patch_select+5 = number, +4 = bank; only caller patch_select_load (0x0801afc2)"

@@ -269,12 +269,18 @@ static void mixer_fix(uint8_t *p)
             best = k;
     if (level(p, lv[best]) < 100)
         set(p, lv[best] | H, 128 + rnd(128));
-    uint32_t sum = 0;
+    /* Headroom: the others share what the loudest oscillator leaves of 420.
+     * Scaling all five (v0.26 to v0.29) could take the loudest back under 100:
+     * lifted to 128 with a sum of 600, it came out at 89 (found by
+     * test_full_rolls_of_everything_stay_in_range_and_pass_the_checks, v0.30). */
+    uint32_t top = level(p, lv[best]), rest = 0;
     for (uint32_t k = 0; k < 5; k++)
-        sum += level(p, lv[k]);
-    if (sum > 420)
+        if (k != best)
+            rest += level(p, lv[k]);
+    if (top + rest > 420)                /* so rest > 0: a level is at most 255 */
         for (uint32_t k = 0; k < 5; k++)
-            set(p, lv[k] | H, level(p, lv[k]) * 420 / sum);
+            if (k != best)
+                set(p, lv[k] | H, level(p, lv[k]) * (420 - top) / rest);
 }
 
 static int filter_ok(const uint8_t *p)

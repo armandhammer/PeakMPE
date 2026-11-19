@@ -72,8 +72,8 @@ META = {
     },
     ("peak", "mpe"): {
         "title": "MPE for Peak",
-        "version": "0.29",
-        "label": "MPET Ver 108.469",
+        "version": "0.30",
+        "label": "MPEU Ver 108.469",
         "summary": "Per-note pitch bend, pressure (channel or poly aftertouch) and slide (MPE) on the Peak's "
                    "8 voices, a per-patch MPE switch (VOICE page) and Settings MPE pages; one or two zones. "
                    "v0.2: the arpeggiator ignores its own notes when a DAW sends them back (MIDI loop). "
@@ -102,6 +102,7 @@ META = {
                    "v0.27: band-pass and high-pass rolls keep the cutoff where the note still comes through, and band-pass rolls bring some resonance, so they are no longer much quieter than the rest. "
                    "v0.28: hold Mod and press Audition for a panic: every note stops at once, and held or latched arp notes, stuck keys and per-note bend, pressure and slide are cleared. "
                    "v0.29: the patch's checks of the screen, the settings and the arp rhythm run once a millisecond instead of on every pass of the main loop, which gives the synth's own work more time. "
+                   "v0.30: Settings > PATCH DUMP > Send = USB sends each newly loaded patch (by program change or the patch buttons) over USB in the editor's own format, so an editor or DAW can follow along. A rare full RANDOMISE roll could leave every oscillator quieter than the mixer rule allows; fixed. "
                    "Tested on one Peak with the automated hardware test rig and played from a LinnStrument.",
     },
 }

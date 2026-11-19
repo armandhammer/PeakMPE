@@ -28,6 +28,10 @@ baseline.
 
   .venv\Scripts\python.exe -I tools\editor_check.py --dry-run
   .venv\Scripts\python.exe -I tools\editor_check.py --yes      (only with the user's OK)
+  .venv\Scripts\python.exe -I tools\editor_check.py --pdump --yes
+      v0.30's PATCH DUMP: selects D002 as the rig does (CC 32 = 4, program
+      change 2), counts the patch dumps that come back in 1.5 s and compares
+      one with D002's stored data (request 41). Output work/hw-runs/pdump-*/.
 
 Output: work/hw-runs/editor-<timestamp>/ (replies.log, summary.json).
 """
@@ -66,6 +70,10 @@ def allowed(msg):
     m = bytes(msg)
     if m == IDENTITY:
         return m
+    if len(m) == 3 and m[0] & 0xF0 == 0xB0 and m[1] == 32 and 1 <= m[2] <= 4:
+        return m                                   # --pdump: bank select (CC 32 = 1-4, banks A-D)
+    if len(m) == 2 and m[0] & 0xF0 == 0xC0 and m[1] <= 0x7F:
+        return m                                   # --pdump: program change
     if len(m) < 7 or m[0] != 0xF0 or m[-1] != 0xF7 or any(b > 0x7F for b in m[1:-1]):
         raise ValueError(f"refused: not one SysEx message: {m[:10].hex(' ')}")
     if m[1:5] == bytes([0x7E, 0x00, 0x08, 0x00]) and len(m) == 7 and m[5] <= 16:
@@ -176,13 +184,59 @@ def exchange(port, msg, expect, wait, log, t0):
     return msgs
 
 
+def pdump_messages(channel):
+    """The rig's own select of D002 (hwrig.midi.slot_msgs): CC 32 = 4 (banks A-D = 1-4), program change 2."""
+    return [bytes([0xB0 | (channel - 1), 32, 4]), bytes([0xC0 | (channel - 1), 2])]
+
+
+def pdump_check(port, channel, out):
+    """v0.30's PATCH DUMP: select D002 and listen; then ask for D002 and compare.
+    Returns (number of dumps, whether the one dump equals D002's stored data)."""
+    t0 = time.monotonic()
+    with open(out / "replies.log", "w", encoding="utf-8") as log:
+        port.take()
+        for m in pdump_messages(channel):
+            log.write(f"{time.monotonic() - t0:10.4f} > {m.hex(' ')}\n")
+            port.send(m)
+        time.sleep(1.5)
+        dumps = [m for m in split(port.take()) if len(m) == PATCH_LEN and m[1:9] == HDR + b"\x00"]
+        for m in dumps:
+            log.write(f"{time.monotonic() - t0:10.4f} < {m.hex(' ')}\n")
+        stored = exchange(port, req(0x41, 0, 4, 2), 1, 1.0, log, t0)
+    same = len(dumps) == 1 and len(stored) == 1 and dumps[0][14:-1] == stored[0][14:-1]
+    return len(dumps), same
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--dry-run", action="store_true", help="print the plan, send nothing")
     ap.add_argument("--yes", action="store_true", help="send (only with the user's OK)")
     ap.add_argument("--port", help="MIDI port (default: [midi] usb_port of work/hwrig.toml)")
     ap.add_argument("--against", type=Path, help="earlier run directory to compare with")
+    ap.add_argument("--pdump", action="store_true",
+                    help="instead: select D002 (CC 32, program change) and report the patch dump it sends")
     args = ap.parse_args(argv)
+
+    if args.pdump:
+        sys.path.insert(0, str(ROOT / "tools"))
+        from hwrig import config as config_mod
+        cfg = config_mod.load()
+        for m in pdump_messages(cfg.channel):
+            allowed(m)
+        if not args.yes:
+            print("--pdump: CC 32 = 4 and program change 2 (D002) on channel", cfg.channel,
+                  "then request 41 for D002. Nothing sent (give --yes, with the user's OK).")
+            return 0
+        port = Port(args.port or cfg.usb_port)
+        out = RUNS / f"pdump-{datetime.now():%Y-%m-%d_%H%M%S}"
+        out.mkdir(parents=True)
+        try:
+            n, same = pdump_check(port, cfg.channel, out)
+        finally:
+            port.close()
+        print(f"{out.relative_to(ROOT)}: {n} patch dump(s) after selecting D002"
+              + (f"; {'equal to' if same else 'NOT equal to'} D002's stored data" if n == 1 else ""))
+        return 0
 
     steps = plan()
     for _, msg, _, _ in steps:

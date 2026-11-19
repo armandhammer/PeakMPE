@@ -3,9 +3,21 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** ask the user what next (the Later list in peak-features;
-the stray 50 Hz partial was also offered). After each new image's rig
+**Next step:** v0.30 (patch dump on patch change) is built and waits for
+the user's flash; then series W in TEST.md. After each new image's rig
 run, also run `tools/editor_check.py --yes`.
+
+**v0.30 built** (label `MPEU`, `5ec7e904…`; chosen by the user
+2026-11-19): Settings PATCH DUMP > Send = USB sends the newly loaded
+patch as the editor's answer 00 after `patch_select_load`, through
+stock's own request-40 sender (findings, "Patch selection and the patch
+dump"). `tests/test_peak_pdump.py` (5 tests). A program change loads
+nothing in the simulator unless Bank/Patch receive is set (byte 0x15 is
+0 there); `tests/test_peak_editor.py`'s MIDI-out test now sets it. The
+display type 0xFE was the last free one below 0xFF: a further Settings
+value type needs another scheme. Also fixed: the randomiser's mixer fix
+could leave the loudest oscillator under 100 (findings, "Value scales
+for the randomiser"; caught by the full-roll test on this build).
 
 **v0.29 on the synth** (label `MPET`, source `02b2ec2`): flashed
 2026-11-19; series V passed. Rig 136/0/5 (`2026-11-19_103004`); editor check

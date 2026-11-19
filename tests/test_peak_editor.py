@@ -150,10 +150,12 @@ def test_writes_read_back_as_stock(mpe_built):
 
 def test_midi_out_as_stock(mpe_built):
     """MIDI out for a fixed set of inputs: notes with the arp on and Arp>Midi
-    On, CCs, a program change and All Notes Off."""
+    On, CCs, a program change (Bank/Patch Rec+Tran, so it loads a patch) and
+    All Notes Off."""
     def arp_on(b):
         b.uc.mem_write(PATCHES + ARP_ON, b"\x01")
         b.uc.mem_write(GLOBALS + ARP_MIDI, b"\x01")
+        b.uc.mem_write(GLOBALS + 0x15, bytes([3]))   # Bank/Patch Rec+Tran (the simulator boots with 0)
         b.run_ms(100)
 
     steps = [
