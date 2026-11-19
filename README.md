@@ -29,13 +29,14 @@ named below.
 
 ## Status
 
-**MPE for Peak 0.26**, for Peak firmware **2.2 (build 2108)** only, with
+**MPE for Peak 0.27**, for Peak firmware **2.2 (build 2108)** only, with
 FPGA build 469. Tested on one Peak ([docs/hardware-log.md](docs/hardware-log.md)):
 every check of the automated hardware test rig that applies to the Peak
 passes (136 of 136 measured rows over USB on each release up to 0.25; on
 0.26 the stress test's silence row failed once by its level rule, as it
 has before, and passed when re-run; 200 randomiser rolls measured on the
-rig, none silent or clipped), a 600-run stress soak left no stuck note, a LinnStrument played
+rig, none silent or clipped; 0.27 changes only the randomiser's
+band-pass and high-pass ranges, not yet on the synth), a 600-run stress soak left no stuck note, a LinnStrument played
 it over DIN in one and two zones, and each feature below was tried on the
 synth (by hand, or by the rig where the panel can't do it). Not tested on other firmware versions or other units.
 
@@ -121,7 +122,9 @@ screen, Select 1 to 3, pick a line; the encoder changes it.
   `Amount` goes from a nudge (10 %: each value moves a tenth of the way
   to a random one) to a fresh roll (100 %). Values stay inside ranges
   meant to keep the sound playable: Osc 2 and 3 only move by musical
-  intervals, the filter isn't left closed, resonance stays below
+  intervals, the filter isn't left closed (band-pass and high-pass keep
+  the cutoff where the note comes through, measured on the synth),
+  resonance stays below
   self-oscillation, the mixer and FX levels are capped together, and a
   note with no sustain still decays slowly enough to hear. Turn `Roll` up to roll;
   **Mod** + **Page left** takes it back. Nothing is saved until you save.
@@ -154,7 +157,7 @@ screen, Select 1 to 3, pick a line; the encoder changes it.
   change. Stock rewrites whole lines, and every character holds up the
   per-note modulation for about 0.05 ms. Measured on the synth, turning a
   knob for 5 s lost 17 modulation ticks, against about 2,600 before.
-- **Boot screen** `MPEQ Ver 108.469`, so you can see the patch and its
+- **Boot screen** `MPER Ver 108.469`, so you can see the patch and its
   release are installed.
 
 What stock 2.2 already does (and so isn't here), and the features that were

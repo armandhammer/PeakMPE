@@ -1,4 +1,4 @@
-/* Peak section randomiser (v0.26; docs/peak-features.md, "Later": patch
+/* Peak section randomiser (v0.26, band-pass and high-pass ranges v0.27; docs/peak-features.md, "Later": patch
  * randomiser by section).
  *
  * Settings > RANDOMISE: Section (Osc 1, Osc 2, Osc 3, Mixer, Filter, Amp Env,
@@ -16,8 +16,9 @@
  *     100 % it is r; at 10 % a nudge.
  *   - a switch (wave, range, filter shape and slope, LFO wave, FX types) is
  *     picked afresh from its useful values with a chance of Amount.
- *   - when the filter Shape changes, the cutoff is rolled at 100 %, inside the
- *     new shape's range: a high-pass keeping a low-pass cutoff goes thin.
+ *   - the filter's cutoff, and for band-pass its resonance and amp envelope
+ *     depth, take ranges of the shape (below); when the Shape changes they
+ *     are rolled at 100 %: a high-pass keeping a low-pass cutoff goes thin.
  *
  * Safe ranges (raw values; the screen's units from format_value, the times
  * from docs/peak-units.md): the attack of the amp envelope at most 72 (a
@@ -40,8 +41,15 @@
  *           sources at maximum can clip)
  *   Filter  low-pass cutoff at least 90 (fc about 200 Hz at key track 0,
  *           peak-units), or at least 40 with the amp envelope opening it
- *           (AenvFiltFreq at least +16); band-pass 100-220; high-pass at most
- *           150; and resonance above 80 only with post drive at most 24
+ *           (AenvFiltFreq at least +16); band-pass cutoff 64-150 with
+ *           resonance at least 40 and AenvFiltFreq within -16..+16;
+ *           high-pass cutoff at most 110; and resonance above 80 only with
+ *           post drive at most 24. Band-pass and high-pass from the rig
+ *           (v0.27, findings "Value scales for the randomiser"): at C4
+ *           band-pass is loudest near cutoff 96 and was 20-30 dB down at
+ *           v0.26's 100-220; resonance 0 to 96 lifts a saw through it
+ *           about 21 dB; high-pass at 150 was 10 (saw) to 28 dB (sine)
+ *           under its open level, at 110 5 to 10 dB.
  *   Amp     attack at most 80, and sustain at least 48 or decay at least 60
  *           (a note with no sustain still sounds for a while)
  *   FX      delay, reverb and chorus levels together at most 170,
@@ -183,8 +191,34 @@ static int envsync_owns(uint32_t o)
 /* The cutoff range of a filter shape (0 LOW, 1 BAND, 2 HIGH). */
 static void cutoff_range(uint32_t shape, uint32_t *lo, uint32_t *hi)
 {
-    *lo = shape == 2 ? 0 : shape == 1 ? 100 : 90;
-    *hi = shape == 2 ? 150 : shape == 1 ? 220 : 255;
+    *lo = shape == 2 ? 0 : shape == 1 ? 64 : 90;
+    *hi = shape == 2 ? 110 : shape == 1 ? 150 : 255;
+}
+
+#define BP_RES_LO 40
+#define BP_AENV_LO (64 - 16)
+#define BP_AENV_HI (64 + 16)
+
+/* Controls whose range follows the filter shape: 1 and the range, or 0. */
+static int shape_range(uint32_t o, uint32_t shape, uint32_t *lo, uint32_t *hi)
+{
+    if (o == F_FREQ) {
+        cutoff_range(shape, lo, hi);
+        return 1;
+    }
+    if (shape != 1)
+        return 0;
+    if (o == F_RES) {
+        *lo = BP_RES_LO;
+        *hi = 96;
+        return 1;
+    }
+    if (o == F_AENV) {
+        *lo = BP_AENV_LO;
+        *hi = BP_AENV_HI;
+        return 1;
+    }
+    return 0;
 }
 
 static uint32_t towards(uint32_t v, uint32_t r, uint32_t a)
@@ -192,7 +226,7 @@ static uint32_t towards(uint32_t v, uint32_t r, uint32_t a)
     return (uint32_t)((int32_t)v + ((int32_t)r - (int32_t)v) * (int32_t)a / 10);
 }
 
-static void roll_entry(const struct entry *t, uint32_t a, int fresh_cutoff)
+static void roll_entry(const struct entry *t, uint32_t a, int shape_changed)
 {
     uint32_t e = t->e, o = e & OFF;
     if (envsync_owns(o))
@@ -205,11 +239,8 @@ static void roll_entry(const struct entry *t, uint32_t a, int fresh_cutoff)
         return;
     }
     uint32_t lo = t->lo, hi = t->hi;
-    if (o == F_FREQ) {
-        cutoff_range(work[F_SHAPE], &lo, &hi);
-        if (fresh_cutoff)
-            a = 10;
-    }
+    if (shape_range(o, work[F_SHAPE], &lo, &hi) && shape_changed)
+        a = 10;
     set(work, e, towards(get(work, e), lo + rnd(hi - lo + 1u), a));
 }
 
@@ -253,6 +284,8 @@ static int filter_ok(const uint8_t *p)
         return 0;
     if (p[F_SHAPE] == 0)
         return c >= 90 || (c >= 40 && p[F_AENV] >= 64 + 16);
+    if (p[F_SHAPE] == 1 && (p[F_RES] < BP_RES_LO || p[F_AENV] < BP_AENV_LO || p[F_AENV] > BP_AENV_HI))
+        return 0;
     cutoff_range(p[F_SHAPE], &lo, &hi);
     return c >= lo && c <= hi;
 }
@@ -260,6 +293,12 @@ static int filter_ok(const uint8_t *p)
 static void filter_fix(uint8_t *p)
 {
     uint32_t lo, hi;
+    if (p[F_SHAPE] == 1) {
+        if (p[F_RES] < BP_RES_LO)
+            p[F_RES] = (uint8_t)(BP_RES_LO + rnd(41));
+        if (p[F_AENV] < BP_AENV_LO || p[F_AENV] > BP_AENV_HI)
+            p[F_AENV] = (uint8_t)(BP_AENV_LO + rnd(BP_AENV_HI - BP_AENV_LO + 1));
+    }
     if (p[F_RES] > 80 && p[F_POSTDRV] > 24)
         p[F_POSTDRV] = 24;
     if (!filter_ok(p)) {
@@ -335,10 +374,7 @@ uint32_t rand_roll(uint32_t s, uint32_t a)
         work[o] = patches[o];
     uint32_t first = sections[s].first, n = sections[s].n;
     for (uint32_t i = first; i < first + n; i++) {
-        int fresh_cutoff = 0;
-        if ((table[i].e & OFF) == F_FREQ)
-            fresh_cutoff = work[F_SHAPE] != patches[F_SHAPE];
-        roll_entry(&table[i], a, fresh_cutoff);
+        roll_entry(&table[i], a, work[F_SHAPE] != patches[F_SHAPE]);
     }
     for (uint32_t k = 0; k < sizeof checks / sizeof checks[0]; k++) {
         if (s != S_ALL && s != checks[k].section)

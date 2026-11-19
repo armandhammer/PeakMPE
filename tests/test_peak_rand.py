@@ -100,9 +100,9 @@ def _checks(p, section):
         if shape == 0:
             ok &= c >= 90 or (c >= 40 and p[0x89] >= 80)
         elif shape == 1:
-            ok &= 100 <= c <= 220
+            ok &= 64 <= c <= 150 and p[0x82] >= 40 and 48 <= p[0x89] <= 80
         else:
-            ok &= c <= 150
+            ok &= c <= 110
         out["filter"] = ok
     if section in (S_AMP, S_ALL):
         out["amp"] = p[0x92] <= 80 and (p[0x94] >= 48 or p[0x93] >= 60)
@@ -152,6 +152,24 @@ def test_full_rolls_of_everything_stay_in_range_and_pass_the_checks(board, mpe_b
         assert all(_checks(p, S_ALL).values()), _checks(p, S_ALL)
         shapes.add(p[0x80])
     assert shapes == {0, 1, 2}                      # the switches do move
+
+
+def test_band_pass_keeps_the_note_and_brings_resonance(board, mpe_built):
+    """v0.27, from the rig (findings, "Value scales for the randomiser"):
+    band-pass cutoff 64-150 with resonance 40-96 and a small amp envelope
+    depth; high-pass cutoff at most 110."""
+    b, blob = board, mpe_built.blob
+    band = 0
+    for _ in range(60):
+        _roll(b, blob, S_FILTER, 10)
+        p = _patch(b)
+        c = _v(p, 0x83, "h")
+        if p[0x80] == 1:
+            band += 1
+            assert 64 <= c <= 150 and 40 <= p[0x82] <= 96 and 48 <= p[0x89] <= 80, (c, p[0x82], p[0x89])
+        elif p[0x80] == 2:
+            assert c <= 110, c
+    assert band >= 3
 
 
 def test_a_small_amount_only_nudges(board, mpe_built):

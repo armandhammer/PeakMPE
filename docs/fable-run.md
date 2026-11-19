@@ -3,13 +3,22 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** nothing in progress; v0.26 is on the synth (series R
-passed). Offered: lift band-pass rolls, which come out about 12 dB
-quieter than the other shapes (hardware log, v0.26). Still open from the 2026-11-18 proposals: the
+**Next step:** v0.27 (band-pass and high-pass ranges of the
+randomiser) is built and waits for the user's flash; then series S in
+TEST.md (S3 runs the regression and `work/rand_check.py`). Still open from the 2026-11-18 proposals: the
 front-panel panic; and the user's answer on dropping the rest of step 8,
 striking step 4, and chord memory / scale quantise. Step 3 (blank-settings guard) closed on 2026-11-18
 without a firmware change (see below). Also open: step 4 looks done in practice
 (strike it?); chord memory and scale quantise may be controller jobs (ask).
+
+**v0.27 built** (label `MPER`, `02be75aa…`): the user chose to lift
+band-pass rolls (2026-11-18). A rig sweep (`work/bp_sweep.py`, run
+`bpsweep-2026-11-18_163331`) showed band-pass loudest at cutoff 96 for
+C4, v0.26's range 100-220 above it, and resonance lifting a saw 21 dB
+(findings, "Value scales for the randomiser"). `rand.c` now rolls
+band-pass at 64-150 with resonance 40-96 and AenvFiltFreq 48-80, and
+high-pass at most 110; `tests/test_peak_rand.py` 11 tests;
+`work/rand_check.py` follows.
 
 **v0.26 on the synth** (label `MPEQ`, `c9b1606a…`, source `fd3495c`):
 flashed 2026-11-18; series R passed (R3 and R4 by ear, "sounds fine").

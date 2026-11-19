@@ -543,6 +543,24 @@ on the synth.
   (median -37.1 against -25.1 and -26.3 dB); free band-pass rolls were louder (median
   -20.2), with resonance (r = 0.51 over all free rolls) and drive (0.26-0.30) the strongest
   links to level, both of which the rules cap.
+- **Filter level by shape and cutoff at C4 (observed, 2026-11-18, run
+  `bpsweep-2026-11-18_163331`, `work/bp_sweep.py`):** the rig's p5 base (one
+  oscillator, MPE off), C4 held 1 s, loudest 50 ms; cutoff as the 9-bit
+  value (twice the CC value sent), key track 127, resonance and drives 0
+  unless named. Low-pass 12 dB is flat from about 128 up (sine -21.9 dB,
+  saw -23.8) and 15-17 dB down at 64. **Band-pass is loudest at about
+  96** (sine -26.2 dB at 12 dB slope, -30.6 at 24 dB; saw -29.3 and
+  -34.1) and falls away on both sides: at 160 sine -38.6 / -55.4, saw
+  -34.7 / -41.7; at 220 sine about -56 / -66. High-pass 12 dB is flat up to
+  about 64, 5 (saw) to 10 dB (sine) down at 110, 10 to 28 dB down at 150.
+  Band-pass 24 dB at 128: **resonance 0 to 96 lifts a saw 20.6 dB** (-37.6
+  to -17.0) and a sine 3.8 dB; 120 self-oscillates (about -12 dB with
+  either wave). Pre drive 0 to 64: +2.2 to 3.6 dB (127: +9 to 11). Post
+  drive 0 to 48: +2.0 to 2.3 dB (127: +15 to 17). Key track 0 to 127:
+  within 0.3 dB at C4, so its pivot is at or near C4 (inferred). So
+  v0.26's band-pass range (100-220) sat above the note. v0.27 rolls
+  band-pass at 64-150 with resonance 40-96 and AenvFiltFreq within
+  -16..+16 (`rand.c`), and high-pass at most 110.
 
 ## The parameter setter and 9-bit controls (2026-11-16)
 
