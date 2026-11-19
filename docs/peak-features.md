@@ -228,8 +228,19 @@ Measurements (step 6) can run on the rig while code is written for others.
    voice bindings and every channel's bend, pressure and slide. Delay and
    reverb tails ring out. Message `PANIC` / `All notes off`. Tests
    `tests/test_peak_panic.py` (with control cases that fail without the
-   panic); findings, "All sound off, all notes off and the panic". The
-   editor/MIDI baseline is not built.
+   panic); findings, "All sound off, all notes off and the panic".
+   **Editor/MIDI baseline built (2026-11-19; emulated, the rig run waits
+   for series U):** the editor protocol read from stock's SysEx parsers
+   (findings, "The editor protocol"). `tests/test_peak_editor.py` plays
+   fixed sessions into stock and the patch and requires the same bytes
+   out: every editor request, a bank dump's start, each write read back,
+   and MIDI out for arp notes, CCs, a program change and All Notes Off;
+   plus the patch's settings surviving a settings dump and write-back
+   (step 7's open question about Components, as far as the protocol
+   goes). `tools/editor_check.py` sends the read requests (and one write
+   to the edit buffer) to the synth and compares the answers with its
+   previous run. Not covered: what Components itself sends (not
+   recorded), the Backup page's dump from the panel.
 
 ### 2. Expression, first part
 

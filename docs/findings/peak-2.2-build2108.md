@@ -766,7 +766,7 @@ does, for one note per message. Code **observed** (decompile), the
 single-note message **emulated** on the stock image (`work/_mts.py`);
 nothing on the synth.
 
-- **SysEx parsers.** Each received byte goes to seven parsers in turn
+- **SysEx parsers.** Each received byte goes to eight parsers in turn
   (`0x0801AE0C`), each with its own header from the table at `0x08042E98`:
   Novation's `00 20 29 ...` ones, the identity request `7E 7F 06 01`, and
   two for tuning.
@@ -791,7 +791,7 @@ nothing on the synth.
   in a message. Both are small changes to one parser; neither is built.
 - **Stock's parsers in detail (observed, decompile).** Each SysEx byte
   reaches `sysex_rx_byte` from `midi_parse_byte` (`0x0800EFC0`); its calls
-  of the seven parsers are at `0x0801AE12` to `0x0801AE4A`, the single-note
+  of the eight parsers are at `0x0801AE12` to `0x0801AE4A`, the single-note
   one at `0x0801AE42`. `mts_single_note_rx` collects 10 bytes, compares the
   first four with `7F 00 08 02`, then needs `F7` as the 11th; `ll` is never
   read. It locks to the port of its `F0` until the message ends, and any
@@ -914,6 +914,54 @@ Read for the front-panel panic (v0.28, `panic.c`). Code **observed**
   the old one (the keys-held map was cleared). The Mono stuck-key case is
   emulated only. Rig `2026-11-19_072602`: 135 pass, 1 fail, 5 info (one
   stray partial in `b1_zone_change`; 0 of 300 when re-run alone).
+
+## The editor protocol (2026-11-19)
+
+Read for the editor baseline (roadmap step 5). Code **observed**
+(decompile and disassembly); answers **emulated** on the stock image and
+v0.28 (`tests/test_peak_editor.py`, `work/_editor_probe.py`). Components
+itself was not read or recorded: which of these it sends, and when, is
+not known.
+
+- **Eight SysEx parsers**, not seven: `sysex_rx_byte` `0x0801AE0C` gives
+  each byte to `fpga_update_rx` `0x0801A880` first (FPGA blocks, header
+  `00 20 29 00 7C 00 7E`, and the updater, `00 20 29 00 71 00 7E`), then
+  the factory test `0x08019118` (`00 20 29 30 01`; its command `7F`
+  writes DataFlash), the identity request, the editor `0x08019FC0`, the
+  backup patch format `0x0801A5B4` (`00 20 29 01 11 01 33`), the old
+  patch format `0x08019314` (`00 20 29 63 65`) and the two tuning
+  parsers. Headers in the table at `0x08042E98`.
+- **The editor** (`editor_rx`): `F0 00 20 29 01 10 00 7E`, a command, five
+  bytes (the first two zero), `F7`; a write carries its data before
+  `F7`. Jump tables at `0x0801A094` (75 entries, 13 used) and
+  `0x0801A2A4`; the answers go out from `sysex_rx_poll` on the port the
+  request came in on.
+
+  | Request | Answer (emulated) |
+  |---|---|
+  | `40` | `00` + the edit buffer, 527 bytes |
+  | `41 00 bank patch` (bank 0-3 = A-D, patch 0-127; inferred) | `01` + that stored patch, 527 bytes |
+  | `44` | `04` + the settings, 527 bytes |
+  | `46 block part` (block < 11, part < 5) | `06` + block, part, 514 bytes (531) |
+  | `47 n` (n < 74) | `07` + n and a 7-character wavetable name: 0 `Sine   `, 73 `User 10` |
+  | `4A 00 bank` (1-4) | the 128 patches of the bank as `01` answers, paced (about 21 s over DIN) |
+  | `49 n` (n < 10) | no answer; calls `0x08013670` (not read) |
+
+  **An answer sent back unchanged is the matching write:** `00` into the
+  edit buffer, `01` into the stored patch it names, `04` into the
+  settings, `06` into the wavetable block (the Peak fills in other bytes of
+  the block itself: inferred derived data), `07` into the name of user
+  slot n (0-9; the request numbers it 64 + n). All emulated with a
+  changed value read back.
+- **The patch's settings travel with the settings dump** (emulated on
+  v0.28): the 18 stored bytes at globals `0x30`-`0x38`, `0x3E`-`0x40`
+  and `0x45`-`0x4A` are in the `04` answer and come back when it is
+  written. A Components settings backup and restore keeps them (if
+  Components uses `44`/`04`: not known).
+- **v0.28 answers as stock** (emulated, MPE off): every request above,
+  the first 3 s of a bank dump, the write and read-back of each kind,
+  and MIDI out for notes with the arp on and Arp>Midi On, CCs, a program
+  change and All Notes Off: the same bytes, step by step.
 
 ## A blank settings chip (2026-11-18)
 

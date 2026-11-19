@@ -3,8 +3,17 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** ask the user what next. Open from the roadmap: step 5's
-editor/MIDI baseline, and the Later list (peak-features).
+**Next step:** series U in TEST.md (Components by hand, then GO rig runs
+`tools/editor_check.py`, the first hardware baseline). No new image.
+
+**Editor/MIDI baseline** (chosen by the user 2026-11-19): instead of
+recording Components (on Windows Chrome holds the Peak's MIDI port while
+Components is open: inferred, not tried), the protocol was read from
+stock's eight SysEx parsers (findings, "The editor protocol").
+`tests/test_peak_editor.py` (5 tests) compares stock and v0.28 in the
+simulator; `tools/editor_check.py` (unit tests
+`tests/test_editor_check.py`) is the hardware check, read requests and
+one edit-buffer write only.
 
 **v0.28 on the synth** (label `MPES`, `2bb99433…`, source `cdf58c9`):
 flashed 2026-11-18; series T passed (Audition alone stock; the panic
