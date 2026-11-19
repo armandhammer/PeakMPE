@@ -596,7 +596,7 @@ patch's table move at once. Tests `tests/test_peak_mts.py`; rig check
 scale/octave forms (`08 08`, `08 09`), the dump request to `7F`.
 
 **Patch randomiser by section:** the guide has no randomise function.
-**Built (v0.26, `rand.c`; on the synth 2026-11-18, series R; v0.27 band-pass and high-pass ranges, emulated):** Settings >
+**Built (v0.26, `rand.c`; on the synth 2026-11-18, series R; v0.27 band-pass and high-pass ranges on the synth 2026-11-18, series S):** Settings >
 RANDOMISE has Section (Osc 1-3, Mixer, Filter, Amp Env, Mod Env1/2, LFO
 1/2, FX, All), Amount (10-100 %, 50 % until changed) and Roll. A roll gives
 each continuous control of the section a fresh value inside a safe range
@@ -613,7 +613,9 @@ none silent or clipped; band-pass rolls about 12 dB quieter than the
 other shapes (hardware log, v0.26). A sweep on the rig showed why: the
 band-pass range sat above the note and resonance lifts band-pass most
 (findings, "Value scales for the randomiser"). v0.27 rolls band-pass
-at cutoff 64-150 with resonance 40-96, and high-pass at most 110.
+at cutoff 64-150 with resonance 40-96, and high-pass at most 110:
+band-pass rolls came out about 6 dB louder on the rig (median -31.1 dB
+against low-pass -24.9; hardware log, v0.27).
 
 ## Dropped
 

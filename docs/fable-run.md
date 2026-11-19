@@ -3,15 +3,19 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** v0.27 (band-pass and high-pass ranges of the
-randomiser) is built and waits for the user's flash; then series S in
-TEST.md (S3 runs the regression and `work/rand_check.py`). Still open from the 2026-11-18 proposals: the
+**Next step:** nothing in progress; v0.27 is on the synth (series S
+passed). Still open from the 2026-11-18 proposals: the
 front-panel panic; and the user's answer on dropping the rest of step 8,
 striking step 4, and chord memory / scale quantise. Step 3 (blank-settings guard) closed on 2026-11-18
 without a firmware change (see below). Also open: step 4 looks done in practice
 (strike it?); chord memory and scale quantise may be controller jobs (ask).
 
-**v0.27 built** (label `MPER`, `02be75aa…`): the user chose to lift
+**v0.27 on the synth** (label `MPER`, `02be75aa…`, source `95eabae`):
+flashed 2026-11-18; series S passed (S2 by ear: 9 of 10 Filter rolls
+loud, one about half). Rig 136/0/5 (`2026-11-18_183113`).
+`work/rand_check.py` (`rand-2026-11-18_183717`): 150 rule rolls and 50 free: none clipped; band-pass rule rolls median -31.1 dB (v0.26 -37.1), 2 of 24 under -40 dB (v0.26 9 of 25), against low-pass -24.9 and high-pass -27.4; all rule rolls under -40 dB: 3 of 150 (v0.26 13);
+one take silent by the pre-roll rule only (the previous free roll's
+delay tail; hardware log). The user chose to lift
 band-pass rolls (2026-11-18). A rig sweep (`work/bp_sweep.py`, run
 `bpsweep-2026-11-18_163331`) showed band-pass loudest at cutoff 96 for
 C4, v0.26's range 100-220 above it, and resonance lifting a saw 21 dB

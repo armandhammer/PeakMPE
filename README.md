@@ -35,8 +35,9 @@ every check of the automated hardware test rig that applies to the Peak
 passes (136 of 136 measured rows over USB on each release up to 0.25; on
 0.26 the stress test's silence row failed once by its level rule, as it
 has before, and passed when re-run; 200 randomiser rolls measured on the
-rig, none silent or clipped; 0.27 changes only the randomiser's
-band-pass and high-pass ranges, not yet on the synth), a 600-run stress soak left no stuck note, a LinnStrument played
+rig, none silent or clipped; on 0.27, which changes only the
+randomiser's band-pass and high-pass ranges, 136 of 136 again and
+band-pass rolls about 6 dB louder), a 600-run stress soak left no stuck note, a LinnStrument played
 it over DIN in one and two zones, and each feature below was tried on the
 synth (by hand, or by the rig where the panel can't do it). Not tested on other firmware versions or other units.
 

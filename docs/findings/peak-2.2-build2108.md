@@ -560,7 +560,10 @@ on the synth.
   within 0.3 dB at C4, so its pivot is at or near C4 (inferred). So
   v0.26's band-pass range (100-220) sat above the note. v0.27 rolls
   band-pass at 64-150 with resonance 40-96 and AenvFiltFreq within
-  -16..+16 (`rand.c`), and high-pass at most 110.
+  -16..+16 (`rand.c`), and high-pass at most 110. On the synth (observed,
+  run `rand-2026-11-18_183717`, the same check as v0.26's): band-pass rule
+  rolls median -31.1 dB (was -37.1), 2 of 24 under -40 (was 9 of 25);
+  low-pass -24.9, high-pass -27.4; none clipped.
 
 ## The parameter setter and 9-bit controls (2026-11-16)
 
