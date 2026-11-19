@@ -3,12 +3,14 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** nothing in progress; v0.27 is on the synth (series S
-passed). Still open from the 2026-11-18 proposals: the
-front-panel panic; and the user's answer on dropping the rest of step 8,
-striking step 4, and chord memory / scale quantise. Step 3 (blank-settings guard) closed on 2026-11-18
-without a firmware change (see below). Also open: step 4 looks done in practice
-(strike it?); chord memory and scale quantise may be controller jobs (ask).
+**Next step:** the front-panel panic (step 5), chosen by the user on
+2026-11-18: check the guide, trace stock's CC 120/123, then build.
+
+**Roadmap decisions** (the user, 2026-11-18): step 4 struck (done in
+practice); the rest of step 8 (random per note, voice index) optional,
+moved to Later; chord memory and scale quantise dropped as controller
+jobs (peak-features, "Dropped"). Step 3 closed earlier the same day
+without a firmware change (see below).
 
 **v0.27 on the synth** (label `MPER`, `02be75aa…`, source `95eabae`):
 flashed 2026-11-18; series S passed (S2 by ear: 9 of 10 Filter rolls

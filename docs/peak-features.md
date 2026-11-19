@@ -213,6 +213,10 @@ Measurements (step 6) can run on the rig while code is written for others.
    this way passes the full rig run, as today's does. That image and its
    recorded MIDI/audio results become the known-good baseline every later
    feature is compared against, including the first timing-budget numbers.
+   **Struck (the user, 2026-11-18): done in practice.** Every release is
+   built from the one definition (`patches/peak_mpe/patch.py`) and passes
+   the same `hwrig run --stage all` (136 measured rows) before its
+   hands-on series; the hardware log is the baseline.
 5. **Front-panel panic and editor/MIDI baseline** (S). A button combination
    that runs stock's CC 120 handling and also clears our MPE note ownership
    and anything our features have queued (arp, strum). Plus a recorded
@@ -283,6 +287,9 @@ Measurements (step 6) can run on the rig while code is written for others.
    grows from 0.12 s at note-off velocity 1 to about 3.8 s at 127, with no
    carry-over; the LinnStrument sends release velocity. Random per
    note and voice index could lend a source the same way; not built.
+   **The rest is optional, for later (the user, 2026-11-18):** random
+   per note and voice index stay possible (no controller can send them
+   per voice) but are not planned.
 
 ### 3. Screen
 
@@ -565,8 +572,8 @@ built.
 
 ### Later
 
-Adaptive just intonation (per-voice pitch path, fixed root first), chord
-memory, scale quantise, patch change timed to
+Adaptive just intonation (per-voice pitch path, fixed root first), random
+per note and voice index as lent sources (step 8), patch change timed to
 the bar, opt-in patch dump on program change (USB only), per-port MIDI
 filters, a stuck-note watchdog that looks for inconsistent state rather than
 note age (2.2 fixed the hanging-note bug, and our 400-run soak found none).
@@ -632,4 +639,6 @@ against low-pass -24.9; hardware log, v0.27).
 | Slew for incoming MIDI automation | 2.2 honours CC-pair LSBs; low value |
 | Sustain and sostenuto changes | Stock pedal modes |
 | Strum (step 20) | The MIDI controller's job, not the synth's (the user, 2026-11-17) |
+| Chord memory | The MIDI controller's job, as strum (the user, 2026-11-18) |
+| Scale quantise | The MIDI controller's job, as strum (the user, 2026-11-18) |
 | Event prioritisation | Not until measured: the soak handled 900 messages/s with no stuck note; measure note latency under load first |
