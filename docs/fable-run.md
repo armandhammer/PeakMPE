@@ -3,8 +3,15 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** v0.28 (front-panel panic, `panic.c`) is built and waits
-for the user's flash; then series T in TEST.md (T4 runs the regression).
+**Next step:** ask the user what next. Open from the roadmap: step 5's
+editor/MIDI baseline, and the Later list (peak-features).
+
+**v0.28 on the synth** (label `MPES`, `2bb99433…`, source `cdf58c9`):
+flashed 2026-11-18; series T passed (Audition alone stock; the panic
+stops a held LinnStrument note and a latched arp, Arp On and Key Latch
+stay lit, a new chord plays alone). Rig 135/1/5 (`2026-11-19_072602`);
+the fail, one stray partial in `b1_zone_change` trial 0, did not repeat
+when that check ran alone (`2026-11-19_073158`, 0 of 300).
 
 **v0.28 built** (label `MPES`, `2bb99433…`): Mod + Audition runs
 stock's CC 120 (`all_sound_off` `0x08011E90`) and clears the held keys,

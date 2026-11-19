@@ -906,6 +906,14 @@ Read for the front-panel panic (v0.28, `panic.c`). Code **observed**
   pressure and slide. The delay and reverb tails are left: CC 120 does
   not cut them either (inferred from the v0.27 randomiser run, where a
   take after a loud delay started at -16.6 dB).
+- **On the synth** (v0.28, series T, 2026-11-18/19; **observed**, user):
+  Audition alone plays middle C as stock; Mod + Audition stops a held
+  LinnStrument note without sounding middle C and shows `PANIC` /
+  `All notes off`; the held pad's later release does nothing. A latched
+  arp stops, Arp On and Key Latch stay lit, and a new chord plays without
+  the old one (the keys-held map was cleared). The Mono stuck-key case is
+  emulated only. Rig `2026-11-19_072602`: 135 pass, 1 fail, 5 info (one
+  stray partial in `b1_zone_change`; 0 of 300 when re-run alone).
 
 ## A blank settings chip (2026-11-18)
 
