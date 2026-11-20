@@ -115,6 +115,8 @@ void mpe_channel_filter(uint32_t src, midi_handler_fn *handler, const uint8_t *m
 {
     uint8_t status = msg[0];
     if (status >= 0xF0) {
+        if (status == 0xF2)    /* Song Position Pointer: stock ignores it (ptime.c) */
+            ptime_spp(msg);
         midi_channel_filter(src, handler, msg);
         return;
     }

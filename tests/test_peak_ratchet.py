@@ -135,7 +135,8 @@ def test_ratchet_page(mpe_built):
     assert _show(b, 8, RATCHET_PAGE + 1, 0)[0].startswith("RELEASE VEL ")
     assert _show(b, 8, RATCHET_PAGE + 2, 0)[0].startswith("RANDOMISE ")
     assert _show(b, 8, RATCHET_PAGE + 3, 0)[0].startswith("PATCH DUMP ")
-    rows = _show(b, 8, RATCHET_PAGE + 4, 0)              # the stock page after ours is still there
+    assert _show(b, 8, RATCHET_PAGE + 4, 0)[0].startswith("PATCH TIMING ")
+    rows = _show(b, 8, RATCHET_PAGE + 5, 0)              # the stock page after ours is still there
     assert rows[0].startswith("MIDI ENABLE"), rows
 
 

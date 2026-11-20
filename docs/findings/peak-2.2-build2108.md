@@ -1039,6 +1039,49 @@ behaviour **emulated** (`tests/test_peak_pdump.py`).
   is the patch as loaded: with PARAM LOCK Lock FX on, its FX group is the
   previous patch's, not the stored one's.
 
+## MIDI clock, Start and Song Position (2026-11-19)
+
+Read for v0.31's patch timing (`ptime.c`). Code **observed** (decompile,
+disassembly, the `.data` image); behaviour **emulated**
+(`tests/test_peak_ptime.py`).
+
+- **System messages** go through a table in RAM, `midi_sys_handlers`
+  `0x200001E0` (from `.data`): per status F0-FF a handler, the data length
+  and flags. Flag 4 (F8-FF): `midi_parse_byte` calls the handler at once.
+  Otherwise the bytes are collected and go to `midi_channel_filter` like a
+  channel message (so the patch's `mpe_channel_filter` sees F2 with its
+  two bytes).
+- **Start** (FA): `midi_start_rx` `0x0800F0C0` -> `0x08010E30`, which only
+  sets a flag. **Continue** (FB), **Stop** (FC) and **Song Position
+  Pointer** (F2) have handlers that return. Clock bytes (F8) are taken
+  before parsing by the MIDI input loop `0x0800F084`: `midi_clock_rx_1`
+  `0x0800FBE8` (call `0x0800F0A0`) and `midi_clock_rx_0` `0x0800FBD0`
+  (call `0x0800F0A8`).
+- **The tempo clock position** `0x20012268` (clock count << 16 | fraction)
+  is an accumulator the 1 kHz tick advances at the current tempo; no write
+  resets it on Start (inferred: its two literal-pool references are in
+  `tempo_clock_step` and a reader). Stock has no song position, so a
+  DAW's bar lines can't be read from it.
+- **The panel's patch choice** is `panel_patch_apply` `0x08018C74`: with
+  no cue pending it calls `patch_select_load` (`0x08018C9A`), then sends
+  CC 32 and a program change out when Bank/Patch transmits; with a cue
+  pending (Patch Cue) it only redraws, and the cued patch's button press
+  comes back through it.
+- **v0.31** counts the external clock itself (Start = position 0 on the
+  next clock byte, SPP x 6 on the next one after Continue, Stop or 100 ms
+  without a clock byte = not playing) and, with Settings PATCH TIMING >
+  Change at = Beat / Bar / 2 Bars / 4 Bars (globals `0x4F`), holds a
+  program change or panel patch choice until the clock byte of the next
+  24 / 96 / 192 / 384 position. Emulated: a program change at position 9
+  loads on the 87th clock after it (position 96); Beat after SPP 3 loads
+  at position 24; Now and no clock load at once; Stop and a lost clock
+  load a waiting change; a later change replaces it.
+- **The patch's Settings display types** start at `0xA0` (v0.31; `0xE0`
+  before, and `0xFE` was the last free code): stock reads the kind 3
+  display byte only at the formatter call the patch replaces
+  (`0x080181D4`-`0x080181D8`), and its own types end at `0x60`
+  (inferred safe).
+
 ## A blank settings chip (2026-11-18)
 
 Roadmap step 3. The simulator normally seeds a blank DataFlash; with that

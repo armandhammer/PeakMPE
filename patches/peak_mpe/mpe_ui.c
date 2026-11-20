@@ -25,6 +25,7 @@
  *   RELEASE VEL     Source (Off, ExprPED1, BrthPED2) (relvel.c)
  *   RANDOMISE       Section, Amount (10-100 %), Roll (rand.c)
  *   PATCH DUMP      Send (Off, USB) (pdump.c)
+ *   PATCH TIMING    Change at (Now, Beat, Bar, 2 Bars, 4 Bars) (ptime.c)
  * The Summit's read-only "Channels" item (CH CLASH) is left out: the Peak has
  * no Multi parts whose channels a zone could take.
  * The items are kind 3 (global settings) with records 0x30-0x38, which stock
@@ -35,7 +36,8 @@
  * the menu is built.
  *
  * The pages show what is in effect, mpe_live (the Settings layout plus what
- * RPN 6 and RPN 0 changed), through display types 0xE0-0xE4, which stock
+ * RPN 6 and RPN 0 changed), through display types from 0xA0 (0xE0 until
+ * v0.30, when 0xFE was the last free code below 0xFF), which stock
  * format_value doesn't know (it ends at 0x60) and which the kind 3 drawer
  * passes to mpe_ui_format. A value that differs from the Settings value
  * (globals +0x30..+0x33, 0 = default) has a '*' after it: set by MIDI, and
@@ -68,15 +70,15 @@ struct mpe_page {
 };
 
 #define STOCK_DESCS 0x22           /* Peak global_param_desc: records 0x00-0x21, then other data */
-#define MPE_G_LAST MPE_G_PDUMP         /* the last record of new_descs */
+#define MPE_G_LAST MPE_G_PTIME         /* the last record of new_descs */
 #define MPE_DESCS (MPE_G_LAST + 1)
 #define MPE_PAGE_AT 4              /* after MIDI CONTROL (stock page 3) */
-#define MPE_PAGES 13
+#define MPE_PAGES 14
 #define STOCK_PAGES PEAK_SETTINGS_PAGES
 #define UI_MODE_SETTINGS PEAK_UI_SETTINGS
 #define UI_MODE (ui_state[0])
 
-enum { DISP_ZONE = 0xE0, DISP_MEMBERS, DISP_NOTE, DISP_MASTER, DISP_CURVE, DISP_ENVSYNC, DISP_LOCK_FX, DISP_LOCK_ARP, DISP_LOCK_VOICE, DISP_SECT, DISP_DOIT, DISP_DLAST, DISP_DCOUNT, DISP_DOVF, DISP_GLIDE, DISP_MLEN, DISP_MSTATE, DISP_LATE, DISP_MORPH, DISP_MPOS, DISP_MDIFF, DISP_EPULSES, DISP_ESTEPS, DISP_EROTATE, DISP_ERATCHET, DISP_EEVERY, DISP_RELVEL, DISP_RSECT, DISP_RAMT, DISP_ROLL, DISP_PDUMP, DISP_END };
+enum { DISP_ZONE = 0xA0, DISP_MEMBERS, DISP_NOTE, DISP_MASTER, DISP_CURVE, DISP_ENVSYNC, DISP_LOCK_FX, DISP_LOCK_ARP, DISP_LOCK_VOICE, DISP_SECT, DISP_DOIT, DISP_DLAST, DISP_DCOUNT, DISP_DOVF, DISP_GLIDE, DISP_MLEN, DISP_MSTATE, DISP_LATE, DISP_MORPH, DISP_MPOS, DISP_MDIFF, DISP_EPULSES, DISP_ESTEPS, DISP_EROTATE, DISP_ERATCHET, DISP_EEVERY, DISP_RELVEL, DISP_RSECT, DISP_RAMT, DISP_ROLL, DISP_PDUMP, DISP_PTIME, DISP_END };
 
 #define FIELD 8                    /* value field: columns 11-18, the mark is at 19 */
 
@@ -104,6 +106,7 @@ static const char title_ratchet[] = "ARP RATCHET";
 static const char title_relvel[] = "RELEASE VEL";
 static const char title_rand[] = "RANDOMISE";
 static const char title_pdump[] = "PATCH DUMP";
+static const char title_ptime[] = "PATCH TIMING";
 
 static const struct mpe_desc new_descs[] = {
     {0, 2, 0x40, 0x2E, DISP_ZONE, "Zone"},
@@ -137,6 +140,7 @@ static const struct mpe_desc new_descs[] = {
     {0, 0, 0xFF, 0x00, DISP_RAMT, "Amount"},
     {0, 0, 0xFF, 0x00, DISP_ROLL, "Roll"},
     {0, 1, 0x40, 0x40, DISP_PDUMP, "Send"},           /* record 0x4E: stored in the globals */
+    {0, 4, 0x40, 0x41, DISP_PTIME, "Change at"},      /* record 0x4F: stored in the globals */
 };
 
 /* Last drawn per item. Only compared with what would be drawn now, so its
@@ -213,6 +217,8 @@ static void build_tables(void)
     page_item(&mpe_pages[11], MPE_G_RAND_ROLL);
     page_init(&mpe_pages[12], title_pdump);
     page_item(&mpe_pages[12], MPE_G_PDUMP);
+    page_init(&mpe_pages[13], title_ptime);
+    page_item(&mpe_pages[13], MPE_G_PTIME);
 
     struct mpe_page **stock = (struct mpe_page **)(settings_menu + 4);
     uint32_t n = 0;
@@ -236,6 +242,7 @@ static void build_tables(void)
 void mpe_ui_boot(void)
 {
     build_tables();
+    ptime_boot();
     settings_load();
 }
 
@@ -429,6 +436,12 @@ static void render_view(const struct mpe_live *v, uint32_t display, char *out)
     case DISP_PDUMP:
         put_str(&p, pdump_on() ? "USB" : "Off");
         break;
+    case DISP_PTIME: {
+        static const char *const names[] = {"Now", "Beat", "Bar", "2 Bars", "4 Bars"};
+        uint8_t n = globals[MPE_G_PTIME];
+        put_str(&p, names[n > 4 ? 0 : n]);
+        break;
+    }
     }
     *p = 0;
 }
@@ -501,6 +514,7 @@ void mpe_ui_poll(void)
     motion_poll();
     morph_poll();
     pdump_poll();
+    ptime_poll();
     if (UI_MODE != UI_MODE_SETTINGS)   /* before ui_current_page: only a Settings page can be ours */
         return;
     const uint8_t *page = ui_current_page();
@@ -559,7 +573,8 @@ static void edit_setting(uint16_t index, int32_t delta)
         v = globals[MPE_G_CURVE] == 1;
         break;
     case MPE_G_ENVSYNC:
-        v = globals[MPE_G_ENVSYNC] > 4 ? 0 : globals[MPE_G_ENVSYNC];
+    case MPE_G_PTIME:
+        v = globals[index] > 4 ? 0 : globals[index];
         break;
     case MPE_G_GLIDE:
         v = globals[MPE_G_GLIDE] > 2 ? 0 : globals[MPE_G_GLIDE];

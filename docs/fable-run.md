@@ -3,10 +3,19 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** ask the user what next (the Later list in peak-features:
-patch change timed to the bar, per-port MIDI filters, adaptive just
-intonation; the stray 50 Hz partial). After each new image's rig run,
-also run `tools/editor_check.py --yes`.
+**Next step:** v0.31 (patch change timed to the clock) is built and waits
+for the user's flash; then series X in TEST.md. After each new image's
+rig run, also run `tools/editor_check.py --yes`.
+
+**v0.31 built** (label `MPEV`, `741098b0…`; chosen by the user
+2026-11-19, with the display-type room): stock keeps no song position
+and ignores Continue, Stop and SPP, so `ptime.c` counts the external
+clock (hooks on the two clock-byte calls, Start/Continue/Stop entries
+of the RAM system-message table, SPP in `mpe_channel_filter`) and
+holds `patch_select_load` at program_change and the panel until the
+next beat or bar position. Display types from 0xA0. 6 tests in
+`tests/test_peak_ptime.py`; `work/ptime_check.py` plays a DAW clock on
+the rig and times the loads by their patch dumps.
 
 **v0.30 on the synth** (label `MPEU`, source `55686ab`): flashed
 2026-11-19; series W passed. `--pdump` with Send = USB: one dump, equal to

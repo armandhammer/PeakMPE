@@ -203,6 +203,18 @@ void editor_patch_request(uint8_t port);
 /* (number bank): patch_select +5 and +4, the loaded patch's place
  * (0x08018C58; only caller patch_select_load 0x0801AF78). observed */
 void patch_select_set(uint8_t number, uint8_t bank);
+/* (bank | number << 8; bank 0x80 and up = the current one): loads a stored
+ * patch, then patch_select_set and mark_changed (0x0801AF78). observed */
+void patch_select_load(uint16_t bank_number);
+/* +4 bank (1-4), +5 number of the loaded or chosen patch (0x20002D14). observed */
+extern volatile uint8_t patch_select[8];
+/* Stock's system-message table in RAM (0x200001E0): per status F0-FF a
+ * handler (word), its data length and flags (4 = called at once with no
+ * data). Start's handler is midi_start_rx; Continue's and Stop's return. observed */
+extern uint8_t midi_sys_handlers[16 * 8];
+void midi_start_rx(void);       /* 0x0800F0C0: MIDI Start, sets a flag (0x08010E30) */
+void midi_clock_rx_0(void);     /* 0x0800FBD0, 0x0800FBE8: a MIDI clock byte on port 0 / 1, */
+void midi_clock_rx_1(void);     /* called from the MIDI input loop 0x0800F084 */
 extern volatile uint8_t voice_env_state[PEAK_VOICES];   /* 3 = release or idle */
 extern volatile uint16_t voice_env_level[PEAK_VOICES];  /* above 0x200 = still sounding */
 

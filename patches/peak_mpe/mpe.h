@@ -55,6 +55,7 @@
 #define MPE_G_RAND_SECT 0x4B     /* Settings records, not stored: RANDOMISE Section, Amount, Roll (rand.c) */
 #define MPE_G_RAND_AMT 0x4C
 #define MPE_G_RAND_ROLL 0x4D
+#define MPE_G_PTIME 0x4F         /* patch change timed to the clock (ptime.c), stored: 0 Now, 1 Beat, 2 Bar, 3 2 Bars, 4 4 Bars; other = Now */
 #define MPE_G_PDUMP 0x4E         /* patch dump on patch change (pdump.c), stored: 0 Off, 1 USB; other = Off */
 
 #define MPE_DEFAULT_MEMBERS 15
@@ -181,6 +182,15 @@ void panic(void);                                 /* every note off, arp and MPE
 int pdump_on(void);
 void pdump_patch_selected(uint8_t number, uint8_t bank);   /* hook: patch_select_load's patch_select_set */
 void pdump_poll(void);                            /* once per 1 kHz tick */
+
+/* ptime.c */
+uint32_t ptime_unit(void);                        /* MIDI clocks per step; 0 = at once */
+void ptime_select(uint16_t arg);                  /* hook: patch_select_load at program_change and the panel */
+void ptime_clock_0(void);                         /* hooks: the MIDI input loop's clock handlers */
+void ptime_clock_1(void);
+void ptime_spp(const uint8_t *msg);               /* Song Position Pointer, from mpe_channel_filter */
+void ptime_boot(void);
+void ptime_poll(void);                            /* once per 1 kHz tick */
 void motion_knob(uint32_t id, uint32_t cur, uint32_t hires);
 void motion_poll(void);          /* main loop, from mpe_ui_poll */
 void motion_clear(void);         /* a patch load */

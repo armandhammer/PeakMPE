@@ -592,8 +592,7 @@ built.
 ### Later
 
 Adaptive just intonation (per-voice pitch path, fixed root first), random
-per note and voice index as lent sources (step 8), patch change timed to
-the bar, per-port MIDI filters, a stuck-note watchdog that looks for inconsistent state rather than
+per note and voice index as lent sources (step 8), per-port MIDI filters, a stuck-note watchdog that looks for inconsistent state rather than
 note age (2.2 fixed the hanging-note bug, and our 400-run soak found none).
 
 **Patch dump on patch change:** **built (v0.30, `pdump.c`; on the synth
@@ -604,6 +603,17 @@ Compare, Initialise and patches received by SysEx send nothing, nor
 does the power-up load. Tests `tests/test_peak_pdump.py`; rig check
 `tools/editor_check.py --pdump`; findings, "Patch selection and the
 patch dump".
+
+**Patch change timed to the bar:** **built (v0.31, `ptime.c`; emulated,
+not yet on the synth).** Settings PATCH TIMING > Change at (Now, Beat,
+Bar, 2 Bars, 4 Bars): while an external MIDI clock plays, a program
+change or a patch chosen on the panel (a cued one included) loads on the
+clock byte of the next beat or bar line. Bars are 4/4. The patch counts
+the clock itself from Start and Song Position Pointer, which stock
+ignores. Without a playing clock, or at Now, changes load at once. The
+Settings display types now start at 0xA0 (room for 64 more). Tests
+`tests/test_peak_ptime.py`; rig check `work/ptime_check.py`; findings,
+"MIDI clock, Start and Song Position".
 
 **Plug-in communication:** too vague to plan. The baseline in step 5 is the
 first look; enhancements only if it shows gaps.
