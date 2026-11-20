@@ -76,9 +76,15 @@ static void put3(char *p, uint32_t n)
 }
 
 /* Replaces patch_select_load at program_change (0x0800F112) and the panel's
- * patch apply (0x08018C9A). */
-void ptime_select(uint16_t arg)
+ * patch apply (0x08018C9A). program_change builds the argument as two bytes on
+ * its stack and loads it with ldr r0, [sp, #4]: bits 16-31 are whatever the
+ * stack held (stock's patch_select_load only uses the low half). Taken as a
+ * full word and masked here: with a uint16_t parameter the compiler trusted the
+ * register, and the waiting message showed `D 55` for D003 on the synth
+ * (series Z; v0.33, emulated in test_peak_ptime.py). */
+void ptime_select(uint32_t arg)
 {
+    arg &= 0xFFFF;
     if (!(arg & 0x80) && (uint8_t)((arg & 0xFF) - 1) > 3) {
         patch_select_load(arg);      /* a bank stock refuses (CC 32 = 0 or above 4): it ignores the */
         return;                      /* change, and a waiting one stays (review 2026-11-20) */

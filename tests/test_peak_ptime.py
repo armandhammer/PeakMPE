@@ -165,3 +165,17 @@ def test_a_change_with_a_bank_stock_ignores_keeps_the_waiting_one(board):
     _send(b, 0xC0, 11, ms=5)                         # waits for 96
     _send(b, 0xB0, 32, 0, 0xC0, 12, ms=5)            # bank 0: stock ignores this change
     assert _clocks_until_loaded(b, 11, 200) == 96 - 2
+
+
+def test_the_waiting_message_shows_the_patch_of_a_program_change(board):
+    """program_change loads its argument with ldr r0, [sp, #4]: bits 16-31 are stack
+    garbage. v0.32 took a uint16_t and showed D 55 for D003 on the synth (series Z);
+    v0.33 masks the word."""
+    b = board
+    _timing(b, BAR)
+    b.uc.mem_write(PATCH_SELECT + 4, bytes([4, 2]))
+    _send(b, START, ms=2)
+    _clocks(b, 10)
+    _send(b, 0xB0, 32, 4, 0xC0, 3, ms=5)
+    rows = b.display.lcd.text()
+    assert rows[0].startswith("PATCH TIMING") and rows[1].startswith("D003 "), rows

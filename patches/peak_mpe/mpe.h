@@ -185,7 +185,7 @@ void pdump_poll(void);                            /* once per 1 kHz tick */
 
 /* ptime.c */
 uint32_t ptime_unit(void);                        /* MIDI clocks per step; 0 = at once */
-void ptime_select(uint16_t arg);                  /* hook: patch_select_load at program_change and the panel */
+void ptime_select(uint32_t arg);                  /* hook: patch_select_load at program_change and the panel (bits 16-31 not clean) */
 void ptime_clock_0(void);                         /* hooks: the MIDI input loop's clock handlers */
 void ptime_clock_1(void);
 void ptime_spp(const uint8_t *msg);               /* Song Position Pointer, from mpe_channel_filter */

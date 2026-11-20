@@ -72,8 +72,8 @@ META = {
     },
     ("peak", "mpe"): {
         "title": "MPE for Peak",
-        "version": "0.32",
-        "label": "MPEW Ver 108.469",
+        "version": "0.33",
+        "label": "MPEX Ver 108.469",
         "summary": "Per-note pitch bend, pressure (channel or poly aftertouch) and slide (MPE) on the Peak's "
                    "8 voices, a per-patch MPE switch (VOICE page) and Settings MPE pages; one or two zones. "
                    "v0.2: the arpeggiator ignores its own notes when a DAW sends them back (MIDI loop). "
@@ -105,6 +105,7 @@ META = {
                    "v0.30: Settings > PATCH DUMP > Send = USB sends each newly loaded patch (by program change or the patch buttons) over USB in the editor's own format, so an editor or DAW can follow along. A rare full RANDOMISE roll could leave every oscillator quieter than the mixer rule allows; fixed. "
                    "v0.31: Settings > PATCH TIMING > Change at = Beat, Bar, 2 Bars or 4 Bars: while a DAW's MIDI clock plays, a patch change by program change or the patch buttons waits for the next beat or bar line and lands on it. "
                    "v0.32: a program change that arrives right on the bar line (just after its clock) now loads at once instead of a bar later; Continue without a song position goes on from where Stop left off. "
+                   "v0.33: the PATCH TIMING message shows the right patch number (it showed D 55 for D003 after a program change). "
                    "Tested on one Peak with the automated hardware test rig and played from a LinnStrument.",
     },
 }
