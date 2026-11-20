@@ -1083,7 +1083,7 @@ disassembly, the `.data` image); behaviour **emulated**
   (`0x080181D4`-`0x080181D8`), and its own types end at `0x60`
   (inferred safe).
 - **On the synth** (v0.31, series X, 2026-11-20; **observed**): `work/ptime_check.py` (run `ptime-2026-11-20_082821`, observed): Start, 230 clock bytes at 120 BPM over USB, a program change for D001 (with CC 32 = 4) after clock 10 and one for D002 after clock 150, then Stop: the patch dumps came after clock 96 (+19.4 ms) and after clock 192 (+11.0 ms), the next bar lines; each dump arrives within one clock period (20.8 ms) of the bar line's clock byte, the load and the 527-byte dump included.
-  The panel's patch choice was not tried on the synth.
+  The panel's patch choice was not tried on the synth until series Z (below).
 - **Review fixes (v0.32, 2026-11-20; emulated):** a program change in
   the first two clocks of a step loads at once (a DAW that sends it on the
   bar sends it just after that tick's clock byte, and v0.31 held it a
@@ -1097,6 +1097,7 @@ disassembly, the `.data` image); behaviour **emulated**
   that failed on v0.31 (the clock order excepted: not visible in the
   simulator's tempo).
 - **On the synth** (v0.32, series Y, 2026-11-20; **observed**): `work/ptime_check.py` at 120 BPM (run `ptime-2026-11-20_095426`) reported the first D001 and the third change one clock late (dumps 27.6 and 22.6 ms after the expected clock, past the next clock byte at 20.8 ms) and D002 on time; the check reads the load's clock from when its dump arrives, which a clock period this short can't separate. Re-run at 60 BPM with each patch's load-to-dump time measured first without a clock (run `ptime-2026-11-20_095536`: D002 5.2 ms, D001 5.5 ms): D001 on clock 96 (+10.6 ms), D002 on 192 (+9.5 ms), D001 asked for just after bar 4's clock on 288, at once (+18.8 ms): all as expected. With the clock running, the dumps came 9.5-27.6 ms after their clock byte against 5.2-5.5 ms without one (inferred: USB scheduling of the program change and the dump). The check now runs at 60 BPM by default.
+- **The panel's patch choice on the synth** (v0.32): **Series Z (2026-11-20, no new image; observed):** `work/ptime_panel.py`: Start, 60 s of clock at 60 BPM, Stop, nothing else sent, while the user chose patches on the panel. Run `ptpanel-2026-11-20_103015`: no presses (the steps hadn't said clearly that they go during the run). Run `ptpanel-2026-11-20_103403`: about 7 taps of Patch + and Patch -, mixed: six loads, all on bar lines but one 63 ms after another (a choice just after a line) and the last released by Stop; not matched to presses. Run `ptpanel-2026-11-20_104045`, Patch + only, three times from D002: D003 on clock 288 (bar 4's line), D004 on 768 (bar 9), D005 on 960 (bar 11), each dump 12-16 ms after its clock: **patches chosen on the panel land on the bar line.** **Open: the waiting message showed the wrong number on the synth:** `PATCH TIMING` / `D 55` / `at the next bar` while D003 waited (then `D 56` for D004, `D 57` for D005; user); the loads were right, and the simulator draws `D003`, `D004` (`work/_panel_probe.py`); not explained.
 
 ## A blank settings chip (2026-11-18)
 

@@ -4,8 +4,15 @@ The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
 **Next step:** ask the user what next (Later: per-port MIDI filters,
-adaptive just intonation; the stray 50 Hz partial; panel patch changes on
-the bar on the synth).
+adaptive just intonation; the stray 50 Hz partial).
+
+**Series Z** (2026-11-20, no new image): three Patch + choices during a
+60 BPM clock loaded D003, D004, D005 on bar lines (`work/ptime_panel.py`,
+`ptpanel-2026-11-20_104045`). **Open bug:** the waiting message showed
+`D 55`, `D 56`, `D 57` on the synth instead of `D003`-`D005`; the
+simulator draws them right (`work/_panel_probe.py`). Suspect the LCD cache
+(v0.23) or a display path the simulator doesn't model; needs a look on
+the synth (a photo of the screen).
 
 **v0.32 on the synth** (label `MPEW`, source `544a85e`): flashed
 2026-11-20; series Y passed. `ptime_check.py` at 120 BPM misread two
