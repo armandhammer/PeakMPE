@@ -1096,6 +1096,7 @@ disassembly, the `.data` image); behaviour **emulated**
   10-20 ms (observed by the patch dumps in series X). Each has a test
   that failed on v0.31 (the clock order excepted: not visible in the
   simulator's tempo).
+- **On the synth** (v0.32, series Y, 2026-11-20; **observed**): `work/ptime_check.py` at 120 BPM (run `ptime-2026-11-20_095426`) reported the first D001 and the third change one clock late (dumps 27.6 and 22.6 ms after the expected clock, past the next clock byte at 20.8 ms) and D002 on time; the check reads the load's clock from when its dump arrives, which a clock period this short can't separate. Re-run at 60 BPM with each patch's load-to-dump time measured first without a clock (run `ptime-2026-11-20_095536`: D002 5.2 ms, D001 5.5 ms): D001 on clock 96 (+10.6 ms), D002 on 192 (+9.5 ms), D001 asked for just after bar 4's clock on 288, at once (+18.8 ms): all as expected. With the clock running, the dumps came 9.5-27.6 ms after their clock byte against 5.2-5.5 ms without one (inferred: USB scheduling of the program change and the dump). The check now runs at 60 BPM by default.
 
 ## A blank settings chip (2026-11-18)
 

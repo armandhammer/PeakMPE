@@ -42,7 +42,7 @@ checked on the synth; 0.29 runs the patch's own checks once a
 millisecond, to leave the synth's main loop more time, rig 136 of 136;
 0.30 adds the patch dump on patch change, checked on the synth; 0.31
 times patch changes to the bar, checked on the synth; 0.32 has the fixes
-from a review of 0.28 to 0.31, checked in the simulator so far), a 600-run stress soak left no stuck note, a LinnStrument played
+from a review of 0.28 to 0.31, checked on the synth), a 600-run stress soak left no stuck note, a LinnStrument played
 it over DIN in one and two zones, and each feature below was tried on the
 synth (by hand, or by the rig where the panel can't do it). Not tested on other firmware versions or other units.
 

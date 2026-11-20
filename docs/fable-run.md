@@ -3,10 +3,16 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** v0.32 (review fixes) is built and waits for the user's
-flash; then series Y in TEST.md. After that, ask what next (Later:
-per-port MIDI filters, adaptive just intonation; the stray 50 Hz partial;
-panel patch changes on the bar on the synth).
+**Next step:** ask the user what next (Later: per-port MIDI filters,
+adaptive just intonation; the stray 50 Hz partial; panel patch changes on
+the bar on the synth).
+
+**v0.32 on the synth** (label `MPEW`, source `544a85e`): flashed
+2026-11-20; series Y passed. `ptime_check.py` at 120 BPM misread two
+loads as a clock late (a dump can arrive more than one clock period after
+its clock); at 60 BPM, with latencies measured first, all three on the
+expected clock, the one after bar 4 at once. Rig 136/0/5 (`2026-11-20_095555`);
+editor check `editor-2026-11-20_100121`: every answer the same as the run before (series X: the same settings).
 
 **Review of v0.28-v0.31** (chosen by the user 2026-11-20), read by hand
 over `dc9c8a7..44f3634` (patches, tools, scripts): five findings, all in
