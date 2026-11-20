@@ -1032,7 +1032,8 @@ behaviour **emulated** (`tests/test_peak_pdump.py`).
   `editor_patch_request(0)` once the main loop runs, or on the next tick
   while another answer is being sent. Emulated: a program change sends
   one 527-byte answer 00 holding the patch now loaded; Off sends nothing;
-  the editor's own write 00 is not echoed.
+  the editor's own write 00 is not echoed. v0.32: a dump waiting behind
+  another answer is dropped when Send is turned Off meanwhile.
 - **On the synth** (v0.30, series W, 2026-11-19; **observed**): with Send
   = USB, a bank select and program change for D002 brought one answer 00
   over USB, equal to the current patch; with Send = Off, none. The dump
@@ -1083,6 +1084,18 @@ disassembly, the `.data` image); behaviour **emulated**
   (inferred safe).
 - **On the synth** (v0.31, series X, 2026-11-20; **observed**): `work/ptime_check.py` (run `ptime-2026-11-20_082821`, observed): Start, 230 clock bytes at 120 BPM over USB, a program change for D001 (with CC 32 = 4) after clock 10 and one for D002 after clock 150, then Stop: the patch dumps came after clock 96 (+19.4 ms) and after clock 192 (+11.0 ms), the next bar lines; each dump arrives within one clock period (20.8 ms) of the bar line's clock byte, the load and the 527-byte dump included.
   The panel's patch choice was not tried on the synth.
+- **Review fixes (v0.32, 2026-11-20; emulated):** a program change in
+  the first two clocks of a step loads at once (a DAW that sends it on the
+  bar sends it just after that tick's clock byte, and v0.31 held it a
+  whole step); Continue without a Song Position Pointer goes on from the
+  clock after where Stop left the count (v0.31 counted that clock again);
+  a program change with a bank stock refuses (CC 32 = 0 or above 4) no
+  longer replaces a waiting change; the patch hands each clock byte to
+  stock's handler before a waiting load, because `0x0800F764` measures
+  the tempo from the ms counter when the byte is handled and a load takes
+  10-20 ms (observed by the patch dumps in series X). Each has a test
+  that failed on v0.31 (the clock order excepted: not visible in the
+  simulator's tempo).
 
 ## A blank settings chip (2026-11-18)
 

@@ -3,9 +3,28 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** ask the user what next (Later: per-port MIDI filters,
-adaptive just intonation; the stray 50 Hz partial; a review pass over
-v0.28-v0.31; panel patch changes on the bar on the synth).
+**Next step:** v0.32 (review fixes) is built and waits for the user's
+flash; then series Y in TEST.md. After that, ask what next (Later:
+per-port MIDI filters, adaptive just intonation; the stray 50 Hz partial;
+panel patch changes on the bar on the synth).
+
+**Review of v0.28-v0.31** (chosen by the user 2026-11-20), read by hand
+over `dc9c8a7..44f3634` (patches, tools, scripts): five findings, all in
+the two newest files. `ptime.c`: (1) a program change just after a bar
+line's clock waited a whole step (now: within two clocks of a line,
+at once); (2) Continue without SPP counted the last clock again; (3) a
+program change with a bank stock refuses replaced a waiting change;
+(4) the load ran before stock's clock handler, which times the tempo.
+`pdump.c`: (5) turning Send Off did not drop a waiting dump. Tests for
+1, 2, 3 and 5 failed on v0.31 and pass on v0.32 (`0b8f1ac8…`).
+Read and found sound: the panic's press and release handling and the
+`qa_panel_read` early return, the per-tick polls (routing stays current
+through `mpe_channel_filter`), the Euclid short path, the mixer fix, the
+display range from 0xA0, `editor_check.py`'s allow-list, the check stamp.
+Left as they are, noted: a clock arriving on both USB and DIN would be
+counted twice; after power-up the count needs a Start or Continue;
+an editor request in the same main-loop pass as a patch dump would take
+the reply slot first (the dump is then lost).
 
 **Faster build loop** (chosen by the user 2026-11-20): a full
 `scripts/check` that passes writes `work/check-stamp` (key from

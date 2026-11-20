@@ -54,6 +54,8 @@ void pdump_patch_selected(uint8_t number, uint8_t bank)
 void pdump_poll(void)
 {
     running = 1;
+    if (pending && !pdump_on())
+        pending = 0;              /* Send turned Off while it waited (review 2026-11-20) */
     if (pending)
         try_send();
 }

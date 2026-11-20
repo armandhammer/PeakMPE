@@ -121,3 +121,47 @@ def test_a_later_change_replaces_the_waiting_one(board):
     _send(b, 0xC0, 11, ms=5)
     _send(b, 0xC0, 12, ms=5)
     assert _clocks_until_loaded(b, 12, 200) == 96 - 3 + 1   # positions 3..96; 11 never loads
+
+
+# --- Review of v0.28-v0.31 (2026-11-20) -------------------------------------------
+
+
+def test_a_change_just_after_the_bar_line_loads_at_once(board):
+    """A DAW that puts a program change on the bar sends it with that tick's
+    clock byte, often just after it: it should land now, not a bar later."""
+    b = board
+    _timing(b, BAR)
+    _send(b, START, ms=2)
+    _clocks(b, 97)                                   # positions 0-96: bar 2's one has just played
+    _send(b, 0xC0, 5, ms=5)
+    assert _loaded(b) == 5
+
+
+def test_a_change_right_after_start_loads_at_once(board):
+    b = board
+    _timing(b, BAR)
+    _send(b, START, ms=2)                            # the next clock byte is the one of bar 1
+    _send(b, 0xC0, 6, ms=5)
+    assert _loaded(b) == 6
+
+
+def test_continue_without_a_song_position_goes_on_counting(board):
+    b = board
+    _timing(b, BAR)
+    _send(b, START, ms=2)
+    _clocks(b, 10)                                   # positions 0-9
+    _send(b, STOP, ms=2)
+    _send(b, CONTINUE, ms=2)
+    _clocks(b, 1)                                    # position 10
+    _send(b, 0xC0, 7, ms=5)
+    assert _clocks_until_loaded(b, 7, 200) == 96 - 10   # positions 11..96
+
+
+def test_a_change_with_a_bank_stock_ignores_keeps_the_waiting_one(board):
+    b = board
+    _timing(b, BAR)
+    _send(b, START, ms=2)
+    _clocks(b, 3)                                    # positions 0-2
+    _send(b, 0xC0, 11, ms=5)                         # waits for 96
+    _send(b, 0xB0, 32, 0, 0xC0, 12, ms=5)            # bank 0: stock ignores this change
+    assert _clocks_until_loaded(b, 11, 200) == 96 - 2

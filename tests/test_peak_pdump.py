@@ -106,3 +106,16 @@ def test_the_dump_waits_for_an_answer_in_progress(board, mpe_built):
     b.uc.mem_write(SYSEX_STATE, bytes([0]))
     _call(b, blob.address("pdump_poll"))
     assert b.u8(SYSEX_STATE) == 0                               # sent once only
+
+
+
+def test_turning_send_off_drops_a_waiting_dump(board, mpe_built):
+    b, _ = board
+    blob = mpe_built.blob
+    _on(b)
+    b.uc.mem_write(SYSEX_STATE, bytes([3, 0, 0, 1]))            # stock is answering something
+    _call(b, blob.address("pdump_patch_selected"), 5, 1)        # the dump waits
+    b.uc.mem_write(GLOBALS + G_PDUMP, bytes([0]))               # Send = Off meanwhile
+    b.uc.mem_write(SYSEX_STATE, bytes([0, 0, 0, 1]))
+    _call(b, blob.address("pdump_poll"))
+    assert b.u8(SYSEX_STATE) == 0                               # nothing sent

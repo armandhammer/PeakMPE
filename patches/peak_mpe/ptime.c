@@ -5,8 +5,11 @@
  * byte within the last 100 ms), a patch change by program change or by the
  * patch buttons (including a cued patch, Patch Cue) waits for the next beat
  * or bar line of that clock and loads on its clock byte, before the notes
- * that follow it are read. Without a playing clock, or with `Now`, patch
- * changes load at once, as stock. Bars are 4/4: 96 clocks.
+ * that follow it are read. A change in the first two clocks of a step (just
+ * after its line: a DAW sending it on the bar) loads at once. Without a
+ * playing clock, or with `Now`, patch changes load at once, as stock. Bars
+ * are 4/4: 96 clocks. Continue after Stop goes on from where Stop left the
+ * count, unless a Song Position Pointer came between.
  *
  * Stock keeps no song position: its tempo clock (0x20012268) runs freely and
  * MIDI Start only sets a flag (0x08010E30), Continue, Stop and Song Position
@@ -32,6 +35,11 @@
 #include "mpe.h"
 
 #define CLOCK_TIMEOUT_TICKS 100
+/* A change that comes within the first two clocks of a step loads at once: a
+ * DAW that puts a program change on the bar sends it with that tick's clock
+ * byte, often just after it, and waiting would make it a whole step late
+ * (review 2026-11-20). Two clocks: 42 ms at 120 BPM. */
+#define GRACE_CLOCKS 2
 #define SYS_HANDLER(status) ((uint32_t *)&midi_sys_handlers[((status) & 0x0F) * 8])
 
 static const uint16_t unit_clocks[] = {0, 24, 96, 192, 384};   /* Now, Beat, Bar, 2 Bars, 4 Bars */
@@ -71,8 +79,12 @@ static void put3(char *p, uint32_t n)
  * patch apply (0x08018C9A). */
 void ptime_select(uint16_t arg)
 {
+    if (!(arg & 0x80) && (uint8_t)((arg & 0xFF) - 1) > 3) {
+        patch_select_load(arg);      /* a bank stock refuses (CC 32 = 0 or above 4): it ignores the */
+        return;                      /* change, and a waiting one stays (review 2026-11-20) */
+    }
     uint32_t unit = ptime_unit();
-    if (!unit || !clock_playing()) {
+    if (!unit || !clock_playing() || position % unit < GRACE_CLOCKS) {
         waiting = 0;
         patch_select_load(arg);
         return;
@@ -105,18 +117,20 @@ static void clock_byte(void)
 }
 
 /* Replace the MIDI input loop's calls of stock's clock handlers (0x0800F0A0,
- * 0x0800F0A8): the count first, so a patch change at a bar line loads before
- * stock's tempo follows the byte. */
+ * 0x0800F0A8). Stock's first: it measures the tempo from when clock bytes
+ * arrive (0x0800F764 reads the ms counter), and a patch load takes 10-20 ms
+ * on the synth, which would make this byte look late (review 2026-11-20).
+ * The notes after the byte are read after the load either way. */
 void ptime_clock_1(void)
 {
-    clock_byte();
     midi_clock_rx_1();
+    clock_byte();
 }
 
 void ptime_clock_0(void)
 {
-    clock_byte();
     midi_clock_rx_0();
+    clock_byte();
 }
 
 static void start(void)
@@ -129,9 +143,8 @@ static void start(void)
 
 static void cont(void)
 {
-    first = 1;                       /* position: the last Song Position Pointer, or where Stop left it */
-    playing = 1;
-}
+    playing = 1;                     /* after a Song Position Pointer (first set), its position comes next; */
+}                                    /* else the one after where Stop left it (v0.31 counted that one again) */
 
 static void stop(void)
 {

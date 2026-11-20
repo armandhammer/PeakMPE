@@ -19,7 +19,7 @@ describe("products", () => {
     expect(p.input.sha256).toBe("f9d50b4268a5c612b71d4cafd45dc01a02ecdf0902aa6e31784ad4d1bc4de26e");
     // MPE for Peak 0.23: 0.22 (e7b5ec86…, flashed and tested on a Peak 2026-11-17,
     // docs/hardware-log.md) plus the LCD cache (lcdcache.c)
-    expect(p.output.sha256).toBe("741098b0b09e4bcb6944443caa3fefe380cd4804eaee87a8482ae99617756483");
+    expect(p.output.sha256).toBe("0b8f1ac8bf856ddd033145d7eec97a818832ceef5d0482c5a0401d830d2f37cc");
     expect(p.title).toBe("MPE for Peak");
   });
 

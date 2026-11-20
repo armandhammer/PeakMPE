@@ -29,7 +29,7 @@ named below.
 
 ## Status
 
-**MPE for Peak 0.31**, for Peak firmware **2.2 (build 2108)** only, with
+**MPE for Peak 0.32**, for Peak firmware **2.2 (build 2108)** only, with
 FPGA build 469. Tested on one Peak ([docs/hardware-log.md](docs/hardware-log.md)):
 every check of the automated hardware test rig that applies to the Peak
 passes (136 of 136 measured rows over USB on each release up to 0.25; on
@@ -41,7 +41,8 @@ band-pass rolls about 6 dB louder; 0.28 adds the front-panel panic,
 checked on the synth; 0.29 runs the patch's own checks once a
 millisecond, to leave the synth's main loop more time, rig 136 of 136;
 0.30 adds the patch dump on patch change, checked on the synth; 0.31
-times patch changes to the bar, checked on the synth), a 600-run stress soak left no stuck note, a LinnStrument played
+times patch changes to the bar, checked on the synth; 0.32 has the fixes
+from a review of 0.28 to 0.31, checked in the simulator so far), a 600-run stress soak left no stuck note, a LinnStrument played
 it over DIN in one and two zones, and each feature below was tried on the
 synth (by hand, or by the rig where the panel can't do it). Not tested on other firmware versions or other units.
 
@@ -98,8 +99,10 @@ screen, Select 1 to 3, pick a line; the encoder changes it.
 - **Patch changes on the bar:** Settings > `PATCH TIMING` > `Change at` =
   `Beat`, `Bar`, `2 Bars` or `4 Bars`. While a DAW sends MIDI clock (after
   its Start), a program change or a patch you choose on the panel waits
-  and loads exactly on the next beat or bar line (4/4). The screen shows
-  the waiting patch. No clock playing, or `Now`: at once, as stock.
+  and loads exactly on the next beat or bar line (4/4). A change that
+  arrives right on a bar line (the DAW sending it on the bar) loads at
+  once. The screen shows the waiting patch. No clock playing, or `Now`:
+  at once, as stock.
 - **Patch dump:** Settings > `PATCH DUMP` > `Send` = `USB` makes the Peak
   send each patch it loads (by program change or the patch buttons) over
   USB, in the same format Novation Components gets when it asks for the
@@ -177,7 +180,7 @@ screen, Select 1 to 3, pick a line; the encoder changes it.
   change. Stock rewrites whole lines, and every character holds up the
   per-note modulation for about 0.05 ms. Measured on the synth, turning a
   knob for 5 s lost 17 modulation ticks, against about 2,600 before.
-- **Boot screen** `MPEV Ver 108.469`, so you can see the patch and its
+- **Boot screen** `MPEW Ver 108.469`, so you can see the patch and its
   release are installed.
 
 What stock 2.2 already does (and so isn't here), and the features that were
