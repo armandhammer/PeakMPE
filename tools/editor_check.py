@@ -190,8 +190,10 @@ def pdump_messages(channel):
 
 
 def pdump_check(port, channel, out):
-    """v0.30's PATCH DUMP: select D002 and listen; then ask for D002 and compare.
-    Returns (number of dumps, whether the one dump equals D002's stored data)."""
+    """v0.30's PATCH DUMP: select D002 and listen; then ask for the current patch
+    (40) and for D002 as stored (41). Returns (number of dumps, whether the one
+    dump equals the current patch, the patch offsets where it differs from the
+    stored D002: PARAM LOCK keeps locked groups of the previous patch)."""
     t0 = time.monotonic()
     with open(out / "replies.log", "w", encoding="utf-8") as log:
         port.take()
@@ -202,9 +204,14 @@ def pdump_check(port, channel, out):
         dumps = [m for m in split(port.take()) if len(m) == PATCH_LEN and m[1:9] == HDR + b"\x00"]
         for m in dumps:
             log.write(f"{time.monotonic() - t0:10.4f} < {m.hex(' ')}\n")
+        current = exchange(port, req(0x40), 1, 1.0, log, t0)
         stored = exchange(port, req(0x41, 0, 4, 2), 1, 1.0, log, t0)
-    same = len(dumps) == 1 and len(stored) == 1 and dumps[0][14:-1] == stored[0][14:-1]
-    return len(dumps), same
+    if len(dumps) != 1:
+        return len(dumps), False, []
+    d = dumps[0][14:-1]
+    same = len(current) == 1 and d == current[0][14:-1]
+    differ = [i for i, (a, b) in enumerate(zip(d, stored[0][14:-1])) if a != b] if len(stored) == 1 else []
+    return 1, same, differ
 
 
 def main(argv=None):
@@ -225,17 +232,22 @@ def main(argv=None):
             allowed(m)
         if not args.yes:
             print("--pdump: CC 32 = 4 and program change 2 (D002) on channel", cfg.channel,
-                  "then request 41 for D002. Nothing sent (give --yes, with the user's OK).")
+                  "then requests 40 and 41 (D002). Nothing sent (give --yes, with the user's OK).")
             return 0
         port = Port(args.port or cfg.usb_port)
         out = RUNS / f"pdump-{datetime.now():%Y-%m-%d_%H%M%S}"
         out.mkdir(parents=True)
         try:
-            n, same = pdump_check(port, cfg.channel, out)
+            n, same, differ = pdump_check(port, cfg.channel, out)
         finally:
             port.close()
-        print(f"{out.relative_to(ROOT)}: {n} patch dump(s) after selecting D002"
-              + (f"; {'equal to' if same else 'NOT equal to'} D002's stored data" if n == 1 else ""))
+        msg = f"{out.relative_to(ROOT)}: {n} patch dump(s) after selecting D002"
+        if n == 1:
+            msg += f"; {'equal to' if same else 'NOT equal to'} the current patch"
+            msg += ("; as stored" if not differ else
+                    f"; differs from D002 as stored at {len(differ)} offsets, 0x{differ[0]:02X}-0x{differ[-1]:02X}"
+                    " (PARAM LOCK keeps locked groups of the previous patch)")
+        print(msg)
         return 0
 
     steps = plan()
