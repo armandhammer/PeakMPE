@@ -6,9 +6,14 @@
 #   scripts/build-image.sh                                 patches/mpe/patch.py
 #   scripts/build-image.sh patches/version_string.py       another definition
 #   scripts/build-image.sh --skip-checks                   skip scripts/check
+#   scripts/build-image.sh --recheck                       run scripts/check even if it passed on these inputs
 #
 # Steps, each one a stop on failure:
-#   1. scripts/check, the full suite with the firmware (unless --skip-checks);
+#   1. scripts/check, the full suite with the firmware (unless --skip-checks).
+#      A full check that passed on exactly these inputs (work/check-stamp
+#      holds scripts/check-key's key: every file but Markdown, the firmware,
+#      the dev image) is reused instead of run again, so a docs-only change, or
+#      a check run earlier in the background, costs no second half hour;
 #   2. build with tools/patch.py <definition> --verify in the dev image and
 #      check the file's SHA-256 against the one the build printed;
 #   3. copy the image to work/flash/<name>-<sha12>.syx, which no later build
@@ -19,11 +24,13 @@ set -euo pipefail
 die() { echo "build-image: $*" >&2; exit 1; }
 
 checks=yes
+recheck=no
 definition=patches/mpe/patch.py
 for a in "$@"; do
     case "$a" in
         --skip-checks) checks=no ;;
-        -*) die "usage: scripts/build-image.sh [--skip-checks] [definition]" ;;
+        --recheck) recheck=yes ;;
+        -*) die "usage: scripts/build-image.sh [--skip-checks | --recheck] [definition]" ;;
         *) definition="$a" ;;
     esac
 done
@@ -39,7 +46,12 @@ dirty=""
 
 # 1. The checks.
 if [[ $checks == yes ]]; then
-    scripts/check || die "scripts/check failed; nothing built"
+    key="$(scripts/check-key)" || die "scripts/check-key failed"
+    if [[ $recheck == no && -f work/check-stamp ]] && grep -qx "key $key" work/check-stamp; then
+        echo "== scripts/check: reused, it passed on these same inputs ($(sed -n 's/^passed //p' work/check-stamp); work/check-stamp, --recheck runs it again)"
+    else
+        scripts/check || die "scripts/check failed; nothing built"
+    fi
 else
     echo "== --skip-checks: scripts/check not run"
 fi

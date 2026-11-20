@@ -53,7 +53,7 @@ build context; `scripts/dev` mounts it read-only.
 | Everything CI runs (pytest, web test and build, descriptor checks); `--no-firmware` hides the firmware (CI's fallback when the download fails) | `scripts/check [--no-firmware] [--quick]` |
 | Patch bytes match the committed descriptor, both architectures | `scripts/check-repro.sh linux/arm64 linux/amd64` |
 | A shell in the dev image; rebuild it | `scripts/dev`; `scripts/dev --build` |
-| Image to flash: checks, verified build, hash, recovery steps and flash commands printed (never flashes) | `scripts/build-image.sh [definition]` |
+| Image to flash: checks (reused from `work/check-stamp` while nothing tested changed; `--recheck` runs them), verified build, hash, recovery steps and flash commands printed (never flashes) | `scripts/build-image.sh [--recheck] [definition]` |
 | Simulator cache: list, clear | `scripts/dev python -I tools/cache.py [clear]` |
 | Ghidra import plus all C (native) | `scripts/ghidra-import.sh firmware/summit-firmware-2.2-build2121.syx --decompile-all` |
 | Fetch firmware | `scripts/fetch-firmware.sh --all` |

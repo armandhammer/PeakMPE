@@ -269,6 +269,18 @@ you can see exactly that view:
 scripts/check --no-firmware
 ```
 
+**The stamp.** A full run (firmware present, no `--quick`, `--no-firmware`
+or `--shard`) that passes writes `work/check-stamp` with the key
+`scripts/check-key` prints: one SHA-256 over every file git tracks or would
+track, by content, except Markdown (no test or build step reads a `.md`
+file), plus the firmware images in `firmware/` and the dev image's tag. The
+key is taken before and after the run and the stamp written only if both
+agree. `scripts/build-image.sh` reuses a stamp whose key matches instead of
+running the check again (about 30 minutes with the Peak suite), and runs
+it when anything tested changed, or with `--recheck`. So a docs-only
+change before a build costs nothing, and a check started in the
+background while the docs are written is the build's check.
+
 `--quick` adds `-m "not slow"` to pytest. `--shard I/N` runs only shard I
 of N of pytest, as CI's six parallel jobs do (`tests/shard.py`; the web and
 descriptor steps run in shard 1). Shards keep each xdist group whole and are

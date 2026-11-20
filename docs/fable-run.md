@@ -4,7 +4,17 @@ The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
 **Next step:** ask the user what next (Later: per-port MIDI filters,
-adaptive just intonation; the stray 50 Hz partial; a faster build loop).
+adaptive just intonation; the stray 50 Hz partial; a review pass over
+v0.28-v0.31; panel patch changes on the bar on the synth).
+
+**Faster build loop** (chosen by the user 2026-11-20): a full
+`scripts/check` that passes writes `work/check-stamp` (key from
+`scripts/check-key`: all files but Markdown, the firmware, the dev
+image); `scripts/build-image.sh` reuses it while the key matches
+(`--recheck` forces the check). Workflow: once the code and tests are
+final, start `scripts/check` in the background, write the docs, then run
+`build-image.sh`: it reuses that check. `tests/test_build_image.py` covers
+reuse, docs-only edits, code, untracked, firmware and image changes.
 After each new image's rig run, also run `tools/editor_check.py --yes`.
 
 **v0.31 on the synth** (label `MPEV`, source `8da731f`): flashed
