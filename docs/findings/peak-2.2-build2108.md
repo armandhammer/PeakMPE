@@ -1033,6 +1033,11 @@ behaviour **emulated** (`tests/test_peak_pdump.py`).
   while another answer is being sent. Emulated: a program change sends
   one 527-byte answer 00 holding the patch now loaded; Off sends nothing;
   the editor's own write 00 is not echoed.
+- **On the synth** (v0.30, series W, 2026-11-19; **observed**): with Send
+  = USB, a bank select and program change for D002 brought one answer 00
+  over USB, equal to the current patch; with Send = Off, none. The dump
+  is the patch as loaded: with PARAM LOCK Lock FX on, its FX group is the
+  previous patch's, not the stored one's.
 
 ## A blank settings chip (2026-11-18)
 

@@ -3,9 +3,16 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** v0.30 (patch dump on patch change) is built and waits for
-the user's flash; then series W in TEST.md. After each new image's rig
-run, also run `tools/editor_check.py --yes`.
+**Next step:** ask the user what next (the Later list in peak-features:
+patch change timed to the bar, per-port MIDI filters, adaptive just
+intonation; the stray 50 Hz partial). After each new image's rig run,
+also run `tools/editor_check.py --yes`.
+
+**v0.30 on the synth** (label `MPEU`, source `55686ab`): flashed
+2026-11-19; series W passed. `--pdump` with Send = USB: one dump, equal to
+the current patch (the first run compared with the stored patch and
+tripped on the synth's FX lock; corrected in `cccac52`); with Send = Off:
+none. Rig 136/0/5 (`2026-11-19_185218`); editor check: settings only.
 
 **v0.30 built** (label `MPEU`, `5ec7e904…`; chosen by the user
 2026-11-19): Settings PATCH DUMP > Send = USB sends the newly loaded
