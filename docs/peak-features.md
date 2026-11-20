@@ -604,8 +604,9 @@ does the power-up load. Tests `tests/test_peak_pdump.py`; rig check
 `tools/editor_check.py --pdump`; findings, "Patch selection and the
 patch dump".
 
-**Patch change timed to the bar:** **built (v0.31, `ptime.c`; emulated,
-not yet on the synth).** Settings PATCH TIMING > Change at (Now, Beat,
+**Patch change timed to the bar:** **built (v0.31, `ptime.c`; on the synth
+2026-11-20, series X: program changes land on the bar line; the panel
+path emulated only).** Settings PATCH TIMING > Change at (Now, Beat,
 Bar, 2 Bars, 4 Bars): while an external MIDI clock plays, a program
 change or a patch chosen on the panel (a cued one included) loads on the
 clock byte of the next beat or bar line. Bars are 4/4. The patch counts

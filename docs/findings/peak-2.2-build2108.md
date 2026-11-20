@@ -1081,6 +1081,8 @@ disassembly, the `.data` image); behaviour **emulated**
   display byte only at the formatter call the patch replaces
   (`0x080181D4`-`0x080181D8`), and its own types end at `0x60`
   (inferred safe).
+- **On the synth** (v0.31, series X, 2026-11-20; **observed**): `work/ptime_check.py` (run `ptime-2026-11-20_082821`, observed): Start, 230 clock bytes at 120 BPM over USB, a program change for D001 (with CC 32 = 4) after clock 10 and one for D002 after clock 150, then Stop: the patch dumps came after clock 96 (+19.4 ms) and after clock 192 (+11.0 ms), the next bar lines; each dump arrives within one clock period (20.8 ms) of the bar line's clock byte, the load and the 527-byte dump included.
+  The panel's patch choice was not tried on the synth.
 
 ## A blank settings chip (2026-11-18)
 

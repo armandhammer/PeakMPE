@@ -3,9 +3,13 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** v0.31 (patch change timed to the clock) is built and waits
-for the user's flash; then series X in TEST.md. After each new image's
-rig run, also run `tools/editor_check.py --yes`.
+**Next step:** ask the user what next (Later: per-port MIDI filters,
+adaptive just intonation; the stray 50 Hz partial; a faster build loop).
+After each new image's rig run, also run `tools/editor_check.py --yes`.
+
+**v0.31 on the synth** (label `MPEV`, source `8da731f`): flashed
+2026-11-20; series X passed. `ptime_check.py`: loads on clocks 96 and
+192 as expected. Rig 136/0/5 (`2026-11-20_082832`); editor check `editor-2026-11-20_083358`: every answer the same but one settings byte, 0x4F (Change at) 0 -> 2 = Bar, as set in X1.
 
 **v0.31 built** (label `MPEV`, `741098b0…`; chosen by the user
 2026-11-19, with the display-type room): stock keeps no song position
