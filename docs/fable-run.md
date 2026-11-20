@@ -3,9 +3,14 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** v0.33 waits for the user's flash; then series AA. After
-that, ask what next (Later: per-port MIDI filters, adaptive just
-intonation; the stray 50 Hz partial).
+**Next step:** ask the user what next (Later: per-port MIDI filters,
+adaptive just intonation; the stray 50 Hz partial).
+
+**v0.33 on the synth** (label `MPEX`, source `d246b8d`): flashed
+2026-11-20; series AA passed. Three Patch + choices during a 60 BPM
+clock: the waiting message read `D004`, `D005`, `D006` (user), and each
+loaded on a bar line (`ptpanel-2026-11-20_145348`). The message bug from
+series Z is fixed.
 
 **Series Z** (2026-11-20, no new image): three Patch + choices during a
 60 BPM clock loaded D003, D004, D005 on bar lines (`work/ptime_panel.py`,
