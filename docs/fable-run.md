@@ -3,8 +3,15 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** ask the user what next (Later: per-port MIDI filters,
-adaptive just intonation; the stray 50 Hz partial).
+**Next step:** v0.34 waits for the user's flash; then series AB. After
+that, ask what next (Later: adaptive just intonation; the stray 50 Hz
+partial).
+
+**v0.34 built** (label `MPEY`): per-port receive filters, `pfilter.c`,
+Settings USB IN and DIN IN (Notes, CC, Patch); the patch timing counts
+the clock only from the Clock Source port. Port 0 is USB, 1 DIN, 2 the
+synth's own output (findings, "MIDI input ports and the clock
+source"). Simulator tests pass; rig check `work/pfilter_check.py`.
 
 **v0.33 on the synth** (label `MPEX`, source `d246b8d`): flashed
 2026-11-20; series AA passed. Three Patch + choices during a 60 BPM

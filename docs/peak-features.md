@@ -592,7 +592,7 @@ built.
 ### Later
 
 Adaptive just intonation (per-voice pitch path, fixed root first), random
-per note and voice index as lent sources (step 8), per-port MIDI filters, a stuck-note watchdog that looks for inconsistent state rather than
+per note and voice index as lent sources (step 8), a stuck-note watchdog that looks for inconsistent state rather than
 note age (2.2 fixed the hanging-note bug, and our 400-run soak found none).
 
 **Patch dump on patch change:** **built (v0.30, `pdump.c`; on the synth
@@ -616,7 +616,20 @@ the clock itself from Start and Song Position Pointer, which stock
 ignores. Without a playing clock, or at Now, changes load at once. The
 Settings display types now start at 0xA0 (room for 64 more). Tests
 `tests/test_peak_ptime.py`; rig check `work/ptime_check.py`; findings,
-"MIDI clock, Start and Song Position".
+"MIDI clock, Start and Song Position". v0.34 counts the clock only from
+the port stock's Clock Source follows (a clock on both ports counted
+twice before); with Source Internal, changes load at once.
+
+**Per-port receive filters:** **built (v0.34, `pfilter.c`; not on the
+synth yet).** Settings USB IN and DIN IN, each `Notes`, `CC`, `Patch`, On
+(default, as stock) or Off. Notes: note-ons, bend, pressure, everything
+on an MPE member channel, and RPNs; CC: every other controller, NRPNs
+included; Patch: program change and bank select. Note-offs and CC
+120/123 always pass. The synth's own output read back in (port 2) is
+never filtered; SysEx and clock aren't either (the clock follows Clock
+Source). Outputs aren't filtered. Tests `tests/test_peak_pfilter.py`;
+rig check `work/pfilter_check.py`; findings, "MIDI input ports and the
+clock source".
 
 **Plug-in communication:** too vague to plan. The baseline in step 5 is the
 first look; enhancements only if it shows gaps.

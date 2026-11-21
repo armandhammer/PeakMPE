@@ -116,17 +116,19 @@ void mpe_channel_filter(uint32_t src, midi_handler_fn *handler, const uint8_t *m
     uint8_t status = msg[0];
     if (status >= 0xF0) {
         if (status == 0xF2)    /* Song Position Pointer: stock ignores it (ptime.c) */
-            ptime_spp(msg);
+            ptime_spp(src, msg);
         midi_channel_filter(src, handler, msg);
         return;
     }
+    uint8_t ch = status & 0x0F, type = status & 0xF0;
+    mpe_route_update();
+    const struct mpe_zone *z = mpe_zone_of(ch);
+    if (pfilter_drop(src, msg, z))   /* Settings USB IN / DIN IN (pfilter.c): as if never received */
+        return;
     diag_note(msg);
     relvel_note(msg);
     if (arp_echo_drop(msg))    /* the arp's own note coming back (arp_echo.c) */
         return;
-    uint8_t ch = status & 0x0F, type = status & 0xF0;
-    mpe_route_update();
-    const struct mpe_zone *z = mpe_zone_of(ch);
 
     if (type == 0xB0 && mpe_rpn_cc(ch, msg[1], msg[2], z))
         return;

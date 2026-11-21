@@ -19,7 +19,11 @@
  *    position 6 x SPP;
  *  - Stop: no clock plays; a waiting patch change loads now.
  * Clock bytes reach stock's handlers per port (0x0800FBD0, 0x0800FBE8, called
- * from the MIDI input loop 0x0800F084); both are hooked and counted alike.
+ * from the MIDI input loop 0x0800F084); both are hooked. Clock, Start,
+ * Continue, Stop and Song Position count only from the port stock's tempo
+ * follows (Settings Clock Source; v0.34, before which a clock on both ports
+ * was counted twice): with Source = Internal none, so patch changes load at
+ * once.
  * Start, Continue and Stop are entries of stock's system-message table in RAM
  * (0x200001E0, 8 bytes each: handler, length, flags), set here at boot; Song
  * Position Pointer passes through mpe_channel_filter (mpe_route.c).
@@ -50,6 +54,34 @@ static uint8_t first;            /* the next clock byte is `position` itself, no
 static uint32_t clock_tick;      /* mpe_ticks() of the last clock byte */
 static uint8_t waiting;
 static uint16_t waiting_arg;
+
+#define G_CLOCK_SOURCE 0x08       /* globals: 0 Auto, 1 Internal, 2 Ext-Auto, 3 MIDI, 4 USB (guide) */
+
+static uint8_t first_port;       /* Auto, before stock follows a port: the first port heard + 1; 0 none */
+
+/* Whether the clock and transport from port (0 USB, 1 DIN, 2 the synth's own
+ * output) count. clock_state +1 is the port stock's tempo follows (1 DIN,
+ * 2 USB; 0 with Source = Internal, and with Auto for the first 30 ms or so
+ * of a clock: emulated). Until it names one, Source MIDI or USB does; with
+ * Auto, the first port heard after 100 ms without a counted clock. */
+static int port_counts(uint32_t port)
+{
+    if (port > 1)
+        return 0;
+    uint8_t source = globals[G_CLOCK_SOURCE];
+    if (source == 1)
+        return 0;
+    uint8_t want = clock_state[1];
+    if (want == 1 || want == 2)
+        return want == (port == 0 ? 2 : 1);
+    if (source == 3 || source == 4)
+        return port == (source == 3 ? 1u : 0u);
+    if ((uint32_t)(mpe_ticks() - clock_tick) >= CLOCK_TIMEOUT_TICKS)
+        first_port = 0;
+    if (!first_port)
+        first_port = (uint8_t)(port + 1);
+    return first_port == port + 1;
+}
 
 uint32_t ptime_unit(void)
 {
@@ -106,8 +138,10 @@ void ptime_select(uint32_t arg)
     ui_say("PATCH TIMING", name, when[globals[MPE_G_PTIME]], "");
 }
 
-static void clock_byte(void)
+static void clock_byte(uint32_t port)
 {
+    if (!port_counts(port))
+        return;
     clock_tick = mpe_ticks();
     if (!playing)
         return;
@@ -130,38 +164,47 @@ static void clock_byte(void)
 void ptime_clock_1(void)
 {
     midi_clock_rx_1();
-    clock_byte();
+    clock_byte(1);
 }
 
 void ptime_clock_0(void)
 {
     midi_clock_rx_0();
-    clock_byte();
+    clock_byte(0);
 }
 
+/* Start, Continue and Stop are called from midi_parse_byte while the input
+ * loop reads midi_port_current's port. */
 static void start(void)
 {
+    midi_start_rx();
+    if (!port_counts(midi_port_current))
+        return;
     position = 0;
     first = 1;
     playing = 1;
-    midi_start_rx();
 }
 
 static void cont(void)
 {
-    playing = 1;                     /* after a Song Position Pointer (first set), its position comes next; */
+    if (port_counts(midi_port_current))
+        playing = 1;                     /* after a Song Position Pointer (first set), its position comes next; */
 }                                    /* else the one after where Stop left it (v0.31 counted that one again) */
 
 static void stop(void)
 {
+    if (!port_counts(midi_port_current))
+        return;
     playing = 0;
     if (waiting)
         load_waiting();
 }
 
 /* Song Position Pointer (msg: F2 lsb msb), from mpe_channel_filter. */
-void ptime_spp(const uint8_t *msg)
+void ptime_spp(uint32_t src, const uint8_t *msg)
 {
+    if (!port_counts(src))
+        return;
     position = 6u * (uint32_t)(msg[1] | msg[2] << 7);
     first = 1;
 }

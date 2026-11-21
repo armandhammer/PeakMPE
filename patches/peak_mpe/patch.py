@@ -17,7 +17,7 @@ Core:
   bl hook:      settings_save_action's settings_save -> live state to globals
   bl hooks x4:  ui_value_change calls -> the VOICE item writes the flag itself
   byte patches: patch_param_desc[0x1A2] (the MPE flag: 0-1, Off/On, "MPE"),
-                VOICE page 1 item 3 = the flag, version labels "MPEX" (v0.33; "MPEW" = v0.32, "MPEV" = v0.31, "MPEU" = v0.30, "MPET" = v0.29, "MPES" = v0.28, "MPER" = v0.27, "MPEQ" = v0.26, "MPEP" = v0.25, "MPEO" = v0.24, "MPEN" = v0.23, "MPEM" = v0.22, "MPEL" = v0.21, "MPEK" = v0.20, "MPEJ" = v0.19, "MPEI" = v0.18, "MPEH" = v0.17, "MPEG" = v0.16, "MPEF" = v0.15, "MPEE" = v0.14, "MPED" = v0.13, "MPEC" = v0.12, "MPEB" = v0.11, "MPEA" = v0.10, "MPE9" = v0.9, "MPE8" = v0.8, "MPE7" = v0.7, "MPE6" = v0.6, "MPE5" = v0.5, "MPE4" = v0.4, "MPE3" = v0.3, "MPE2" = v0.2, "MPE1" = v0.1)
+                VOICE page 1 item 3 = the flag, version labels "MPEY" (v0.34; "MPEX" = v0.33, "MPEW" = v0.32, "MPEV" = v0.31, "MPEU" = v0.30, "MPET" = v0.29, "MPES" = v0.28, "MPER" = v0.27, "MPEQ" = v0.26, "MPEP" = v0.25, "MPEO" = v0.24, "MPEN" = v0.23, "MPEM" = v0.22, "MPEL" = v0.21, "MPEK" = v0.20, "MPEJ" = v0.19, "MPEI" = v0.18, "MPEH" = v0.17, "MPEG" = v0.16, "MPEF" = v0.15, "MPEE" = v0.14, "MPED" = v0.13, "MPEC" = v0.12, "MPEB" = v0.11, "MPEA" = v0.10, "MPE9" = v0.9, "MPE8" = v0.8, "MPE7" = v0.7, "MPE6" = v0.6, "MPE5" = v0.5, "MPE4" = v0.4, "MPE3" = v0.3, "MPE2" = v0.2, "MPE1" = v0.1)
 UI (Settings MPE pages):
   bl hook:      main_loop's first settings_load -> builds the relocated tables
   bl hook:      main_loop's sysex_rx_poll -> the patch's polls, once per 1 kHz tick (v0.29), and the MPE values' redraw
@@ -60,7 +60,13 @@ MIDI Tuning Standard (mts.c; v0.25):
                 then one that takes device ID 7F and any number of notes in
                 a single-note change, and the bulk dump with device ID 7F
 
-Patch change timed to the clock (ptime.c; v0.31):
+Per-port receive filters (pfilter.c; v0.34):
+  no hook:      in mpe_channel_filter, Settings USB IN and DIN IN (Notes, CC,
+                Patch) drop a port's channel messages; port 2, the synth's
+                own output read back in, is never filtered
+
+Patch change timed to the clock (ptime.c; v0.31; v0.34 counts only the
+Clock Source port):
   bl hooks x2:  program_change's and the panel's patch_select_load -> wait
                 for the next beat or bar of a playing external clock
   bl hooks x2:  the MIDI input loop's clock handlers -> count the clock
@@ -101,7 +107,7 @@ FLAG_DESC = PATCH_PARAM_DESC + 0x1A2 * 12  # 0x08047D74: {min, max, nrpn msb, nr
 VOICE_PAGE_1 = 0x08048648  # flash initialiser of the VOICE menu's first page (RAM 0x20003438)
 
 PATCHES = [
-    # Version labels: boot screen "MPEX Ver ...", Settings "MPEXVer".
+    # Version labels: boot screen "MPEY Ver ...", Settings "MPEYVer".
     # MPE1 = v0.1 (first hardware release); MPE2 = v0.2 (arp echo filter);
     # MPE3 = v0.3 (knob display: ms and Hz, bars, pickup arrow);
     # MPE4 = v0.4 (Settings MPE page: PressCurve Squared/Linear);
@@ -112,6 +118,7 @@ PATCHES = [
     # MPE9 = v0.9 (quick-assign message redrawn on every move: stock overwrote it);
     # MPEA = v0.10 (quick-assign: with Mod held a control only selects, stock draws and applies nothing);
     # MPEB = v0.11 (Settings PARAM LOCK: keep FX, Arp or Voice settings through a patch change);
+    # MPEY = v0.34 (per-port receive filters, pfilter.c; patch timing follows the Clock Source port).
     # MPEX = v0.33 (PATCH TIMING message: program_change passes stack garbage in bits 16-31; masked).
     # MPEW = v0.32 (review fixes: patch timing grace, Continue, bank check, clock order; patch dump Off).
     # MPEV = v0.31 (patch change timed to the clock, ptime.c).
@@ -140,8 +147,8 @@ PATCHES = [
     # Time 127 lasts 1.45 s (about 1.5 s measured by the user, 2026-11-15) where the
     # guide says about 3 s. More than 21 makes a count 22 ms: 127 = 2.9 s, 64 = 1.5 s.
     (0x08018AEA, bytes.fromhex("0a2b"), bytes.fromhex("152b"), "ui_msg_countdown: one count per 22 ms instead of 11 (cmp r3, #21)"),
-    (0x080452FB, b" Version ", b"MPEX Ver ", "boot screen label (.data initialiser of RAM 0x200000EB)"),
-    (0x080445E8, b"Version\x00", b"MPEXVer\x00", "Settings 2/28 SYSTEM item name"),
+    (0x080452FB, b" Version ", b"MPEY Ver ", "boot screen label (.data initialiser of RAM 0x200000EB)"),
+    (0x080445E8, b"Version\x00", b"MPEYVer\x00", "Settings 2/28 SYSTEM item name"),
     # The flag's reserved descriptor: max 0 -> 1, display 0 -> 0x0F (Off/On,
     # as KeySync/FadeSync/Common on the Peak). NRPN stays 255:0. The name
     # pointer is a hook below.
@@ -155,7 +162,7 @@ PATCHES = [
 SOURCES = ["mpe_settings.c", "mpe_route.c", "mpe_voice.c", "mpe_ui.c",
            "mpe_expr.c", "mpe_bend.c", "mpe_pressure.c", "mpe_slide.c",
            "arp_echo.c", "disp.c", "envsync.c", "qassign.c", "paramlock.c", "section.c", "diag.c", "motion.c",
-           "morph.c", "euclid.c", "ccpair.c", "lcdcache.c", "relvel.c", "mts.c", "rand.c", "panic.c", "pdump.c", "ptime.c"]
+           "morph.c", "euclid.c", "ccpair.c", "lcdcache.c", "relvel.c", "mts.c", "rand.c", "panic.c", "pdump.c", "ptime.c", "pfilter.c"]
 
 MIDI_CHANNEL_FILTER = 0x0800EED0
 VOICE_DISPATCH = 0x08012984

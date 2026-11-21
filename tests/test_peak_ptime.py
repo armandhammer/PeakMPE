@@ -179,3 +179,56 @@ def test_the_waiting_message_shows_the_patch_of_a_program_change(board):
     _send(b, 0xB0, 32, 4, 0xC0, 3, ms=5)
     rows = b.display.lcd.text()
     assert rows[0].startswith("PATCH TIMING") and rows[1].startswith("D003 "), rows
+
+
+G_CLOCK_SOURCE = 0x08                    # globals: 0 Auto, 1 Internal, 2 Ext-Auto, 3 MIDI, 4 USB
+
+
+def test_the_clock_counts_only_from_the_clock_source_port(board):
+    """v0.34: Source = USB: Start and clock on DIN don't make a playing clock; on USB they do."""
+    from test_peak_pfilter import usb
+    b = board
+    _timing(b, BAR)
+    b.uc.mem_write(GLOBALS + G_CLOCK_SOURCE, bytes([4]))
+    _send(b, START, ms=2)
+    _clocks(b, 10)
+    _send(b, 0xC0, 5, ms=5)
+    assert _loaded(b) == 5                           # at once: no clock plays on USB
+    usb(b, START, ms=2)
+    for _ in range(10):
+        usb(b, CLOCK, ms=2)
+    _send(b, 0xC0, 6, ms=5)
+    assert _loaded(b) != 6                           # waits for the USB clock's bar
+
+
+def test_a_clock_on_both_ports_counts_once(board):
+    """v0.34: Source = Auto with a clock on USB and DIN: stock follows one port, and so does the count
+    (v0.31-v0.33 counted both, so a bar came after 48 clock pairs)."""
+    from test_peak_pfilter import ring_put
+    b = board
+    _timing(b, BAR)
+    b.uc.mem_write(GLOBALS + G_CLOCK_SOURCE, bytes([0]))
+    ring_put(b, 0, START, ms=0)
+    _send(b, START, ms=2)
+    for _ in range(10):
+        ring_put(b, 0, CLOCK, ms=0)
+        _send(b, CLOCK, ms=2)
+    _send(b, 0xC0, 5, ms=5)
+    assert _loaded(b) != 5
+    for n in range(1, 120):
+        ring_put(b, 0, CLOCK, ms=0)
+        _send(b, CLOCK, ms=2)
+        if _loaded(b) == 5:
+            break
+    assert n == 96 - 10 + 1
+
+
+def test_internal_clock_source_loads_at_once(board):
+    """v0.34: Source = Internal: stock ignores an external clock, and patch changes load at once."""
+    b = board
+    _timing(b, BAR)
+    b.uc.mem_write(GLOBALS + G_CLOCK_SOURCE, bytes([1]))
+    _send(b, START, ms=2)
+    _clocks(b, 10)
+    _send(b, 0xC0, 5, ms=5)
+    assert _loaded(b) == 5

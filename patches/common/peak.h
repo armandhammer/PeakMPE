@@ -215,6 +215,12 @@ extern uint8_t midi_sys_handlers[16 * 8];
 void midi_start_rx(void);       /* 0x0800F0C0: MIDI Start, sets a flag (0x08010E30) */
 void midi_clock_rx_0(void);     /* 0x0800FBD0, 0x0800FBE8: a MIDI clock byte on port 0 / 1, */
 void midi_clock_rx_1(void);     /* called from the MIDI input loop 0x0800F084 */
+/* The port the MIDI input loop is reading (0x20012266; set by 0x0800EF54 for
+ * each byte): 0 USB, 1 DIN, 2 the synth's own output read back in. observed */
+extern volatile uint8_t midi_port_current;
+/* Tempo clock state (0x2000461C): +0 bit 0 DIN / bit 1 USB clock seen, +1 the
+ * port the tempo follows: 0 none (Internal), 1 DIN, 2 USB. emulated */
+extern volatile uint8_t clock_state[0x18];
 extern volatile uint8_t voice_env_state[PEAK_VOICES];   /* 3 = release or idle */
 extern volatile uint16_t voice_env_level[PEAK_VOICES];  /* above 0x200 = still sounding */
 

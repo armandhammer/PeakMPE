@@ -1100,6 +1100,52 @@ disassembly, the `.data` image); behaviour **emulated**
 - **The panel's patch choice on the synth** (v0.32): **Series Z (2026-11-20, no new image; observed):** `work/ptime_panel.py`: Start, 60 s of clock at 60 BPM, Stop, nothing else sent, while the user chose patches on the panel. Run `ptpanel-2026-11-20_103015`: no presses (the steps hadn't said clearly that they go during the run). Run `ptpanel-2026-11-20_103403`: about 7 taps of Patch + and Patch -, mixed: six loads, all on bar lines but one 63 ms after another (a choice just after a line) and the last released by Stop; not matched to presses. Run `ptpanel-2026-11-20_104045`, Patch + only, three times from D002: D003 on clock 288 (bar 4's line), D004 on 768 (bar 9), D005 on 960 (bar 11), each dump 12-16 ms after its clock: **patches chosen on the panel land on the bar line.** **Open: the waiting message showed the wrong number on the synth:** `PATCH TIMING` / `D 55` / `at the next bar` while D003 waited (then `D 56` for D004, `D 57` for D005; user); the loads were right, and the simulator draws `D003`, `D004` (`work/_panel_probe.py`); not explained.
 - **The wrong number, found (2026-11-20; observed in the disassembly, emulated):** `program_change` `0x0800F0EC` builds its argument for `patch_select_load` as two bytes on its stack (bank at sp+4, program at sp+5) and loads it with `ldr r0, [sp, #4]` (`0x0800F110`), so bits 16-31 are whatever the stack held; stock's `patch_select_load` uses only the low half. `ptime_select` took a `uint16_t`, the compiler trusted the register, and the message's number (`arg >> 8`) took the garbage in (the simulator showed `D·55` for D003 after a program change, `tests/test_peak_ptime.py`); the waiting load was stored as 16 bits and was right. On the synth the panel's own message (`D003`) is replaced by the program-change one because stock sends its program change out after a panel choice (Bank/Patch transmit) and reads port 2 back in right away (`0x08018DBC` calls `0x0800F608`; inferred, the simulator doesn't loop it). v0.33 takes a word and masks it. The other hooks with 8-bit parameters were checked at their call sites: stock forms those arguments with ldrb, uxtb, ubfx or immediates (`work/_narrow_args.py`). **On the synth (v0.33, series AA, observed):** three Patch + choices during a 60 BPM clock showed `D004`, `D005`, `D006` while each waited, and each loaded on a bar line (`ptpanel-2026-11-20_145348`).
 
+## MIDI input ports and the clock source (2026-11-20)
+
+Read for v0.34's per-port filters (`pfilter.c`) and the patch timing's clock
+port. Code **observed** (disassembly) unless marked.
+
+- **Three inputs**, each with its own receive ring and parser state:
+  `0x200040B4 + port * 0x110` (+0 write index, +1 read index, +2 a 256-byte
+  ring; +0x104 to +0x10B the parser: data pointer, bytes still to come,
+  running status). `midi_port_select` `0x0800EF54` sets
+  `midi_port_current` `0x20012266` and the parser pointer at
+  `0x200040B4+0x330`; `midi_rx_put` `0x0800F5B0` (byte, port) writes a ring.
+- **Port 0 is USB:** the USB receive `0x0801D2AC` puts each packet's bytes
+  in with port 0 (`0x0801D2F0`). **Port 1 is DIN** (emulated: 9 bytes into
+  the simulated USART raise port 1's write index by 9, the others' not;
+  `work/_port_probe.py`). **Port 2 is the synth's own output read back in:**
+  `midi_out_byte` `0x08017340` (byte, dest) sends to USB `0x0801D484` and
+  DIN `0x0800EE48`, but with a flag at `0x20012340+0xF5` and globals
+  `+0x13` (Arp>MIDI) set it puts the byte into port 2 instead (purpose
+  inferred: the arp's notes played by the synth itself).
+- **The MIDI input loop** `0x0800F5F0` reads ports 0, 1, 2 in that order,
+  each through `midi_input_port` `0x0800F084` (clock bytes to
+  `midi_clock_rx_0`/`_1`, the rest to `midi_parse_byte`); `0x0800F608`
+  reads port 2 alone (after the panel's patch choice, `0x08018DBC`).
+  `midi_parse_byte` passes `midi_port_current` as `midi_channel_filter`'s
+  `src` (`0x0800F00A`, `0x0800F06A`), so the patch's `mpe_channel_filter`
+  knows each message's port.
+- **The clock source** (emulated, stock image, `work/_clocksrc_probe.py`):
+  `clock_state` `0x2000461C` +0 collects the ports a clock came from (bit 0
+  DIN, bit 1 USB) and +1 is the port the tempo follows: Settings `Source`
+  (globals `+0x08`: 0 Auto, 1 Internal, 2 Ext-Auto, 3 MIDI, 4 USB) Internal
+  gives 0; Auto and Ext-Auto give the port with a clock (both: DIN); MIDI
+  gives 1 and USB 2 whichever port the clock comes on. With a clock on both
+  ports and Auto, +1 stays 0 for the first 16 clock pairs (2 ms apart) and
+  then reads 1 (`work/_clocksrc_probe2.py`). `0x0800F764` (port bits,
+  port, countdown) only measures the tempo from the followed port.
+- **v0.34:** `mpe_channel_filter` drops a channel message from port 0 or 1
+  whose group is Off in Settings USB IN / DIN IN (globals `0x50`-`0x55`, 0
+  on the synth before: the settings dump of `editor-2026-11-20_100121`,
+  observed); port 2 is never filtered. Note-offs and CC 120/123 always pass.
+  The patch timing counts clock, Start, Continue, Stop and Song Position
+  only from the port `clock_state` +1 names (before it names one: Source
+  MIDI or USB, or with Auto the first port heard); with Source Internal,
+  none, so patch changes load at once. Emulated in
+  `tests/test_peak_pfilter.py` (USB and port 2 written into their rings)
+  and `tests/test_peak_ptime.py`.
+
 ## A blank settings chip (2026-11-18)
 
 Roadmap step 3. The simulator normally seeds a blank DataFlash; with that

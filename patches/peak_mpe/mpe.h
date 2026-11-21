@@ -57,6 +57,8 @@
 #define MPE_G_RAND_ROLL 0x4D
 #define MPE_G_PTIME 0x4F         /* patch change timed to the clock (ptime.c), stored: 0 Now, 1 Beat, 2 Bar, 3 2 Bars, 4 4 Bars; other = Now */
 #define MPE_G_PDUMP 0x4E         /* patch dump on patch change (pdump.c), stored: 0 Off, 1 USB; other = Off */
+#define MPE_G_PFILTER 0x50       /* per-port receive filters (pfilter.c), stored: USB Notes, CC, Patch at
+                                  * 0x50-0x52, DIN at 0x53-0x55; 0 On (as stock), 1 Off; other = On */
 
 #define MPE_DEFAULT_MEMBERS 15
 #define MPE_DEFAULT_NOTE_RANGE 48
@@ -188,9 +190,12 @@ uint32_t ptime_unit(void);                        /* MIDI clocks per step; 0 = a
 void ptime_select(uint32_t arg);                  /* hook: patch_select_load at program_change and the panel (bits 16-31 not clean) */
 void ptime_clock_0(void);                         /* hooks: the MIDI input loop's clock handlers */
 void ptime_clock_1(void);
-void ptime_spp(const uint8_t *msg);               /* Song Position Pointer, from mpe_channel_filter */
+void ptime_spp(uint32_t src, const uint8_t *msg); /* Song Position Pointer, from mpe_channel_filter */
 void ptime_boot(void);
 void ptime_poll(void);                            /* once per 1 kHz tick */
+
+/* pfilter.c */
+int pfilter_drop(uint32_t src, const uint8_t *msg, const struct mpe_zone *z);   /* Settings USB IN / DIN IN */
 void motion_knob(uint32_t id, uint32_t cur, uint32_t hires);
 void motion_poll(void);          /* main loop, from mpe_ui_poll */
 void motion_clear(void);         /* a patch load */
