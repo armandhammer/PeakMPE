@@ -29,7 +29,7 @@ named below.
 
 ## Status
 
-**MPE for Peak 0.34**, for Peak firmware **2.2 (build 2108)** only, with
+**MPE for Peak 0.35**, for Peak firmware **2.2 (build 2108)** only, with
 FPGA build 469. Tested on one Peak ([docs/hardware-log.md](docs/hardware-log.md)):
 every check of the automated hardware test rig that applies to the Peak
 passes (136 of 136 measured rows over USB on each release up to 0.25; on
@@ -45,7 +45,8 @@ times patch changes to the bar, checked on the synth; 0.32 has the fixes
 from a review of 0.28 to 0.31, checked on the synth; 0.33 fixes the
 number in the patch-timing message, checked on the synth; 0.34 adds
 per-port receive filters, the USB patch and DIN notes filters checked on
-the synth, the rest in the simulator), a 600-run stress soak left no stuck note, a LinnStrument played
+the synth, the rest in the simulator; 0.35 adds just intonation, checked
+in the simulator so far), a 600-run stress soak left no stuck note, a LinnStrument played
 it over DIN in one and two zones, and each feature below was tried on the
 synth (by hand, or by the rig where the panel can't do it). Not tested on other firmware versions or other units.
 
@@ -113,6 +114,13 @@ screen, Select 1 to 3, pick a line; the encoder changes it.
   from a DAW on USB. All On by default, as stock. Note-offs and all
   notes off always get through, so nothing sticks; MPE member channels
   count as notes.
+- **Just intonation:** Settings > `JUST TUNE` > `Mode` = `Fixed` tunes
+  every note in pure intervals to `Root` (C to B); `Adapt` follows the
+  chord you play: a C major chord gets a pure third and fifth, an A minor
+  chord after it is tuned around the notes you still hold, and a note
+  played alone stays at its normal pitch. With or without MPE, and with
+  the arp. `Off` by default, as stock. For the Peak's standard tuning
+  table; a Scala table from Components already gives a fixed tuning.
 - **Patch dump:** Settings > `PATCH DUMP` > `Send` = `USB` makes the Peak
   send each patch it loads (by program change or the patch buttons) over
   USB, in the same format Novation Components gets when it asks for the
@@ -190,7 +198,7 @@ screen, Select 1 to 3, pick a line; the encoder changes it.
   change. Stock rewrites whole lines, and every character holds up the
   per-note modulation for about 0.05 ms. Measured on the synth, turning a
   knob for 5 s lost 17 modulation ticks, against about 2,600 before.
-- **Boot screen** `MPEY Ver 108.469`, so you can see the patch and its
+- **Boot screen** `MPEZ Ver 108.469`, so you can see the patch and its
   release are installed.
 
 What stock 2.2 already does (and so isn't here), and the features that were

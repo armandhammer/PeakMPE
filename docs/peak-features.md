@@ -591,8 +591,7 @@ built.
 
 ### Later
 
-Adaptive just intonation (per-voice pitch path, fixed root first), random
-per note and voice index as lent sources (step 8), a stuck-note watchdog that looks for inconsistent state rather than
+Random per note and voice index as lent sources (step 8), a stuck-note watchdog that looks for inconsistent state rather than
 note age (2.2 fixed the hanging-note bug, and our 400-run soak found none).
 
 **Patch dump on patch change:** **built (v0.30, `pdump.c`; on the synth
@@ -632,6 +631,24 @@ never filtered; SysEx and clock aren't either (the clock follows Clock
 Source). Outputs aren't filtered. Tests `tests/test_peak_pfilter.py`;
 rig check `work/pfilter_check.py`; findings, "MIDI input ports and the
 clock source".
+
+**Just intonation, fixed or adaptive:** **built (v0.35, `ji.c`; not on
+the synth yet).** Static just tunings are stock (the guide: tuning tables
+from Scala files through Components), so this adds what a table can't:
+a root chosen on the panel and a root that follows the chord. Settings
+JUST TUNE: `Mode` Off (default, as stock), Fixed or Adapt; `Root` C to B
+(Fixed). Each voice gets its own pitch offset after osc_pitch and the
+MPE bend (0.29 cents a step), so it works with and without MPE and over
+the patch's tuning table. 5-limit intervals (16/15, 9/8, 6/5, 5/4, 4/3,
+45/32, 3/2, 8/5, 5/3, 9/5, 15/8). Adapt: at each note-on the root is
+picked from the sounding notes (and the arp's held keys) by how many are
+its fifth, thirds, sixth, seventh or ninth, ties to the bass; held notes
+keep their pitch and the new notes are tuned around them; notes within
+30 ms of each other are one chord; a note alone, and the first chord after
+silence, keep the root at its equal-tempered pitch, so the tuning drifts
+only while notes are held across chord changes (a comma, 21.5 cents, a
+time; clamped to a semitone). Tests `tests/test_peak_ji.py`; rig check
+`work/ji_check.py`.
 
 **Plug-in communication:** too vague to plan. The baseline in step 5 is the
 first look; enhancements only if it shows gaps.

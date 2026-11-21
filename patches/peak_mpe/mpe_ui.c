@@ -70,15 +70,15 @@ struct mpe_page {
 };
 
 #define STOCK_DESCS 0x22           /* Peak global_param_desc: records 0x00-0x21, then other data */
-#define MPE_G_LAST (MPE_G_PFILTER + 5)  /* the last record of new_descs */
+#define MPE_G_LAST (MPE_G_JI + 1)  /* the last record of new_descs */
 #define MPE_DESCS (MPE_G_LAST + 1)
 #define MPE_PAGE_AT 4              /* after MIDI CONTROL (stock page 3) */
-#define MPE_PAGES 16
+#define MPE_PAGES 17
 #define STOCK_PAGES PEAK_SETTINGS_PAGES
 #define UI_MODE_SETTINGS PEAK_UI_SETTINGS
 #define UI_MODE (ui_state[0])
 
-enum { DISP_ZONE = 0xA0, DISP_MEMBERS, DISP_NOTE, DISP_MASTER, DISP_CURVE, DISP_ENVSYNC, DISP_LOCK_FX, DISP_LOCK_ARP, DISP_LOCK_VOICE, DISP_SECT, DISP_DOIT, DISP_DLAST, DISP_DCOUNT, DISP_DOVF, DISP_GLIDE, DISP_MLEN, DISP_MSTATE, DISP_LATE, DISP_MORPH, DISP_MPOS, DISP_MDIFF, DISP_EPULSES, DISP_ESTEPS, DISP_EROTATE, DISP_ERATCHET, DISP_EEVERY, DISP_RELVEL, DISP_RSECT, DISP_RAMT, DISP_ROLL, DISP_PDUMP, DISP_PTIME, DISP_PF0, DISP_PF1, DISP_PF2, DISP_PF3, DISP_PF4, DISP_PF5, DISP_END };
+enum { DISP_ZONE = 0xA0, DISP_MEMBERS, DISP_NOTE, DISP_MASTER, DISP_CURVE, DISP_ENVSYNC, DISP_LOCK_FX, DISP_LOCK_ARP, DISP_LOCK_VOICE, DISP_SECT, DISP_DOIT, DISP_DLAST, DISP_DCOUNT, DISP_DOVF, DISP_GLIDE, DISP_MLEN, DISP_MSTATE, DISP_LATE, DISP_MORPH, DISP_MPOS, DISP_MDIFF, DISP_EPULSES, DISP_ESTEPS, DISP_EROTATE, DISP_ERATCHET, DISP_EEVERY, DISP_RELVEL, DISP_RSECT, DISP_RAMT, DISP_ROLL, DISP_PDUMP, DISP_PTIME, DISP_PF0, DISP_PF1, DISP_PF2, DISP_PF3, DISP_PF4, DISP_PF5, DISP_JMODE, DISP_JROOT, DISP_END };
 
 #define FIELD 8                    /* value field: columns 11-18, the mark is at 19 */
 
@@ -109,6 +109,7 @@ static const char title_pdump[] = "PATCH DUMP";
 static const char title_ptime[] = "PATCH TIMING";
 static const char title_usb_in[] = "USB IN";
 static const char title_din_in[] = "DIN IN";
+static const char title_ji[] = "JUST TUNE";
 
 static const struct mpe_desc new_descs[] = {
     {0, 2, 0x40, 0x2E, DISP_ZONE, "Zone"},
@@ -149,6 +150,8 @@ static const struct mpe_desc new_descs[] = {
     {0, 1, 0x40, 0x45, DISP_PF3, "Notes"},
     {0, 1, 0x40, 0x46, DISP_PF4, "CC"},
     {0, 1, 0x40, 0x47, DISP_PF5, "Patch"},
+    {0, 2, 0x40, 0x48, DISP_JMODE, "Mode"},           /* records 0x56, 0x57: stored in the globals (ji.c) */
+    {0, 11, 0x40, 0x49, DISP_JROOT, "Root"},
 };
 
 /* Last drawn per item. Only compared with what would be drawn now, so its
@@ -233,6 +236,9 @@ static void build_tables(void)
         page_item(&mpe_pages[14], (uint16_t)(MPE_G_PFILTER + i));
         page_item(&mpe_pages[15], (uint16_t)(MPE_G_PFILTER + 3 + i));
     }
+    page_init(&mpe_pages[16], title_ji);
+    page_item(&mpe_pages[16], MPE_G_JI);
+    page_item(&mpe_pages[16], MPE_G_JI + 1);
 
     struct mpe_page **stock = (struct mpe_page **)(settings_menu + 4);
     uint32_t n = 0;
@@ -464,6 +470,17 @@ static void render_view(const struct mpe_live *v, uint32_t display, char *out)
     case DISP_PF5:
         put_str(&p, globals[MPE_G_PFILTER + (display - DISP_PF0)] == 1 ? "Off" : "On");
         break;
+    case DISP_JMODE: {
+        static const char *const names[] = {"Off", "Fixed", "Adapt"};
+        put_str(&p, names[ji_mode()]);
+        break;
+    }
+    case DISP_JROOT: {
+        static const char *const names[] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
+        uint8_t n = globals[MPE_G_JI + 1];
+        put_str(&p, names[n < 12 ? n : 0]);
+        break;
+    }
     }
     *p = 0;
 }
@@ -635,6 +652,12 @@ static void edit_setting(uint16_t index, int32_t delta)
     case MPE_G_PFILTER + 5:
         v = globals[index] != 1;     /* shown and edited as 1 On, 0 Off */
         break;
+    case MPE_G_JI:
+        v = (int32_t)ji_mode();
+        break;
+    case MPE_G_JI + 1:
+        v = globals[index] < 12 ? globals[index] : 0;
+        break;
     default:
         v = setting(MPE_G_MASTER_RANGE, MPE_MAX_RANGE, MPE_DEFAULT_MASTER_RANGE);
         break;
@@ -645,7 +668,7 @@ static void edit_setting(uint16_t index, int32_t delta)
         v = (int32_t)euclid_steps();          /* no more notes than steps */
     if (index == MPE_G_EUC_ROTATE && v >= (int32_t)euclid_steps())
         v = (int32_t)euclid_steps() - 1;
-    if (index >= MPE_G_PFILTER)
+    if (index >= MPE_G_PFILTER && index <= MPE_G_PFILTER + 5)
         v = !v;                      /* stored 0 On, 1 Off: stock behaviour is the default */
     globals[index] = (uint8_t)v;
     mark_changed();  /* as param_write does for stock Settings edits */

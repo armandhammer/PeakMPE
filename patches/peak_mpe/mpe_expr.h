@@ -33,6 +33,8 @@ void mpe_slide_voice(uint32_t v, int role, int note_on);
 
 int mpe_bend_stock(uint32_t v);
 void mpe_bend_add(uint8_t *osc, uint32_t v);
+void ji_voice(uint32_t v, int note_on);   /* ji.c: just intonation, every voice, MPE or not */
+void ji_add(uint8_t *osc, uint32_t v);
 extern int16_t mpe_bend_in;      /* osc_pitch's part-bend literal (0x08010C24) points here */
 
 /* osc_pitch stores voice v's result as s32 at osc + 0x2C + 4v (Peak; observed

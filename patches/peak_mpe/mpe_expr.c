@@ -8,7 +8,8 @@
  *       note-on, after the core's voice_glide hook bound it
  * Before Osc 1's call (osc[0] == 0, the oscillator index) the voice's role
  * goes to the bend, pressure and Slide modules; then every call adds the bend
- * offset to the result. Stock voices are unchanged.
+ * offset to the result. Stock voices are unchanged, except for the just
+ * intonation offset (ji.c), which every voice gets.
  */
 
 #include "mpe_expr.h"
@@ -36,10 +37,12 @@ static void pitch(uint8_t *osc, uint32_t part, int note_on)
         mpe_bend_voice(v, role, z, note_on);
         mpe_pressure_voice(v, role, note_on);
         mpe_slide_voice(v, role, note_on);
+        ji_voice(v, note_on);
     }
     mpe_bend_in = mpe_bend_stock(v) ? part_bend_smoothed : 0;
     osc_pitch(osc, part);
     mpe_bend_add(osc, v);
+    ji_add(osc, v);
 }
 
 /* Replaces mod_tick's three osc_pitch calls. */

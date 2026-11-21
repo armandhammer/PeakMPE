@@ -59,6 +59,8 @@
 #define MPE_G_PDUMP 0x4E         /* patch dump on patch change (pdump.c), stored: 0 Off, 1 USB; other = Off */
 #define MPE_G_PFILTER 0x50       /* per-port receive filters (pfilter.c), stored: USB Notes, CC, Patch at
                                   * 0x50-0x52, DIN at 0x53-0x55; 0 On (as stock), 1 Off; other = On */
+#define MPE_G_JI 0x56            /* just intonation (ji.c), stored: Mode 0 Off, 1 Fixed, 2 Adapt (other = Off); */
+                                 /* Root at 0x57, 0-11 = C-B (other = C) */
 
 #define MPE_DEFAULT_MEMBERS 15
 #define MPE_DEFAULT_NOTE_RANGE 48
@@ -196,6 +198,8 @@ void ptime_poll(void);                            /* once per 1 kHz tick */
 
 /* pfilter.c */
 int pfilter_drop(uint32_t src, const uint8_t *msg, const struct mpe_zone *z);   /* Settings USB IN / DIN IN */
+uint32_t ji_mode(void);                           /* Settings JUST TUNE: 0 Off, 1 Fixed, 2 Adapt */
+int32_t ji_offset(uint32_t v);                    /* voice v's offset, osc units (4,096 per octave) */
 void motion_knob(uint32_t id, uint32_t cur, uint32_t hires);
 void motion_poll(void);          /* main loop, from mpe_ui_poll */
 void motion_clear(void);         /* a patch load */

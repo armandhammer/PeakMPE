@@ -15,6 +15,13 @@ llvm-objdump disassembly (`scripts/disasm.sh`), not a decompiler.
 | SysEx command switch | `0x0800D040` | observed | 9-way `tbb`; some cases loop over `0x4F` entries (patch/parameter dumps?) |
 | Front-panel pot scanning | `0x0800E054`, dead-zone helper `0x0800E024` | inferred | ADC values with a centre-detent dead zone (`±0x1F0`); not MIDI |
 
+## Voice note and gate at note-on (2026-11-21)
+
+- **v0.35 (just intonation, `ji.c`), emulated:** at voice_alloc's
+  osc_pitch calls (`0x0801264A` on) `voice_note` already holds the new note
+  but the voice's gate (`voice_state+0x1F4+v`) is not set yet; `ji.c` counts
+  the starting voice as sounding for that reason (`tests/test_peak_ji.py`).
+
 ## The stray 50 Hz partial in the rig's B1 check (2026-11-21)
 
 Three rig runs failed one `b1_zone_change` trial of 300 with an "extra
