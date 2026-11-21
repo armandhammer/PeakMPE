@@ -44,7 +44,8 @@ millisecond, to leave the synth's main loop more time, rig 136 of 136;
 times patch changes to the bar, checked on the synth; 0.32 has the fixes
 from a review of 0.28 to 0.31, checked on the synth; 0.33 fixes the
 number in the patch-timing message, checked on the synth; 0.34 adds
-per-port receive filters, checked in the simulator so far), a 600-run stress soak left no stuck note, a LinnStrument played
+per-port receive filters, the USB patch filter checked on the synth, the
+rest in the simulator), a 600-run stress soak left no stuck note, a LinnStrument played
 it over DIN in one and two zones, and each feature below was tried on the
 synth (by hand, or by the rig where the panel can't do it). Not tested on other firmware versions or other units.
 

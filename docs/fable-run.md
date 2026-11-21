@@ -3,9 +3,9 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** series AB3 (filters set, "GO pfilter") and AB4. AB1 and
-AB2 passed on 2026-11-21 (rig 136/0, editor check fine). After that, ask
-what next (Later: adaptive just intonation; the stray 50 Hz
+**Next step:** the user sets AB4 (back to stock). AB1 to AB3 passed on
+2026-11-21 (rig 136/0; USB Patch Off drops a USB program change; the DIN
+half not run, no DIN interface). Then ask what next (Later: adaptive just intonation; the stray 50 Hz
 partial).
 
 **v0.34 built** (label `MPEY`): per-port receive filters, `pfilter.c`,
