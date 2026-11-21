@@ -24,7 +24,9 @@ What v0.34 adds: Settings pages `USB IN` and `DIN IN`, each with `Notes`,
 `CC` and `Patch` On or Off. Patch timing now counts the clock only from the
 input Settings `Source` follows.
 
-### AB1. Boot and the new pages
+AB1 and AB2 passed (2026-11-21). Next: AB3.
+
+### AB1. Boot and the new pages (done)
 
 1. Switch the Peak on. Expected boot screen: `MPEY Ver 108.469`.
 2. Turn the **Patch select** knob to **D002**.
@@ -38,7 +40,7 @@ input Settings `Source` follows.
    top line `DIN IN`.
 5. Press **Settings** to leave. Don't save.
 
-### AB2. Rig with everything On (stock behaviour)
+### AB2. Rig with everything On (stock behaviour) (done)
 
 1. Say **GO rig**. I run the full rig (about 10 minutes) and the editor
    check; nothing to press.
