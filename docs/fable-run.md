@@ -5,8 +5,11 @@ A fresh session reads this first and continues at "Next step".
 
 **Next step:** ask what next. Series AB passed on 2026-11-21 (rig 136/0;
 USB Patch Off drops a USB program change; DIN Notes Off, played from the
-LinnStrument, silences DIN and lets a held note end) (Later: adaptive just intonation; the stray 50 Hz
-partial).
+LinnStrument, silences DIN and lets a held note end). The stray 50 Hz
+partial is explained (2026-11-21): trial 0's chord's own intermodulation at
+-29 dB, on the B1 check's -30 dB limit; the check now counts an extra
+partial only within 20 dB of the chord (findings, "The stray 50 Hz
+partial"). Later: adaptive just intonation.
 
 **v0.34 built** (label `MPEY`): per-port receive filters, `pfilter.c`,
 Settings USB IN and DIN IN (Notes, CC, Patch); the patch timing counts

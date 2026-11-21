@@ -427,3 +427,27 @@ def test_b1_reports_a_stuck_note_apart_from_b1(table, tmp_path):
     assert all(r.status == "pass" for k, r in by.items() if k.startswith("chords complete"))
     assert by["no extra partials (a note still sounding from an earlier trial)"].status == "fail"
     assert by["B1 (a note lost after a zone change)"].measured.endswith("(not reproduced)")
+
+
+def _b1_take(extra_hz, extra_db):
+    """Trial 0's chord as sines at -19 dBFS each, plus one partial extra_db below them."""
+    import numpy as np
+    from hwrig import analysis as an
+    from hwrig.stimulus import Take
+    c = checks3.B1ZoneChange(trials_per_delay=1)
+    tr = c.plan_trials()[0]
+    sr, amp = 48000, 10 ** (-19 / 20)
+    t = np.arange(int(0.8 * sr)) / sr
+    x = sum(amp * np.sin(2 * np.pi * an.note_hz(n) * t) for _, n in tr["chord"])
+    x = x + amp * 10 ** (extra_db / 20) * np.sin(2 * np.pi * extra_hz * t)
+    return c, tr, Take(audio=x[:, None], sr=sr, times={f"t{tr['i']}_chord": 0.2})
+
+
+def test_b1_intermodulation_below_the_chord_is_not_a_stuck_note():
+    """The rig's stray 50 Hz (trial 0, -29 dB: a third-order product of the
+    chord) passes; a partial as loud as the chord's notes still fails."""
+    c, tr, take = _b1_take(50.6, -29.0)
+    assert c.judge(take, tr) and tr["extra"] == [], tr
+    c, tr, take = _b1_take(50.6, -3.0)
+    assert not c.judge(take, tr) and tr["extra"], tr
+

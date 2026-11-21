@@ -15,6 +15,39 @@ llvm-objdump disassembly (`scripts/disasm.sh`), not a decompiler.
 | SysEx command switch | `0x0800D040` | observed | 9-way `tbb`; some cases loop over `0x4F` entries (patch/parameter dumps?) |
 | Front-panel pot scanning | `0x0800E054`, dead-zone helper `0x0800E024` | inferred | ADC values with a centre-detent dead zone (`±0x1F0`); not MIDI |
 
+## The stray 50 Hz partial in the rig's B1 check (2026-11-21)
+
+Three rig runs failed one `b1_zone_change` trial of 300 with an "extra
+partial" (`2026-11-14_144233` 50.6 Hz, `2026-11-17_093307` 50.4 and
+187.6 Hz, `2026-11-19_072602` 50.8 Hz); re-runs never repeated it. Read from
+the saved clips (`work/_hum50.py`):
+
+- **Always trial 0**, which is the same chord in every run (the trials are
+  seeded): six notes, 58 61 68 77 81 88 (233.1 to 1318.5 Hz), all within
+  0.3 dB of each other (observed).
+- **Not hum or a stuck note:** the pre-roll is clean (about -80 dBFS, no
+  50 or 60 Hz line), and the low partials sound only while the chord plays
+  (observed). The chord's window holds the same set of partials in all
+  three runs at the same levels: 50.6 Hz -29.0 to -29.6 dB re the notes,
+  95.3 Hz -32.7, 161.3 Hz -38.7, 188 Hz -30.0 to -31.7, and some thirty
+  more between -30 and -39 dB up to 2.9 kHz (observed).
+- **They are intermodulation products of the chord:** 95.0 = 233.1 + 277.2
+  - 415.3, 161.3 = 1318.5 - 880 - 277.2, 188.2 = 698.5 - 277.2 - 233.1, 50.1
+  = 698.5 - 415.3 - 233.1 (or 50.9 = 2 x 233.1 - 415.3), each within the
+  check's 30 cents (frequencies observed; the attribution **inferred** from
+  the match). Some stage after the voices are summed is slightly
+  non-linear, the Peak's analogue output path or the audio interface's
+  input; which one is not known.
+- **Why only sometimes:** the strongest product, about -29 dB, sits on the
+  peak finder's -30 dB limit, so it crosses it in a few runs out of thirty.
+  Not a firmware fault, and not changed by any patch version.
+- **Fix (the check, not the firmware):** `B1ZoneChange.judge` counts an
+  extra partial only within 20 dB (`EXTRA_DB`) of the chord's quietest
+  note. A note left sounding from an earlier trial plays at sustain, as
+  loud as the chord. The three saved clips now pass with the chord complete;
+  `tests/test_hwrig_run3.py` checks a -29 dB product passes and a -3 dB
+  partial fails, and the stuck-note fault still fails.
+
 ## Arpeggiator and the MIDI loop (2026-11-13)
 
 From the Ghidra decompile of the whole image (`scripts/ghidra-import.ps1
