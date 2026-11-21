@@ -621,9 +621,9 @@ the port stock's Clock Source follows (a clock on both ports counted
 twice before); with Source Internal, changes load at once.
 
 **Per-port receive filters:** **built (v0.34, `pfilter.c`; on the synth
-2026-11-21, series AB: USB IN Patch Off dropped a USB program change and
-DIN IN Notes Off left USB notes alone; the DIN side and CC are emulated
-only, the rig has no DIN interface).** Settings USB IN and DIN IN, each `Notes`, `CC`, `Patch`, On
+2026-11-21, series AB: USB IN Patch Off dropped a USB program change;
+DIN IN Notes Off silenced the LinnStrument, left USB notes alone and let
+a held note end; CC and DIN patch changes are emulated only).** Settings USB IN and DIN IN, each `Notes`, `CC`, `Patch`, On
 (default, as stock) or Off. Notes: note-ons, bend, pressure, everything
 on an MPE member channel, and RPNs; CC: every other controller, NRPNs
 included; Patch: program change and bank select. Note-offs and CC
