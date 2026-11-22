@@ -29,7 +29,8 @@ rig check `work/master_check.py`. `work/ji_check.py` now plays each note on
 its own member channel and needs `hwrig setup p1` first. Flashed
 2026-11-22: AD1 boot `MPEa` pass (Settings not saved come back stored at
 boot, so JUST TUNE read Off); AD2 rig 136 pass, 0 fail, editor check
-unchanged. Next: AD3 (`work/master_check.py`).
+unchanged. AD3 pass: a chord on channel 1 sounds in full, member channels
+still one note each. Series AD closed; no open series.
 
 **v0.34 built** (label `MPEY`): per-port receive filters, `pfilter.c`,
 Settings USB IN and DIN IN (Notes, CC, Patch); the patch timing counts

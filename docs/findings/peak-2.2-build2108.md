@@ -81,8 +81,11 @@ the saved clips (`work/_hum50.py`):
   channels; notes on the master channel go to the stock allocator, as with
   MPE off. Emulated (`tests/test_peak_master_notes.py`: a chord on the
   Lower and the Upper Zone's master sounds in full, a master note-off ends
-  only its note, a member channel still plays one note at a time); rig
-  check `work/master_check.py`.
+  only its note, a member channel still plays one note at a time). On the
+  synth (series AD3, 2026-11-22, observed): a C major chord on channel 1
+  sounds all three notes at equal level, a note-off there ends only its
+  note, and two notes on one member channel still sound one
+  (`work/hw-runs/master-2026-11-22_100358`).
 
 ## Arpeggiator and the MIDI loop (2026-11-13)
 
