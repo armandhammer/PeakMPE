@@ -19,6 +19,9 @@ FPGA 778): per-note pitch bend (±48), pressure and Slide, a per-patch MPE
 switch, Settings MPE pages, Lower and Upper Zone, Single and Multi mode, and
 idle voices that rotate as on stock ([hardware-log.md](hardware-log.md)).
 The design and its evidence are in [mpe-design.md](mpe-design.md).
+**v1.3** (boot label `MPE4`, 2026-11-22) lets a chord on a zone's master
+channel play in full, as Peak v0.36 does; checked in the simulator only,
+never flashed.
 
 What the project is built on:
 

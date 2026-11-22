@@ -75,7 +75,7 @@ class Mpe:
     def __init__(self, s, blob):
         self.s = s
         self.blob = blob
-        self.held = {}  # channel (1-16) -> note, for notes sent on zone channels
+        self.held = {}  # channel (1-16) -> notes held, in note-on order, for notes sent on zone channels
 
     def reset(self):
         self.s.reset()
@@ -118,6 +118,10 @@ class Mpe:
                 return part
         return None
 
+    def is_master(self, ch):
+        """ch (1-16) is the master channel of a zone in use."""
+        return any(ch == master for _, master, _, _ in self.zones().values())
+
     # -- settings ----------------------------------------------------------------
 
     def flag(self, on=True, part=0):
@@ -144,19 +148,28 @@ class Mpe:
         self.s.note_on(note, velocity, channel=ch, port=port)
         self.s.tick(ms)
         if self.zone_part(ch) is not None:
-            self.held[ch] = note
+            if self.is_master(ch):  # the master plays chords (v1.3): one more note
+                notes = self.held.setdefault(ch, [])
+                if note in notes:
+                    notes.remove(note)
+                notes.append(note)
+            else:  # a member channel holds one note: the new one takes over
+                self.held[ch] = [note]
         self.check()
 
     def off(self, note, ch, ms=4, port="din"):
         self.s.note_off(note, channel=ch, port=port)
         self.s.tick(ms)
-        if self.held.get(ch) == note:
-            del self.held[ch]
+        if note in self.held.get(ch, []):
+            self.held[ch].remove(note)
+            if not self.held[ch]:
+                del self.held[ch]
         self.check()
 
     def all_off(self):
-        for ch, note in list(self.held.items()):
-            self.off(note, ch)
+        for ch, notes in list(self.held.items()):
+            for note in list(notes):
+                self.off(note, ch)
         self.s.tick(RELEASE_MS)
         assert self.s.active_voices() == [], "voices still gated after every note-off"
         self.check()
@@ -171,12 +184,13 @@ class Mpe:
     def check(self):
         """The binding invariants, after every event:
 
-        * an active voice bound to a channel plays the note that channel holds
+        * an active voice bound to a channel plays a note that channel holds
           (no orphan: stealing and reuse move the binding with the voice);
         * it belongs to an MPE part, and the channel is a channel of a zone of
           that part;
-        * the active voices of one channel play one note, at most a unison
-          stack of them;
+        * the active voices of a member channel play one note, at most a
+          unison stack of them; a zone's master channel plays chords (v1.3),
+          at most a stack per note;
         * an active voice of a part with MPE off has no binding.
         """
         s = self.s
@@ -189,7 +203,7 @@ class Mpe:
             if ch is None:
                 continue
             assert on, f"voice {v} of part {part} (MPE off) is bound to channel {ch}"
-            assert self.held.get(ch) == s.voice_note(v), \
+            assert s.voice_note(v) in self.held.get(ch, []), \
                 f"voice {v} bound to channel {ch} plays {s.voice_note(v)}, the channel holds {self.held.get(ch)}"
             assert self.zone_part(ch) == part, f"voice {v}: channel {ch} isn't a zone channel of part {part}"
             per_channel.setdefault(ch, []).append(v)
@@ -197,6 +211,11 @@ class Mpe:
             part = self.part_of_voice(voices[0])
             unison = s.patch_byte(UNISON, part)
             stack = 8 if unison == 4 else unison + 1
+            if self.is_master(ch):
+                notes = [s.voice_note(v) for v in voices]
+                assert all(notes.count(n) <= stack for n in notes), \
+                    f"master channel {ch} holds {voices}, more than a stack of {stack} for a note"
+                continue
             assert len(voices) <= stack, f"channel {ch} holds {voices}, more than a stack of {stack}"
             assert len({s.voice_note(v) for v in voices}) == 1
 

@@ -15,14 +15,17 @@
  *   arpeggiator    the channel the arpeggiated note was played on
  * In a part with MPE off the channel is always MPE_NONE.
  *
- * Channel reuse (v1.1): in the poly modes, a note on a channel takes over
- * the voices still bound to it only while they sound or release, through
- * voice_alloc's forced-voice argument, one per unison voice; the allocator
- * picks the rest. A sender reusing a channel before the release has ended
- * so never doubles that channel. Bound voices that are idle are unbound and
- * the note goes to the stock allocator, so it rotates through the voices as
- * with MPE off (v1 took idle voices over too: the same voice every time,
- * hardware observation L5).
+ * Channel reuse (v1.1): in the poly modes, a note on a member channel takes
+ * over the voices still bound to it only while they sound or release,
+ * through voice_alloc's forced-voice argument, one per unison voice; the
+ * allocator picks the rest. A sender reusing a channel before the release
+ * has ended so never doubles that channel. Bound voices that are idle are
+ * unbound and the note goes to the stock allocator, so it rotates through
+ * the voices as with MPE off (v1 took idle voices over too: the same voice
+ * every time, hardware observation L5). Notes on a zone's master channel
+ * always go to the stock allocator, so a chord there plays in full (before
+ * v1.3 they took each other's voice, one note at a time; found on the Peak,
+ * series AC, and fixed there in Peak v0.36).
  *
  * Sounding or releasing ("live") is what the stock allocator itself reads
  * (voice_candidates 0x080155E4): the gate flag voice_state+0x334+v, and
@@ -86,6 +89,15 @@ static int poly(uint32_t part)
     return mpe_patch(part)[0x22] >= 3;  /* Mode: 0 Mono, 1 MonoLG, 2 Mono2, 3 Poly, 4 Poly2 */
 }
 
+/* ch is a member channel of a zone in use (MPE: one note per channel). A
+ * zone's master channel plays as the part's normal channel (mpe_route.c),
+ * so its notes don't take each other's voices (v1.3; as Peak v0.36). */
+static int member(uint8_t ch)
+{
+    const struct mpe_zone *z = mpe_zone_of(ch);
+    return z && ch != z->master;
+}
+
 static uint16_t gates(void)
 {
     uint16_t g = 0;
@@ -127,7 +139,7 @@ static void trigger(uint8_t note, uint8_t velocity, uint8_t part, uint8_t ch)
     if (part > 1 || !mpe_part_on(part))
         ch = MPE_NONE;
     reuse = 0;
-    if (ch != MPE_NONE && poly(part)) {
+    if (ch != MPE_NONE && member(ch) && poly(part)) {
         uint32_t first = mpe_first_voice(part), n = mpe_voice_count();
         uint16_t bound = 0;
         for (uint32_t v = first; v < first + n; v++)

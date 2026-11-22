@@ -1280,6 +1280,46 @@ The facts it rests on:
   envelope-state reads behind `voice_candidates` are EXTI15-timed
   ([The FPGA bus](#the-fpga-bus-spi1)).
 
+## Notes on a zone's master channel (MPE v1.3, 2026-11-22)
+
+**Emulated only; no Summit hardware run.** The same condition was observed
+on the Peak in series AC and fixed there in Peak v0.36
+([peak-2.2-build2108.md](peak-2.2-build2108.md), "Notes on the master
+channel play one at a time with MPE on"; on the synth in series AD).
+
+- **Cause** (source, observed): MPE v1.1–v1.2's `trigger()`
+  (`patches/mpe/mpe_voice.c`, behind the `voice_trigger` calls at
+  `0x08010B0A` note_on, `0x08010A70` mono fallback and `0x0800D0F2` arp)
+  applied channel reuse to every zone channel in the poly modes: a note on
+  a channel whose voice still sounds takes that voice over, through the
+  forced-voice argument of `voice_alloc` (`0x08016B40`, hooked in
+  `voice_trigger` at `0x080172DE`). `mpe_route.c` delivers master-channel
+  notes with `mpe_rx_channel` = the master, so they bound to it and took
+  each other's voice. The design means reuse for member channels only
+  ([mpe-design.md](../mpe-design.md#voice-binding): one note per member
+  channel), so this was unintended (inferred).
+- **Emulated before the fix** (v1.2 source, `tests/test_mpe_master_notes.py`
+  run against it): MPE on, no zone configured (Lower Zone, master 1,
+  members 2–16), the boot patch in a poly mode. C4, E4, G4 on channel 1 left one
+  gated voice, G4. With C4, E4 on channel 1 then G4 on 2 and C5 on 3,
+  `voice_note` of the gated voices read 64, 67, 72 (C4 taken over). In
+  Multi with both parts on (Lower 2–8 to Part A, Upper 9–15 to Part B), a
+  chord on channel 1 left Part A one voice. Five of the six tests failed;
+  the member-channel test passed.
+- **Fixed in v1.3** (`MPE4 Ver 126.778`): `member(ch)` (`mpe_zone_of(ch)`
+  and `ch != z->master`) added to the reuse condition, as Peak v0.36.
+  Notes on a master channel go to the stock allocator, as with MPE off.
+  Emulated, all six pass: a chord on the Lower and the Upper Zone's master
+  sounds in full, a master note-off ends only its note, a member channel
+  still plays one note at a time, master and member notes sound together,
+  and in Multi each part's master plays its chord on its own voices
+  (Part A 0–7, Part B 8–15), a note-off on one ending only that part's
+  note. Release by channel (`mpe_note_release`) was already right for
+  master notes: it hides only voices bound to other channels.
+- The test harness's invariants (`tests/mpe_sim.py` `Mpe.check()`,
+  `tests/mpe_traffic.py`) now allow a chord on a master channel: at most a
+  unison stack per note there, one note per member channel as before.
+
 ## Display and front panel
 
 Observed in code, and **emulated** end to end by the simulated Summit

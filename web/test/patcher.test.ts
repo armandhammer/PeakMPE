@@ -41,7 +41,7 @@ describe("patcher", () => {
   it("accepts the committed MPE descriptor", () => {
     const d = parseDescriptor(committed);
     expect(d.input.sha256).toBe("83b28931293647f2b4bfcf524c6875d3845468e6f0c037641c4318e3d249396f");
-    expect(d.output.sha256).toBe("28916b05a90e56f8091644031af03b01d1f7e10b0160ac2e6e1017ad8c08ac96");
+    expect(d.output.sha256).toBe("2ebaadbc6c692c878ab8256d7cad8ad736d1ca31a4b97d33b9b2b922e925f739");
     expect(() => parseDescriptor({ ...committed, formatVersion: 2 })).toThrow();
   });
 });

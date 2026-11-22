@@ -65,10 +65,11 @@ MIN_SHARED = 16
 META = {
     ("summit", "mpe"): {
         "title": "MPE for Summit",
-        "version": "1.2",
-        "label": "MPE3 Ver 126.778",
+        "version": "1.3",
+        "label": "MPE4 Ver 126.778",
         "summary": "Per-note pitch bend, pressure and slide (MPE), a per-patch MPE switch "
-                   "(VOICE page), Settings MPE pages, Single and Multi mode; v1.1 rotates idle voices; v1.2 fixes Slide on hardware.",
+                   "(VOICE page), Settings MPE pages, Single and Multi mode; v1.1 rotates idle voices; v1.2 fixes Slide on hardware; "
+                   "v1.3 lets a chord on a zone's master channel play in full (checked in the simulator only).",
     },
     ("peak", "mpe"): {
         "title": "MPE for Peak",
