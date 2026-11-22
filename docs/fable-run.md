@@ -14,8 +14,10 @@ partial").
 **v0.35 built** (label `MPEZ`): just intonation, `ji.c`, Settings JUST
 TUNE (Mode Off, Fixed, Adapt; Root C-B): a per-voice offset after
 osc_pitch. Simulator tests pass (`tests/test_peak_ji.py`); rig check
-`work/ji_check.py --mode fixed|adapt`. Next: the user's flash, then
-series AC.
+`work/ji_check.py --mode fixed|adapt`. Flashed 2026-11-21: AC1 (boot
+`MPEZ`, the page) pass; AC2 rig with Mode Off 136 pass, 0 fail, as v0.34;
+editor check unchanged but for the user's own D003. Next: AC3 (Fixed),
+AC4 (Adapt).
 
 **v0.34 built** (label `MPEY`): per-port receive filters, `pfilter.c`,
 Settings USB IN and DIN IN (Notes, CC, Patch); the patch timing counts
