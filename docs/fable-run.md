@@ -26,8 +26,10 @@ sound was built again (`hwrig setup p1`; the Peak had been off overnight).
 MPE on, notes on a zone's master channel take voices as with MPE off
 (`mpe_voice.c` `member()`); simulator tests `tests/test_peak_master_notes.py`,
 rig check `work/master_check.py`. `work/ji_check.py` now plays each note on
-its own member channel and needs `hwrig setup p1` first. Next: the user's
-flash, then series AD.
+its own member channel and needs `hwrig setup p1` first. Flashed
+2026-11-22: AD1 boot `MPEa` pass (Settings not saved come back stored at
+boot, so JUST TUNE read Off); AD2 rig 136 pass, 0 fail, editor check
+unchanged. Next: AD3 (`work/master_check.py`).
 
 **v0.34 built** (label `MPEY`): per-port receive filters, `pfilter.c`,
 Settings USB IN and DIN IN (Notes, CC, Patch); the patch timing counts
