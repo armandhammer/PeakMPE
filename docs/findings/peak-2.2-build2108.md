@@ -55,6 +55,29 @@ the saved clips (`work/_hum50.py`):
   `tests/test_hwrig_run3.py` checks a -29 dB product passes and a -3 dB
   partial fails, and the stuck-note fault still fails.
 
+## Notes on the master channel play one at a time with MPE on (2026-11-21)
+
+- **Observed on the synth** (v0.35, series AC3): with D002 (MPE on, no zone
+  configured, so the Lower Zone with 15 members) a C major chord on
+  channel 1, the master channel, sounded as one note, the last one played
+  (`work/hw-runs/ji-fixed-2026-11-21_202535`: one partial per chord, at the
+  level of a single note; in the fourth take the held E went silent when A
+  and C came). The same chords with each note on its own member channel
+  (2-7) sounded in full (`ji-fixed-2026-11-21_203633`).
+- **Emulated:** the stored D002 (editor check `editor-2026-11-21_202345`,
+  the dump's bytes 14-525 as the patch) with a C major chord on channel 1:
+  with the MPE flag (`+0x1A2`) on, one gated voice (`voice_note` 67);
+  with it off, three. Just intonation Off or Fixed makes no difference.
+- **Cause** (source, observed): `mpe_voice.c` `trigger()` applies channel
+  reuse (a new note takes over a voice still sounding on its channel) to
+  every zone channel, the master channel too. The design means it for the
+  member channels (docs/mpe-design.md, "Voice binding": one note per member
+  channel), and `mpe_route.c` says the master channel works as the Peak's
+  normal channel, so this is unintended (inferred). Older than v0.35; the
+  Summit patch's `trigger()` has the same condition (`patches/mpe/
+  mpe_voice.c`, not run). The rig never plays chords on the master channel
+  of an MPE patch, so its checks didn't show it.
+
 ## Arpeggiator and the MIDI loop (2026-11-13)
 
 From the Ghidra decompile of the whole image (`scripts/ghidra-import.ps1

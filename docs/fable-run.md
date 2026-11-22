@@ -16,8 +16,10 @@ TUNE (Mode Off, Fixed, Adapt; Root C-B): a per-voice offset after
 osc_pitch. Simulator tests pass (`tests/test_peak_ji.py`); rig check
 `work/ji_check.py --mode fixed|adapt`. Flashed 2026-11-21: AC1 (boot
 `MPEZ`, the page) pass; AC2 rig with Mode Off 136 pass, 0 fail, as v0.34;
-editor check unchanged but for the user's own D003. Next: AC3 (Fixed),
-AC4 (Adapt).
+editor check unchanged but for the user's own D003. AC3 (Fixed, Root C)
+pass, every note within 0.2 c. Found on the way: with MPE on, notes on
+the master channel play one at a time (`mpe_voice.c` channel reuse;
+findings). Next: AC4 (Adapt), then a fix for the master channel.
 
 **v0.34 built** (label `MPEY`): per-port receive filters, `pfilter.c`,
 Settings USB IN and DIN IN (Notes, CC, Patch); the patch timing counts
