@@ -15,46 +15,34 @@ Setup for all series: **quit Ableton and any other MIDI app.**
 
 ---
 
-## Series AC: just intonation (image `MPEZ Ver`)
+## Series AD: chords on the master channel (image `MPEa Ver`)
 
-New image v0.35 (boot screen `MPEZ Ver 108.469`). Series A to AB are done
-(results in [docs/hardware-log.md](docs/hardware-log.md)). If you haven't
-yet: Settings > `DIN IN` > `Notes` `On`, `USB IN` > `Patch` `On`, `PATCH
-DUMP` > `Send` `Off` (back to stock after series AB).
+New image v0.36 (boot screen `MPEa Ver 108.469`: the letters A to Z are used
+up, so it goes on in lower case). Series A to AC are done (results in
+[docs/hardware-log.md](docs/hardware-log.md)).
 
-What v0.35 adds: Settings page `JUST TUNE` (after `DIN IN`) with `Mode`
-(Off, Fixed, Adapt) and `Root` (C to B).
+What v0.36 changes: with MPE on, a chord sent on the zone's master channel
+(channel 1 with no zone set) plays in full; before, its notes took each
+other's voice and only the last one sounded. Member channels are unchanged.
 
-### AC1. Boot and the new page
+### AD1. Boot, and just intonation back to Off
 
-1. Switch the Peak on. Expected boot screen: `MPEZ Ver 108.469`.
+1. Switch the Peak on. Expected boot screen: `MPEa Ver 108.469`.
 2. Turn the **Patch select** knob to **D002**.
 3. Press **Settings**, then **Page right** until the top line reads
-   `DIN IN`. Press **Page right** once more. Expected:
-   - top line `JUST TUNE`
-   - second line `Mode` ... `Off`
-   - third line `Root` ... `C`
+   `JUST TUNE`. Expected: `Mode` ... `Adapt` (as AC4 left it; Settings are
+   kept through the flash). Press **Select 1** and turn the value encoder
+   until `Mode` reads `Off`.
 4. Press **Settings** to leave.
 
-### AC2. Rig with Mode Off (stock behaviour)
+### AD2. Rig
 
 1. Say **GO rig**. I run the full rig (about 10 minutes) and the editor
    check; nothing to press.
 
-### AC3. Fixed, Root C (I play, you set first)
+### AD3. Chords on the master channel (I play)
 
-1. Press **Settings**, **Page right** to `JUST TUNE`. Press **Select 1** and
-   turn the value encoder until `Mode` reads `Fixed`. `Root` stays `C`.
-2. Press **Settings** to leave. The patch screen shows D002.
-3. Say **GO ji fixed**. I play four chords over USB and measure each note;
-   nothing to press.
-
-### AC4. Adapt (I play, you set first)
-
-1. Press **Settings**, **Page right** to `JUST TUNE`, **Select 1**, turn the
-   value encoder until `Mode` reads `Adapt`. Press **Settings** to leave.
-2. Say **GO ji adapt**. Same four chords; nothing to press.
-
-### AC5. Back to stock behaviour
-
-1. Settings > `JUST TUNE`: `Mode` `Off`. Press **Settings** to leave.
+1. Say **GO master**. I build the rig's sine sound in the edit buffer and
+   play four short takes over USB: a chord on channel 1, the same chord
+   with one note let go, a chord on member channels 2 to 4, and two notes
+   on one member channel. Nothing to press.

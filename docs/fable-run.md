@@ -21,7 +21,13 @@ pass, every note within 0.2 c. Found on the way: with MPE on, notes on
 the master channel play one at a time (`mpe_voice.c` channel reuse;
 findings). AC4 (Adapt) pass on 2026-11-22, within 0.2 c, once the rig's P1
 sound was built again (`hwrig setup p1`; the Peak had been off overnight).
-Next: a fix for the master channel (v0.36).
+
+**v0.36 built** (label `MPEa`; A-Z used up, lower case from here): with
+MPE on, notes on a zone's master channel take voices as with MPE off
+(`mpe_voice.c` `member()`); simulator tests `tests/test_peak_master_notes.py`,
+rig check `work/master_check.py`. `work/ji_check.py` now plays each note on
+its own member channel and needs `hwrig setup p1` first. Next: the user's
+flash, then series AD.
 
 **v0.34 built** (label `MPEY`): per-port receive filters, `pfilter.c`,
 Settings USB IN and DIN IN (Notes, CC, Patch); the patch timing counts

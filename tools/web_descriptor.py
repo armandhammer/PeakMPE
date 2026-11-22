@@ -72,8 +72,8 @@ META = {
     },
     ("peak", "mpe"): {
         "title": "MPE for Peak",
-        "version": "0.35",
-        "label": "MPEZ Ver 108.469",
+        "version": "0.36",
+        "label": "MPEa Ver 108.469",
         "summary": "Per-note pitch bend, pressure (channel or poly aftertouch) and slide (MPE) on the Peak's "
                    "8 voices, a per-patch MPE switch (VOICE page) and Settings MPE pages; one or two zones. "
                    "v0.2: the arpeggiator ignores its own notes when a DAW sends them back (MIDI loop). "
@@ -108,6 +108,7 @@ META = {
                    "v0.33: the PATCH TIMING message shows the right patch number (it showed D 55 for D003 after a program change). "
                    "v0.34: Settings > USB IN and DIN IN turn Notes, CC and Patch (program change and bank select) on or off for each input, for example notes only from a controller on DIN and patch changes only from a DAW on USB. Patch timing counts the clock only from the port the Clock Source setting follows, so a clock on both inputs no longer counts twice. "
                    "v0.35: Settings > JUST TUNE tunes chords in just intonation: Mode Fixed tunes every note to the Root you choose; Mode Adapt follows the chord you play, keeps held notes where they are and plays a note alone at its normal pitch. It works with or without MPE and with the arp. "
+                   "v0.36: with MPE on, a chord on a zone's master channel plays in full (before, its notes took each other's voice). "
                    "Tested on one Peak with the automated hardware test rig and played from a LinnStrument.",
     },
 }

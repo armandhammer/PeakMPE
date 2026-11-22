@@ -77,6 +77,12 @@ the saved clips (`work/_hum50.py`):
   Summit patch's `trigger()` has the same condition (`patches/mpe/
   mpe_voice.c`, not run). The rig never plays chords on the master channel
   of an MPE patch, so its checks didn't show it.
+- **Fixed in v0.36** (`MPEa`): channel reuse only for a zone's member
+  channels; notes on the master channel go to the stock allocator, as with
+  MPE off. Emulated (`tests/test_peak_master_notes.py`: a chord on the
+  Lower and the Upper Zone's master sounds in full, a master note-off ends
+  only its note, a member channel still plays one note at a time); rig
+  check `work/master_check.py`.
 
 ## Arpeggiator and the MIDI loop (2026-11-13)
 

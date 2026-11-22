@@ -14,10 +14,13 @@
  *   note_off       0x0800F51A  mono/legato's fallback to a held note
  *   arpeggiator    0x08015216  the channel the arpeggiated note came on
  *
- * Channel reuse (as Summit v1.1): in the poly modes a note on a channel takes
- * over the voices still bound to it only while they sound or release, through
- * voice_alloc's forced-voice argument; idle bound voices are unbound and the
- * note goes to the stock allocator, so voices rotate as with MPE off. "Live"
+ * Channel reuse (as Summit v1.1): in the poly modes a note on a member
+ * channel takes over the voices still bound to it only while they sound or
+ * release, through voice_alloc's forced-voice argument; idle bound voices are
+ * unbound and the note goes to the stock allocator, so voices rotate as with
+ * MPE off. Notes on a zone's master channel always go to the stock allocator,
+ * so a chord there plays in full (before v0.36 they took each other's voice,
+ * one note at a time). "Live"
  * is what voice_candidates reads: the gate (voice_state+0x1F4+v), and
  * voice_env_state / voice_env_level from the FPGA (state != 3 or level >
  * 0x200).
@@ -89,6 +92,15 @@ static int poly(void)
     return mpe_patch()[0x22] >= 3;  /* Mode: 0 Mono, 1 MonoLG, 2 Mono2, 3 Poly, 4 Poly2 */
 }
 
+/* ch is a member channel of a zone in use (MPE: one note per channel). A
+ * zone's master channel plays as the Peak's normal channel (mpe_route.c),
+ * so its notes don't take each other's voices (v0.36; found in series AC). */
+static int member(uint8_t ch)
+{
+    const struct mpe_zone *z = mpe_zone_of(ch);
+    return z && ch != z->master;
+}
+
 static uint8_t gates(void)
 {
     uint8_t g = 0;
@@ -120,7 +132,7 @@ static void trigger(uint8_t note, uint8_t velocity, uint8_t ch)
     if (!mpe_part_on(0))
         ch = MPE_NONE;
     reuse = 0;
-    if (ch != MPE_NONE && poly()) {
+    if (ch != MPE_NONE && member(ch) && poly()) {
         uint8_t bound = 0;
         for (uint32_t v = 0; v < MPE_VOICES; v++)
             if (voice_channel[v] == ch)
