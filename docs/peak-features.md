@@ -632,8 +632,8 @@ Source). Outputs aren't filtered. Tests `tests/test_peak_pfilter.py`;
 rig check `work/pfilter_check.py`; findings, "MIDI input ports and the
 clock source".
 
-**Just intonation, fixed or adaptive:** **built (v0.35, `ji.c`; not on
-the synth yet).** Static just tunings are stock (the guide: tuning tables
+**Just intonation, fixed or adaptive:** **built (v0.35, `ji.c`; on the
+synth: series AC, every note within 0.2 cents).** Static just tunings are stock (the guide: tuning tables
 from Scala files through Components), so this adds what a table can't:
 a root chosen on the panel and a root that follows the chord. Settings
 JUST TUNE: `Mode` Off (default, as stock), Fixed or Adapt; `Root` C to B
