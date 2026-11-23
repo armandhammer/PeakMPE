@@ -3,12 +3,12 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** series AJ continues: the user does AJ4 (Keep Low back Off),
-then AJ5 "GO rig" (`hwrig run --stage all`, `tools/editor_check.py`).
-AJ1-AJ3 done 2026-11-23 (hardware log, 6a79415 row): v0.41 (label
-`MPEf`) flashed; with Keep Low On the 9th note cut 53 and kept 48, with
-keys held and under the sustain pedal (`work/keep_low_check.py`). Series AI
-closed 2026-11-23: the J2 filter steps are not reproduced on v0.40.
+**Next step:** ask what next. Series AJ closed 2026-11-23: v0.41 (label
+`MPEf`) on the synth, Settings VOICE STEAL > Keep Low On kept the lowest
+note with keys held and under the sustain pedal (`work/keep_low_check.py`);
+with it Off, rig 136/0/5 and editor check nothing changed. No open series.
+The voice-stealing list is done (v0.38-v0.41), and the J2 filter steps
+are not reproduced on v0.40 (series AI).
 
 **v0.35 built** (label `MPEZ`): just intonation, `ji.c`, Settings JUST
 TUNE (Mode Off, Fixed, Adapt; Root C-B): a per-voice offset after
