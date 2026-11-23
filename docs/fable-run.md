@@ -3,8 +3,8 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** series AK continues at AK3 (the user: Keep Low Off, USB IN
-CC Off), then AK4 "GO rig". AK1 and AK2 done 2026-11-23, all as expected
+**Next step:** series AK continues at AK5 (the user: USB IN CC back On),
+then AK6 "GO rig" (editor check). AK1 to AK4 done 2026-11-23, all as expected
 (hardware log, 6a79415 row). Series AK (no new image, from the status
 audit the user chose, 2026-11-23): AK1 Keep Low On, AK2 rig (`work/unison_keep_check.py`,
 `work/arp_noloop_check.py`, `work/loopback_test.py`,

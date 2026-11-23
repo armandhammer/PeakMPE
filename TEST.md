@@ -66,6 +66,8 @@ Say **GO rig**. I run `work/cc_filter_check.py`. Expected: the filter CC and
 the NRPN leave the edit buffer unchanged, and a note sent over USB still
 sounds.
 
+Done 2026-11-23 (AK3, AK4): both unchanged, the note sounded.
+
 ### AK5. Back as before (your hands)
 
 1. Press **Settings**, then **Page right** or **Page left** until the top

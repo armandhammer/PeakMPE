@@ -626,7 +626,9 @@ twice before); with Source Internal, changes load at once.
 **Per-port receive filters:** **built (v0.34, `pfilter.c`; on the synth
 2026-11-21, series AB: USB IN Patch Off dropped a USB program change;
 DIN IN Notes Off silenced the LinnStrument, left USB notes alone and let
-a held note end; CC and DIN patch changes are emulated only).** Settings USB IN and DIN IN, each `Notes`, `CC`, `Patch`, On
+a held note end; series AK, 2026-11-23: USB IN CC Off dropped a CC and an
+NRPN and let notes through; DIN patch changes are emulated only, the rig
+having no DIN output).** Settings USB IN and DIN IN, each `Notes`, `CC`, `Patch`, On
 (default, as stock) or Off. Notes: note-ons, bend, pressure, everything
 on an MPE member channel, and RPNs; CC: every other controller, NRPNs
 included; Patch: program change and bank select. Note-offs and CC
