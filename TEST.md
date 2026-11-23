@@ -47,6 +47,8 @@ the arp):
 - `work/cc_filter_check.py --control`: with USB IN `CC` still `On`, a filter
   CC and an NRPN change the edit buffer. Expected: both change.
 
+Done 2026-11-23 (AK1, AK2): all four as expected.
+
 ### AK3. USB IN CC off (your hands, after I report AK2)
 
 1. Press **Settings**, then **Page right** or **Page left** until the top
