@@ -1106,6 +1106,19 @@ behaviour **emulated** (`tests/test_peak_pdump.py`).
   one 527-byte answer 00 holding the patch now loaded; Off sends nothing;
   the editor's own write 00 is not echoed. v0.32: a dump waiting behind
   another answer is dropped when Send is turned Off meanwhile.
+- **A dump lost to an editor request (v0.30-v0.36; fixed in v0.37,
+  emulated).** The hook made the request during the patch load, so an
+  editor request read later in the same main-loop pass (before
+  `sysex_rx_poll` at `0x0800D1C4`) set +0x67C over it, and the dump was
+  never sent: `editor_patch_request` (`0x08019F58`) sets the state
+  without looking at it (observed; the other requests' handlers are
+  inferred to do the same, the test uses the identity state). v0.37
+  only notes the dump at the load; `pdump_reply_poll`, called on every
+  pass right before `sysex_rx_poll` (in `mpe_ui_poll`), makes the
+  request when the state is 0, and the same call answers it.
+  `tests/test_peak_pdump.py::test_an_editor_request_in_the_same_pass_does_not_lose_the_dump`
+  failed on v0.36 and passes on v0.37; rig check `work/powerup_check.py`
+  part 2.
 - **On the synth** (v0.30, series W, 2026-11-19; **observed**): with Send
   = USB, a bank select and program change for D002 brought one answer 00
   over USB, equal to the current patch; with Send = Off, none. The dump
@@ -1168,6 +1181,17 @@ disassembly, the `.data` image); behaviour **emulated**
   10-20 ms (observed by the patch dumps in series X). Each has a test
   that failed on v0.31 (the clock order excepted: not visible in the
   simulator's tempo).
+- **A Continue after power-up (v0.31-v0.36; fixed in v0.37, emulated).**
+  The count starts at 0 at boot, and Continue set it playing: a bare
+  Continue (no Song Position Pointer) before any Start since power-up
+  counted from bar 1, wherever the DAW was, so a change loaded on a line
+  the DAW wasn't at. Stock keeps no song position (above), so nothing
+  else says where the song is. v0.37 keeps the count unplaced until a
+  Start or a Song Position Pointer; until then a Continue doesn't start
+  it and changes load at once, as stock.
+  `tests/test_peak_ptime.py::test_continue_after_power_up_waits_for_a_song_position`
+  failed on v0.36 and passes on v0.37; rig check `work/powerup_check.py`
+  part 1.
 - **On the synth** (v0.32, series Y, 2026-11-20; **observed**): `work/ptime_check.py` at 120 BPM (run `ptime-2026-11-20_095426`) reported the first D001 and the third change one clock late (dumps 27.6 and 22.6 ms after the expected clock, past the next clock byte at 20.8 ms) and D002 on time; the check reads the load's clock from when its dump arrives, which a clock period this short can't separate. Re-run at 60 BPM with each patch's load-to-dump time measured first without a clock (run `ptime-2026-11-20_095536`: D002 5.2 ms, D001 5.5 ms): D001 on clock 96 (+10.6 ms), D002 on 192 (+9.5 ms), D001 asked for just after bar 4's clock on 288, at once (+18.8 ms): all as expected. With the clock running, the dumps came 9.5-27.6 ms after their clock byte against 5.2-5.5 ms without one (inferred: USB scheduling of the program change and the dump). The check now runs at 60 BPM by default.
 - **The panel's patch choice on the synth** (v0.32): **Series Z (2026-11-20, no new image; observed):** `work/ptime_panel.py`: Start, 60 s of clock at 60 BPM, Stop, nothing else sent, while the user chose patches on the panel. Run `ptpanel-2026-11-20_103015`: no presses (the steps hadn't said clearly that they go during the run). Run `ptpanel-2026-11-20_103403`: about 7 taps of Patch + and Patch -, mixed: six loads, all on bar lines but one 63 ms after another (a choice just after a line) and the last released by Stop; not matched to presses. Run `ptpanel-2026-11-20_104045`, Patch + only, three times from D002: D003 on clock 288 (bar 4's line), D004 on 768 (bar 9), D005 on 960 (bar 11), each dump 12-16 ms after its clock: **patches chosen on the panel land on the bar line.** **Open: the waiting message showed the wrong number on the synth:** `PATCH TIMING` / `D 55` / `at the next bar` while D003 waited (then `D 56` for D004, `D 57` for D005; user); the loads were right, and the simulator draws `D003`, `D004` (`work/_panel_probe.py`); not explained.
 - **The wrong number, found (2026-11-20; observed in the disassembly, emulated):** `program_change` `0x0800F0EC` builds its argument for `patch_select_load` as two bytes on its stack (bank at sp+4, program at sp+5) and loads it with `ldr r0, [sp, #4]` (`0x0800F110`), so bits 16-31 are whatever the stack held; stock's `patch_select_load` uses only the low half. `ptime_select` took a `uint16_t`, the compiler trusted the register, and the message's number (`arg >> 8`) took the garbage in (the simulator showed `D·55` for D003 after a program change, `tests/test_peak_ptime.py`); the waiting load was stored as 16 bits and was right. On the synth the panel's own message (`D003`) is replaced by the program-change one because stock sends its program change out after a panel choice (Bank/Patch transmit) and reads port 2 back in right away (`0x08018DBC` calls `0x0800F608`; inferred, the simulator doesn't loop it). v0.33 takes a word and masks it. The other hooks with 8-bit parameters were checked at their call sites: stock forms those arguments with ldrb, uxtb, ubfx or immediates (`work/_narrow_args.py`). **On the synth (v0.33, series AA, observed):** three Patch + choices during a 60 BPM clock showed `D004`, `D005`, `D006` while each waited, and each loaded on a bar line (`ptpanel-2026-11-20_145348`).

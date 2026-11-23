@@ -3,13 +3,13 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** ask what next. Series AB passed on 2026-11-21 (rig 136/0;
-USB Patch Off drops a USB program change; DIN Notes Off, played from the
-LinnStrument, silences DIN and lets a held note end). The stray 50 Hz
-partial is explained (2026-11-21): trial 0's chord's own intermodulation at
--29 dB, on the B1 check's -30 dB limit; the check now counts an extra
-partial only within 20 dB of the chord (findings, "The stray 50 Hz
-partial").
+**Next step:** series AE (v0.37, label `MPEb`): the user flashes, then AE1
+boot and settings, AE2 `work/powerup_check.py` and the rig, AE3 settings
+back. v0.37 (2026-11-22) fixes the two issues left open since v0.33: a
+bare Continue after power-up counted bars from 1 (`ptime.c` `placed`), and
+an editor request in the same main-loop pass as a patch dump replaced it
+(`pdump.c` `pdump_reply_poll`). One test for each failed on v0.36.
+Before: Summit v1.3 (`2751b47`, master-channel chords, simulator only).
 
 **v0.35 built** (label `MPEZ`): just intonation, `ji.c`, Settings JUST
 TUNE (Mode Off, Fixed, Adapt; Root C-B): a per-voice offset after
@@ -79,9 +79,10 @@ Read and found sound: the panic's press and release handling and the
 through `mpe_channel_filter`), the Euclid short path, the mixer fix, the
 display range from 0xA0, `editor_check.py`'s allow-list, the check stamp.
 Left as they are, noted: a clock arriving on both USB and DIN would be
-counted twice; after power-up the count needs a Start or Continue;
-an editor request in the same main-loop pass as a patch dump would take
-the reply slot first (the dump is then lost).
+counted twice (fixed in v0.34); after power-up the count needs a Start or
+Continue, and a bare Continue counted from bar 1 (fixed in v0.37); an
+editor request in the same main-loop pass as a patch dump would take the
+reply slot first and the dump was lost (fixed in v0.37).
 
 **Faster build loop** (chosen by the user 2026-11-20): a full
 `scripts/check` that passes writes `work/check-stamp` (key from

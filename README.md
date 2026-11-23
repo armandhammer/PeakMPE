@@ -29,7 +29,7 @@ named below.
 
 ## Status
 
-**MPE for Peak 0.36**, for Peak firmware **2.2 (build 2108)** only, with
+**MPE for Peak 0.37**, for Peak firmware **2.2 (build 2108)** only, with
 FPGA build 469. Tested on one Peak ([docs/hardware-log.md](docs/hardware-log.md)):
 every check of the automated hardware test rig that applies to the Peak
 passes (136 of 136 measured rows over USB on each release up to 0.25; on
@@ -47,7 +47,9 @@ number in the patch-timing message, checked on the synth; 0.34 adds
 per-port receive filters, the USB patch and DIN notes filters checked on
 the synth, the rest in the simulator; 0.35 adds just intonation, measured
 on the synth within 0.2 cents; 0.36 lets a chord on a zone's master
-channel play in full, also on the synth), a 600-run stress soak left no stuck note, a LinnStrument played
+channel play in full, also on the synth; 0.37 fixes patch timing after
+power-up and a patch dump lost beside an editor request, checked in the
+simulator so far), a 600-run stress soak left no stuck note, a LinnStrument played
 it over DIN in one and two zones, and each feature below was tried on the
 synth (by hand, or by the rig where the panel can't do it). Not tested on other firmware versions or other units.
 
@@ -199,7 +201,7 @@ screen, Select 1 to 3, pick a line; the encoder changes it.
   change. Stock rewrites whole lines, and every character holds up the
   per-note modulation for about 0.05 ms. Measured on the synth, turning a
   knob for 5 s lost 17 modulation ticks, against about 2,600 before.
-- **Boot screen** `MPEa Ver 108.469`, so you can see the patch and its
+- **Boot screen** `MPEb Ver 108.469`, so you can see the patch and its
   release are installed.
 
 What stock 2.2 already does (and so isn't here), and the features that were

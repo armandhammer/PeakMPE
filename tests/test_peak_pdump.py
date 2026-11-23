@@ -100,12 +100,25 @@ def test_the_dump_waits_for_an_answer_in_progress(board, mpe_built):
     _call(b, blob.address("pdump_patch_selected"), 5, 1)
     assert list(b.uc.mem_read(SYSEX_STATE, 4)) == [3, 0, 0, 1]  # left alone
     b.uc.mem_write(SYSEX_STATE, bytes([0, 0, 0, 1]))            # that answer is done
-    _call(b, blob.address("pdump_poll"))
+    _call(b, blob.address("pdump_reply_poll"))
     state = list(b.uc.mem_read(SYSEX_STATE, 4))
     assert state[0] == 2 and state[3] == 0                      # current patch, to USB
     b.uc.mem_write(SYSEX_STATE, bytes([0]))
-    _call(b, blob.address("pdump_poll"))
+    _call(b, blob.address("pdump_reply_poll"))
     assert b.u8(SYSEX_STATE) == 0                               # sent once only
+
+
+def test_an_editor_request_in_the_same_pass_does_not_lose_the_dump(board, mpe_built):
+    """v0.36 made the request during the patch load; an editor request read
+    later in the same main-loop pass replaced it before sysex_rx_poll ran, and
+    the dump was never sent. v0.37 makes it right before sysex_rx_poll."""
+    b, usb = board
+    _on(b)
+    _call(b, mpe_built.blob.address("pdump_patch_selected"), 5, 1)   # the patch load
+    b.uc.mem_write(SYSEX_STATE, bytes([1, 0, 0, 1]))            # then an identity request from DIN
+    b.run_ms(50)
+    msgs = _sysex(usb)
+    assert len(msgs) == 1 and len(msgs[0]) == 527 and msgs[0][:9] == HDR + b"\x00", [len(m) for m in msgs]
 
 
 

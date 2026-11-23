@@ -186,6 +186,7 @@ void panic(void);                                 /* every note off, arp and MPE
 int pdump_on(void);
 void pdump_patch_selected(uint8_t number, uint8_t bank);   /* hook: patch_select_load's patch_select_set */
 void pdump_poll(void);                            /* once per 1 kHz tick */
+void pdump_reply_poll(void);                      /* every main-loop pass, right before sysex_rx_poll */
 
 /* ptime.c */
 uint32_t ptime_unit(void);                        /* MIDI clocks per step; 0 = at once */

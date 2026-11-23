@@ -9,7 +9,9 @@
  * after its line: a DAW sending it on the bar) loads at once. Without a
  * playing clock, or with `Now`, patch changes load at once, as stock. Bars
  * are 4/4: 96 clocks. Continue after Stop goes on from where Stop left the
- * count, unless a Song Position Pointer came between.
+ * count, unless a Song Position Pointer came between. Until a Start or a Song
+ * Position Pointer after power-up, the position is unknown and changes load at
+ * once (v0.37).
  *
  * Stock keeps no song position: its tempo clock (0x20012268) runs freely and
  * MIDI Start only sets a flag (0x08010E30), Continue, Stop and Song Position
@@ -51,6 +53,7 @@ static const uint16_t unit_clocks[] = {0, 24, 96, 192, 384};   /* Now, Beat, Bar
 static uint32_t position;        /* MIDI clocks since Start, the one now playing */
 static uint8_t playing;          /* Start or Continue seen, no Stop since */
 static uint8_t first;            /* the next clock byte is `position` itself, not position + 1 */
+static uint8_t placed;           /* a Start or Song Position Pointer since power-up: `position` is the song's */
 static uint32_t clock_tick;      /* mpe_ticks() of the last clock byte */
 static uint8_t waiting;
 static uint16_t waiting_arg;
@@ -182,14 +185,20 @@ static void start(void)
         return;
     position = 0;
     first = 1;
+    placed = 1;
     playing = 1;
 }
 
+/* After a Song Position Pointer (first set) its position comes next; else the
+ * one after where Stop left it (v0.31 counted that one again). A Continue
+ * before any Start or Song Position Pointer since power-up says nothing of
+ * where the song is: v0.31-v0.36 counted it from bar 1, so a change loaded on
+ * a line the DAW wasn't at; now changes load at once until one comes (v0.37). */
 static void cont(void)
 {
-    if (port_counts(midi_port_current))
-        playing = 1;                     /* after a Song Position Pointer (first set), its position comes next; */
-}                                    /* else the one after where Stop left it (v0.31 counted that one again) */
+    if (port_counts(midi_port_current) && placed)
+        playing = 1;
+}
 
 static void stop(void)
 {
@@ -207,6 +216,7 @@ void ptime_spp(uint32_t src, const uint8_t *msg)
         return;
     position = 6u * (uint32_t)(msg[1] | msg[2] << 7);
     first = 1;
+    placed = 1;
 }
 
 /* Boot (mpe_ui_boot): Start, Continue and Stop into stock's system-message table. */

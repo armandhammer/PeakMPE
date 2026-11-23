@@ -157,6 +157,25 @@ def test_continue_without_a_song_position_goes_on_counting(board):
     assert _clocks_until_loaded(b, 7, 200) == 96 - 10   # positions 11..96
 
 
+def test_continue_after_power_up_waits_for_a_song_position(board):
+    """After power-up nothing says where a bare Continue is in the song: v0.36
+    counted from bar 1 and loaded on a line the DAW wasn't at. v0.37 loads at
+    once (as stock) until a Start or a Song Position Pointer places the count."""
+    b = board
+    _timing(b, BAR)
+    _send(b, CONTINUE, ms=2)
+    _clocks(b, 10)
+    _send(b, 0xC0, 5, ms=5)
+    assert _loaded(b) == 5                           # at once: the position is unknown
+    _send(b, STOP, ms=2)
+    _send(b, SPP, 4, 0, ms=2)                        # the 5th 16th: position 24
+    _send(b, CONTINUE, ms=2)
+    _clocks(b, 3)                                    # positions 24-26
+    _send(b, 0xC0, 6, ms=5)
+    assert _loaded(b) != 6                           # placed now: waits for the bar
+    assert _clocks_until_loaded(b, 6, 200) == 96 - 26
+
+
 def test_a_change_with_a_bank_stock_ignores_keeps_the_waiting_one(board):
     b = board
     _timing(b, BAR)

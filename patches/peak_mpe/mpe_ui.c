@@ -539,6 +539,7 @@ static uint32_t polled;      /* the modulation tick the polls below last ran in 
 
 void mpe_ui_poll(void)
 {
+    pdump_reply_poll();                /* its request, answered by this pass's sysex_rx_poll */
     sysex_rx_poll();
     /* The main loop passes about 70 times a millisecond (emulated); nothing below
      * needs more than one look per 1 kHz tick, and each look costs the loop

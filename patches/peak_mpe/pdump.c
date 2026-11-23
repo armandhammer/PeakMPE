@@ -15,8 +15,10 @@
  *    the main loop's first pass arms this.
  *  - The message is stock's: editor_patch_request(0) puts the main loop's
  *    SysEx reply state on "current patch, port 0" (USB; any other port is
- *    DIN), and sysex_rx_poll sends it on its next pass. While another
- *    answer is being sent (a bank dump takes seconds) the dump waits for it.
+ *    DIN), and sysex_rx_poll sends it. The request is made right before
+ *    sysex_rx_poll, so nothing read in between can replace it (v0.37).
+ *    While another answer is being sent (a bank dump takes seconds) the
+ *    dump waits for it.
  */
 
 #include "mpe.h"
@@ -32,22 +34,26 @@ int pdump_on(void)
     return globals[MPE_G_PDUMP] == 1;
 }
 
-static void try_send(void)
-{
-    if (sysex_state[SYSEX_REPLY_STATE])
-        return;                   /* stock is answering something: next tick */
-    editor_patch_request(PORT_USB);
-    pending = 0;
-}
-
-/* Replaces patch_select_load's call of patch_select_set (0x0801AFC2). */
+/* Replaces patch_select_load's call of patch_select_set (0x0801AFC2). Only
+ * notes the dump: the request is made by pdump_reply_poll. */
 void pdump_patch_selected(uint8_t number, uint8_t bank)
 {
     patch_select_set(number, bank);
-    if (!running || !pdump_on())
-        return;
-    pending = 1;
-    try_send();
+    if (running && pdump_on())
+        pending = 1;
+}
+
+/* Every main-loop pass, right before sysex_rx_poll (mpe_ui_poll), which then
+ * sends the answer at once. v0.30-v0.36 made the request during the patch
+ * load: an editor request read later in the same pass set the reply state
+ * over it, and the dump was never sent (v0.37). While stock is answering
+ * something (a bank dump takes seconds) the dump waits for it. */
+void pdump_reply_poll(void)
+{
+    if (pending && !sysex_state[SYSEX_REPLY_STATE]) {
+        editor_patch_request(PORT_USB);
+        pending = 0;
+    }
 }
 
 /* Once per 1 kHz tick from the main loop (mpe_ui_poll). */
@@ -56,6 +62,4 @@ void pdump_poll(void)
     running = 1;
     if (pending && !pdump_on())
         pending = 0;              /* Send turned Off while it waited (review 2026-11-20) */
-    if (pending)
-        try_send();
 }
