@@ -3,8 +3,8 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** AE3 (the user sets PATCH DUMP and PATCH TIMING back), then
-ask what next. v0.37 (label `MPEb`, 2026-11-22) fixes the two issues left
+**Next step:** ask what next. Series AE closed 2026-11-22 (AE3 pass: the
+settings are back at Off and Now); no open series. v0.37 (label `MPEb`, 2026-11-22) fixes the two issues left
 open since v0.33: a bare Continue after power-up counted bars from 1
 (`ptime.c` `placed`), and an editor request in the same main-loop pass as a
 patch dump replaced it (`pdump.c` `pdump_reply_poll`). One test for each
