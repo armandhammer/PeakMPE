@@ -3,22 +3,12 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** series AI2 (the user sets Morph = ModWheel on a fresh D002,
-then "GO morph": `work/morph_step_check.py`), then AI3 (Morph back Off).
-AI1 done 2026-11-23 (run `fstep-2026-11-23_135843`, observed): FiltFreq set
-directly under a held saw (note 48) closes cleanly: 255 -> 40 falls to the
-floor in about 0.3 s with 3 windows 20 dB over the floor after the drop,
-255 -> 100 settles within 1 dB 0.06 s after the response, 40 -> 255 at
-once; the response comes 80-100 ms after the message in every take. J2's
-wheel close: 114 such windows over 2 s, as bright as the held note
-(harmonic 8 re 1 -22.8 dB against -18.7). So J2's slow fall came with the
-morph, not the filter alone (inferred until AI2). Before AI1, offline: J2's take (`morph-2026-11-16_140145-check`, re-read by
-`work/_j2_reread.py`) falls over about 1.3 s with the held note's harmonic
-balance kept (not what a closing filter does), and D002's delay, reverb and
-chorus levels are 0 (`work/_d002_fx.py` on today's editor-check dump), so
-an effect tail is ruled out. Then: keep the lowest note as a Settings
-option, off by default (recommended; it would be series AJ). Series AH
-closed 2026-11-23: v0.40 (label `MPEe`) on the synth (hardware log).
+**Next step:** the user does AI3 (Morph back Off, D002 reselected), then
+series AI is closed. AI1 and AI2 done 2026-11-23 (hardware log, a0b3656
+row): the filter closes cleanly both set directly and through the morph;
+J2's slow fall (v0.18) is not reproduced and stays unexplained. Then:
+keep the lowest note as a Settings option, off by default (recommended;
+series AJ).
 
 **v0.35 built** (label `MPEZ`): just intonation, `ji.c`, Settings JUST
 TUNE (Mode Off, Fixed, Adapt; Root C-B): a per-voice offset after
@@ -294,7 +284,7 @@ is Off.
 
 **Still open, the user's choice:** (MIDI Tuning for device ID `7F` and
 several notes per message: done in v0.25) a chance for the ratchet; the stepwise closing of the filter
-seen in J2; the two decisions below. (The README describes 0.21 since
+seen in J2 (not reproduced on v0.40, series AI); the two decisions below. (The README describes 0.21 since
 2026-11-17; Strum was dropped by the user the same day.)
 
 **Model:** the Fable brief (items A to D) is worked through; what is left is

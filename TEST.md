@@ -33,9 +33,7 @@ once. This series asks whether that happens with the filter set directly.
    Expected if nothing is wrong: each move settles within about 0.1 s, with
    no drops of 3 dB or more after that.
 
-Done 2026-11-23: the filter set directly closes cleanly (no slow fall). In
-J2 the slow fall came when the mod wheel closed the filter through the
-morph, so AI2 repeats that.
+Done 2026-11-23: the filter set directly closes cleanly (no slow fall).
 
 ### AI2. The morph (your hands, then I play)
 
@@ -50,6 +48,8 @@ morph, so AI2 repeats that.
    20 s): note 48 three times. First dull after a bright start (the filter
    closed directly), then twice: dull, bright (the wheel up), dull again
    (the wheel down).
+
+Done 2026-11-23: through the morph the filter closes cleanly too.
 
 ### AI3. Back as before (your hands, after I report AI2)
 
