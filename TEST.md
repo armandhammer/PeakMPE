@@ -45,6 +45,8 @@ eight keys held, 48 the lowest and the first, then a 9th. Expected: it cuts
 53, not 48. Take 2: 48 played and held by the sustain pedal (CC 64), seven
 more the pedal holds, a 9th. Expected: it cuts 53, not 48.
 
+Done 2026-11-23 (AJ1 to AJ3): both takes cut 53 and kept 48.
+
 ### AJ4. Back to Off (your hands, after I report AJ3)
 
 1. Press **Settings**, then **Page right** or **Page left** until the top

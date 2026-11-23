@@ -467,7 +467,8 @@ in its release before it touches a held one. Plan step 18 as written
   53 held down and the sustain pedal holding six more the 9th cut 58, the
   oldest the pedal holds (stock: 48) (observed).
 - **v0.41: Settings VOICE STEAL > Keep Low** (`steal.c`, `mpe_ui.c`; global
-  record 0x58, 1 = On; emulated). With it on and the voice mode Poly or
+  record 0x58, 1 = On; emulated, then observed on the synth 2026-11-23).
+  With it on and the voice mode Poly or
   Poly2 (patch `+0x22` 3 or 4), neither `cand_held` nor `cand_attack` is a
   voice playing the lowest `voice_note` among the gated voices (gate
   `voice_state+0x1F4+v`: a key down or a note a pedal holds). A voice in
@@ -477,7 +478,10 @@ in its release before it touches a held one. Plan step 18 as written
   it (Unison 8: one note on all eight voices). `tests/test_peak_steal.py`
   (8 more tests: held keys, a bass the sustain pedal holds, in the attack,
   a released bass, a lower new note, Unison 8, the page); rig check
-  `work/keep_low_check.py`.
+  `work/keep_low_check.py`: on the synth (v0.41, run
+  `keeplow-2026-11-23_151730`) with eight keys held, and again with 48
+  held by the sustain pedal and seven more it holds, the 9th note cut 53
+  and 48 kept sounding (Keep Low Off: 48) (observed).
 - **Stock quirk: sostenuto pedal up releases keys still held down**
   (code observed, behaviour emulated; first noted from the code
   2026-11-15; the fix observed on the synth 2026-11-23). `sostenuto_pedal` `0x08011FEC` calls `sostenuto_down`
