@@ -26,6 +26,9 @@
  *   RANDOMISE       Section, Amount (10-100 %), Roll (rand.c)
  *   PATCH DUMP      Send (Off, USB) (pdump.c)
  *   PATCH TIMING    Change at (Now, Beat, Bar, 2 Bars, 4 Bars) (ptime.c)
+ *   USB IN, DIN IN  Notes, CC, Patch (On/Off) (pfilter.c)
+ *   JUST TUNE       Mode (Off, Fixed, Adapt), Root (C-B) (ji.c)
+ *   VOICE STEAL     Keep Low (Off/On) (steal.c)
  * The Summit's read-only "Channels" item (CH CLASH) is left out: the Peak has
  * no Multi parts whose channels a zone could take.
  * The items are kind 3 (global settings) with records 0x30-0x38, which stock
@@ -70,15 +73,15 @@ struct mpe_page {
 };
 
 #define STOCK_DESCS 0x22           /* Peak global_param_desc: records 0x00-0x21, then other data */
-#define MPE_G_LAST (MPE_G_JI + 1)  /* the last record of new_descs */
+#define MPE_G_LAST MPE_G_KEEP_LOW  /* the last record of new_descs */
 #define MPE_DESCS (MPE_G_LAST + 1)
 #define MPE_PAGE_AT 4              /* after MIDI CONTROL (stock page 3) */
-#define MPE_PAGES 17
+#define MPE_PAGES 18
 #define STOCK_PAGES PEAK_SETTINGS_PAGES
 #define UI_MODE_SETTINGS PEAK_UI_SETTINGS
 #define UI_MODE (ui_state[0])
 
-enum { DISP_ZONE = 0xA0, DISP_MEMBERS, DISP_NOTE, DISP_MASTER, DISP_CURVE, DISP_ENVSYNC, DISP_LOCK_FX, DISP_LOCK_ARP, DISP_LOCK_VOICE, DISP_SECT, DISP_DOIT, DISP_DLAST, DISP_DCOUNT, DISP_DOVF, DISP_GLIDE, DISP_MLEN, DISP_MSTATE, DISP_LATE, DISP_MORPH, DISP_MPOS, DISP_MDIFF, DISP_EPULSES, DISP_ESTEPS, DISP_EROTATE, DISP_ERATCHET, DISP_EEVERY, DISP_RELVEL, DISP_RSECT, DISP_RAMT, DISP_ROLL, DISP_PDUMP, DISP_PTIME, DISP_PF0, DISP_PF1, DISP_PF2, DISP_PF3, DISP_PF4, DISP_PF5, DISP_JMODE, DISP_JROOT, DISP_END };
+enum { DISP_ZONE = 0xA0, DISP_MEMBERS, DISP_NOTE, DISP_MASTER, DISP_CURVE, DISP_ENVSYNC, DISP_LOCK_FX, DISP_LOCK_ARP, DISP_LOCK_VOICE, DISP_SECT, DISP_DOIT, DISP_DLAST, DISP_DCOUNT, DISP_DOVF, DISP_GLIDE, DISP_MLEN, DISP_MSTATE, DISP_LATE, DISP_MORPH, DISP_MPOS, DISP_MDIFF, DISP_EPULSES, DISP_ESTEPS, DISP_EROTATE, DISP_ERATCHET, DISP_EEVERY, DISP_RELVEL, DISP_RSECT, DISP_RAMT, DISP_ROLL, DISP_PDUMP, DISP_PTIME, DISP_PF0, DISP_PF1, DISP_PF2, DISP_PF3, DISP_PF4, DISP_PF5, DISP_JMODE, DISP_JROOT, DISP_KEEPLOW, DISP_END };
 
 #define FIELD 8                    /* value field: columns 11-18, the mark is at 19 */
 
@@ -110,6 +113,7 @@ static const char title_ptime[] = "PATCH TIMING";
 static const char title_usb_in[] = "USB IN";
 static const char title_din_in[] = "DIN IN";
 static const char title_ji[] = "JUST TUNE";
+static const char title_steal[] = "VOICE STEAL";
 
 static const struct mpe_desc new_descs[] = {
     {0, 2, 0x40, 0x2E, DISP_ZONE, "Zone"},
@@ -152,6 +156,7 @@ static const struct mpe_desc new_descs[] = {
     {0, 1, 0x40, 0x47, DISP_PF5, "Patch"},
     {0, 2, 0x40, 0x48, DISP_JMODE, "Mode"},           /* records 0x56, 0x57: stored in the globals (ji.c) */
     {0, 11, 0x40, 0x49, DISP_JROOT, "Root"},
+    {0, 1, 0x40, 0x4A, DISP_KEEPLOW, "Keep Low"},     /* record 0x58: stored in the globals (steal.c) */
 };
 
 /* Last drawn per item. Only compared with what would be drawn now, so its
@@ -239,6 +244,8 @@ static void build_tables(void)
     page_init(&mpe_pages[16], title_ji);
     page_item(&mpe_pages[16], MPE_G_JI);
     page_item(&mpe_pages[16], MPE_G_JI + 1);
+    page_init(&mpe_pages[17], title_steal);
+    page_item(&mpe_pages[17], MPE_G_KEEP_LOW);
 
     struct mpe_page **stock = (struct mpe_page **)(settings_menu + 4);
     uint32_t n = 0;
@@ -481,6 +488,9 @@ static void render_view(const struct mpe_live *v, uint32_t display, char *out)
         put_str(&p, names[n < 12 ? n : 0]);
         break;
     }
+    case DISP_KEEPLOW:
+        put_str(&p, globals[MPE_G_KEEP_LOW] == 1 ? "On" : "Off");
+        break;
     }
     *p = 0;
 }
@@ -628,6 +638,7 @@ static void edit_setting(uint16_t index, int32_t delta)
     case MPE_G_LOCK_FX + 2:
     case MPE_G_MORPH:
     case MPE_G_PDUMP:
+    case MPE_G_KEEP_LOW:
         v = globals[index] == 1;
         break;
     case MPE_G_EUC_PULSES:

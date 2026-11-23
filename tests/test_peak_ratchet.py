@@ -139,7 +139,8 @@ def test_ratchet_page(mpe_built):
     assert _show(b, 8, RATCHET_PAGE + 5, 0)[0].startswith("USB IN ")
     assert _show(b, 8, RATCHET_PAGE + 6, 0)[0].startswith("DIN IN ")
     assert _show(b, 8, RATCHET_PAGE + 7, 0)[0].startswith("JUST TUNE ")
-    rows = _show(b, 8, RATCHET_PAGE + 8, 0)              # the stock page after ours is still there
+    assert _show(b, 8, RATCHET_PAGE + 8, 0)[0].startswith("VOICE STEAL ")
+    rows = _show(b, 8, RATCHET_PAGE + 9, 0)              # the stock page after ours is still there
     assert rows[0].startswith("MIDI ENABLE"), rows
 
 

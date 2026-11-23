@@ -82,7 +82,8 @@ def test_the_settings_page(board, mpe_built):
     assert _show(b, 8, JI_PAGE, 1)[2][:19].split() == ["Root", "A"]
     _call(b, change, 7)
     assert b.u8(GLOBALS + G_JI + 1) == 11                  # B is the end
-    rows = _show(b, 8, JI_PAGE + 1, 0)                     # the stock page after ours
+    assert _show(b, 8, JI_PAGE + 1, 0)[0].startswith("VOICE STEAL")
+    rows = _show(b, 8, JI_PAGE + 2, 0)                     # the stock page after ours
     assert rows[0].startswith("MIDI ENABLE"), rows
 
 

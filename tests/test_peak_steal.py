@@ -171,3 +171,102 @@ def test_a_note_the_sostenuto_pedal_holds_goes_before_a_key_held_down(held):
     assert _held(b) == list(range(60, 68))
     assert _on(b, 72) == (voice[62], 62)                 # stock: voice[60]
     assert 60 in _held(b) and 61 in _held(b)
+
+
+# --- v0.41: Settings VOICE STEAL > Keep Low ---------------------------------
+# With Keep Low on (Poly, Poly2) neither pick is a voice playing the lowest
+# note that sounds: a key held down or a note a pedal holds. A note in its
+# release is not kept, and the release candidate still goes first.
+
+GLOBALS, G_KEEP_LOW = 0x20014494, 0x58
+PATCH = 0x20012340                       # the edit buffer (test_peak_sim.PATCHES)
+UNISON = 0x23                            # 0-3 = 1-4 voices per note, 4 = 8
+STEAL_PAGE = 21                          # Settings page index: 4 + 17
+
+
+@pytest.fixture
+def keep(held):
+    held.uc.mem_write(GLOBALS + G_KEEP_LOW, b"\x01")
+    yield held
+    held.uc.mem_write(GLOBALS + G_KEEP_LOW, b"\x00")
+
+
+def test_keep_low_the_lowest_note_stays(keep):
+    b = keep
+    voice = _eight(b)
+    assert _on(b, 72) == (voice[61], 61)     # Off: voice[60], the oldest
+    assert _on(b, 73) == (voice[62], 62)
+    assert 60 in _held(b)
+
+
+def test_keep_low_off_cuts_the_oldest_even_if_lowest(held):
+    b = held
+    voice = _eight(b)
+    assert _on(b, 72) == (voice[60], 60)
+
+
+def test_keep_low_a_bass_the_pedal_holds_stays(keep):
+    b = keep
+    bass = _on(b, 48)[0]
+    _send(b, 0xB0, SUSTAIN, 127, ms=5)
+    _off(b, 48, 5)                           # the pedal holds the bass
+    voice = {n: _on(b, n)[0] for n in range(60, 67)}
+    for n in range(60, 67):
+        _off(b, n, 5)
+    assert _held(b) == [48] + list(range(60, 67))
+    assert _on(b, 72) == (voice[60], 60)     # Off: the bass, the oldest note the pedal holds
+    assert 48 in _held(b) and bass not in voice.values()
+
+
+def test_keep_low_in_the_attack(keep):
+    b = keep
+    b.fpga.voices.attack_ms = SLOW
+    try:
+        voice = _eight(b)
+        assert _on(b, 72) == (voice[61], 61)  # Off: voice[60]
+    finally:
+        b.fpga.voices.attack_ms = 5.0
+
+
+def test_keep_low_a_released_bass_is_not_kept(keep):
+    b = keep
+    voice = _eight(b)
+    _off(b, 60, 200)
+    assert _on(b, 72) == (voice[60], None)   # the releasing voice first, as stock
+
+
+def test_keep_low_a_lower_new_note_becomes_the_lowest(keep):
+    b = keep
+    voice = _eight(b)
+    assert _on(b, 55) == (voice[61], 61)     # 60 is the lowest when 55 arrives
+    assert _on(b, 72) == (voice[60], 60)     # now 55 is, and 60 the oldest
+    assert 55 in _held(b)
+
+
+def test_keep_low_unison_8_still_plays_a_second_note(keep):
+    b = keep
+    b.uc.mem_write(PATCH + UNISON, b"\x04")
+    try:
+        _send(b, 0x90, 60, 100, ms=40)
+        assert _notes(b) == [60] * 8 and all(_gates(b))
+        _send(b, 0x90, 64, 100, ms=40)       # the kept note is all there is: taken as with Off
+        assert sorted(set(n for n, g in zip(_notes(b), _gates(b)) if g)) == [64]
+    finally:
+        _off(b, 64, 2)
+        _off(b, 60, 2)
+        b.uc.mem_write(PATCH + UNISON, b"\x00")
+
+
+def test_keep_low_settings_page(board, mpe_built):
+    from test_peak_sim import _call, _show
+    b = board
+    change = mpe_built.blob.address("mpe_ui_value_change")
+    rows = _show(b, 8, STEAL_PAGE, 0)
+    assert rows[0].startswith("VOICE STEAL"), rows
+    assert rows[1][:19].split() == ["Keep", "Low", "Off"], rows
+    _call(b, change, 1)
+    assert b.u8(GLOBALS + G_KEEP_LOW) == 1
+    assert _show(b, 8, STEAL_PAGE, 0)[1][:19].split() == ["Keep", "Low", "On"]
+    _call(b, change, -1)
+    assert b.u8(GLOBALS + G_KEEP_LOW) == 0
+    assert _show(b, 8, STEAL_PAGE + 1, 0)[0].startswith("MIDI ENABLE")   # the stock page after ours

@@ -61,6 +61,7 @@
                                   * 0x50-0x52, DIN at 0x53-0x55; 0 On (as stock), 1 Off; other = On */
 #define MPE_G_JI 0x56            /* just intonation (ji.c), stored: Mode 0 Off, 1 Fixed, 2 Adapt (other = Off); */
                                  /* Root at 0x57, 0-11 = C-B (other = C) */
+#define MPE_G_KEEP_LOW 0x58      /* voice stealing keeps the lowest note (steal.c), stored: 1 On; other = Off */
 
 #define MPE_DEFAULT_MEMBERS 15
 #define MPE_DEFAULT_NOTE_RANGE 48
@@ -209,6 +210,7 @@ uint8_t pedal_keys_up(void);                      /* gated voices a pedal holds 
 void voice_candidates(uint32_t start, uint32_t mask, uint32_t unison);   /* stock 0x08011B70 */
 extern volatile uint8_t cand_attack;              /* its pick among voices in their attack, 0x0F = none */
 extern volatile uint8_t cand_held;                /* its pick among held voices (state 1, 2), 0x0F = none */
+extern volatile uint8_t cand_release;             /* its pick among voices in release (state 3), 0x0F = none */
 void steal_candidates(uint32_t start, uint32_t mask, uint32_t unison);   /* hook: voice_alloc's call */
 
 /* pfilter.c */
