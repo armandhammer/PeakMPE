@@ -203,10 +203,12 @@ void sostenuto_up(void);                          /* stock 0x08011F90 */
 void sost_down(void);                             /* hook: sostenuto_pedal's pedal down */
 void sost_up(void);                               /* hook: sostenuto_pedal's pedal up */
 void sost_note_off(uint8_t note, int poly);       /* from mpe_note_release */
+uint8_t pedal_keys_up(void);                      /* gated voices a pedal holds with the key up */
 
 /* steal.c */
 void voice_candidates(uint32_t start, uint32_t mask, uint32_t unison);   /* stock 0x08011B70 */
 extern volatile uint8_t cand_attack;              /* its pick among voices in their attack, 0x0F = none */
+extern volatile uint8_t cand_held;                /* its pick among held voices (state 1, 2), 0x0F = none */
 void steal_candidates(uint32_t start, uint32_t mask, uint32_t unison);   /* hook: voice_alloc's call */
 
 /* pfilter.c */

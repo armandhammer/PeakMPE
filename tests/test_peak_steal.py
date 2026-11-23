@@ -113,3 +113,61 @@ def test_a_held_voice_still_goes_before_one_in_attack(board):
         for n in _held(b):
             _off(b, n, 2)
         b.run_ms(RELEASE_MS + 200)
+
+
+# --- v0.40: held voices at one level -------------------------------------
+# Stock keeps the quietest held voice, the first in its scan order (from the
+# voice after the last pick) on a tie, and held voices at full sustain tie on
+# the synth (A4). v0.40 breaks the tie: a voice a pedal holds with its key up
+# first, then the oldest.
+
+SUSTAIN, SOSTENUTO = 64, 66
+
+
+@pytest.fixture
+def held(board):
+    """Attack 5 ms; afterwards the pedals up, everything let go and quiet."""
+    yield board
+    _send(board, 0xB0, SUSTAIN, 0, ms=2)
+    _send(board, 0xB0, SOSTENUTO, 0, ms=2)
+    for n in _held(board):
+        _off(board, n, 2)
+    board.run_ms(RELEASE_MS + 200)
+    assert not any(_gates(board))
+
+
+def test_held_at_one_level_the_oldest_goes(held):
+    b = held
+    voice = _eight(b)
+    _off(b, 62, 200)
+    assert _on(b, 72) == (voice[62], None)   # the releasing voice first, as stock
+    assert _on(b, 73) == (voice[60], 60)     # stock: voice[63], the voice after the pick
+    assert _on(b, 74) == (voice[61], 61)
+    assert _held(b) == [63, 64, 65, 66, 67, 72, 73, 74]
+
+
+def test_a_note_the_sustain_pedal_holds_goes_before_a_key_held_down(held):
+    b = held
+    voice = {n: _on(b, n)[0] for n in (60, 61)}          # keys stay down
+    _send(b, 0xB0, SUSTAIN, 127, ms=5)
+    for n in range(62, 68):
+        voice[n] = _on(b, n)[0]
+    for n in range(62, 68):
+        _off(b, n, 5)                                    # the pedal holds them
+    assert _held(b) == list(range(60, 68))
+    assert _on(b, 72) == (voice[62], 62)                 # stock: voice[60], a key still down
+    assert _on(b, 73) == (voice[63], 63)
+    assert 60 in _held(b) and 61 in _held(b)
+
+
+def test_a_note_the_sostenuto_pedal_holds_goes_before_a_key_held_down(held):
+    b = held
+    voice = {n: _on(b, n)[0] for n in range(60, 66)}
+    _send(b, 0xB0, SOSTENUTO, 127, ms=5)                 # marks 60-65
+    for n in range(62, 66):
+        _off(b, n, 5)                                    # the pedal holds 62-65; 60 and 61 stay down
+    for n in (66, 67):
+        voice[n] = _on(b, n)[0]
+    assert _held(b) == list(range(60, 68))
+    assert _on(b, 72) == (voice[62], 62)                 # stock: voice[60]
+    assert 60 in _held(b) and 61 in _held(b)

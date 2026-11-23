@@ -60,3 +60,15 @@ void sost_note_off(uint8_t note, int poly)
         if (SOSTENUTO_HELD(v) && VOICE_GATE(v) && (!poly || voice_note[v] == note))
             key_up |= (uint8_t)(1u << v);
 }
+
+/* The gated voices a pedal holds with the key up: the sustain pedal's
+ * (pedal-held) or the sostenuto pedal's (marked, key let go). For steal.c's
+ * tie-break between held voices (v0.40). */
+uint8_t pedal_keys_up(void)
+{
+    uint8_t m = 0;
+    for (uint32_t v = 0; v < MPE_VOICES; v++)
+        if (VOICE_GATE(v) && (PEDAL_HELD(v) || (SOSTENUTO_HELD(v) && (key_up & (1u << v)))))
+            m |= (uint8_t)(1u << v);
+    return m;
+}

@@ -449,6 +449,18 @@ in its release before it touches a held one. Plan step 18 as written
   synth (v0.39, run `attack-2026-11-23_095321`) the 9th and 10th notes cut
   48 and 53, the first two played (-96 and -105 dBFS late in the attack,
   the other eight at -35 to -36) (observed).
+- **v0.40: of the quietest held voices, a pedal-held one, then the oldest**
+  (`steal.c`; emulated). The same hook then sets `cand_held` (`0x20012294`):
+  among the voices in state 1 or 2 at the level of stock's pick (the
+  quietest), first one a pedal holds with its key up (sustain: pedal-held
+  +0x23C+v; sostenuto: marked +0x244+v and `sostenuto.c`'s key-up bit),
+  then the smallest start stamp, then stock's scan order. A quieter held
+  voice still goes before a louder one; only the tie, which stock gave to
+  its rotation order, changes. `tests/test_peak_steal.py` (3 more tests,
+  all failed on v0.39: after a pick in the middle the 10th note cut 63
+  instead of 60; with the sustain or the sostenuto pedal holding six
+  notes, the 9th cut 60, a key still down, instead of 62); rig check
+  `work/held_steal_check.py`.
 - **Stock quirk: sostenuto pedal up releases keys still held down**
   (code observed, behaviour emulated; first noted from the code
   2026-11-15; the fix observed on the synth 2026-11-23). `sostenuto_pedal` `0x08011FEC` calls `sostenuto_down`

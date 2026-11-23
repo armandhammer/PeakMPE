@@ -73,8 +73,8 @@ META = {
     },
     ("peak", "mpe"): {
         "title": "MPE for Peak",
-        "version": "0.39",
-        "label": "MPEd Ver 108.469",
+        "version": "0.40",
+        "label": "MPEe Ver 108.469",
         "summary": "Per-note pitch bend, pressure (channel or poly aftertouch) and slide (MPE) on the Peak's "
                    "8 voices, a per-patch MPE switch (VOICE page) and Settings MPE pages; one or two zones. "
                    "v0.2: the arpeggiator ignores its own notes when a DAW sends them back (MIDI loop). "
@@ -113,6 +113,7 @@ META = {
                    "v0.37: after the Peak is switched on, PATCH TIMING waits for a Start or a song position before it times changes, instead of guessing the bar from a bare Continue; a patch dump is no longer lost when an editor asks for something at the same moment. "
                    "v0.38: a key held down while you let go of the sostenuto pedal keeps sounding (the Peak's own firmware stopped it); with Glide on, the first notes after the Peak is switched on no longer glide up or down from middle C. "
                    "v0.39: when every voice is still in its attack (a slow pad), a new note takes the oldest note, not the one played just before it. "
+                   "v0.40: when every voice is held, a new note takes a note the sustain or sostenuto pedal is holding before a key you are still holding down, and otherwise the oldest note. "
                    "Tested on one Peak with the automated hardware test rig and played from a LinnStrument.",
     },
 }
