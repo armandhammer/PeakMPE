@@ -3,15 +3,13 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** ask what next. Series AE closed 2026-11-22 (AE3 pass: the
-settings are back at Off and Now); no open series. v0.37 (label `MPEb`, 2026-11-22) fixes the two issues left
-open since v0.33: a bare Continue after power-up counted bars from 1
-(`ptime.c` `placed`), and an editor request in the same main-loop pass as a
-patch dump replaced it (`pdump.c` `pdump_reply_poll`). One test for each
-failed on v0.36. Flashed 2026-11-22: AE1 pass; AE2 `powerup_check.py` all
-as expected (the same-pass dump case didn't come up on the synth), rig
-136/0/5, editor check only `settings` changed.
-Before: Summit v1.3 (`2751b47`, master-channel chords, simulator only).
+**Next step:** series AF (v0.38, label `MPEc`): the user flashes, then AF1
+boot and Glide = Stock, AF2 `work/pedal_check.py` (first after power-on)
+and the rig. v0.38 (2026-11-22, chosen by the user from the open list)
+fixes two stock quirks: sostenuto pedal up released keys still held down
+(`sostenuto.c`), and a voice's first note after power-on glided from
+middle C (`mpe_voice.c` `glide_start`). Tests for each failed on v0.37.
+Before: v0.37 done on the synth (series AE).
 
 **v0.35 built** (label `MPEZ`): just intonation, `ji.c`, Settings JUST
 TUNE (Mode Off, Fixed, Adapt; Root C-B): a per-voice offset after
@@ -307,7 +305,7 @@ observed, all three Glide settings work, undo window ok, messages clear after
 
 **Open with the user (no hurry):** whether to build a steal refinement (oldest
 on a tie, pedal-held first, keep the lowest note, or protect the newest note
-in a slow attack) and whether to fix the sostenuto quirk.
+in a slow attack); the sostenuto quirk is fixed in v0.38.
 
 ## Items
 
@@ -348,11 +346,12 @@ in a slow attack) and whether to fix the sostenuto quirk.
 
 ## Stock firmware quirks found (not fixed)
 
-- Sostenuto pedal up releases a note whose key is still down (emulated:
+- Sostenuto pedal up releases a note whose key is still down (fixed in
+  v0.38, `sostenuto.c`; emulated:
   note 60 held, CC 66 127 then 0: the voice gets its release commands;
   `FUN_08011F90` checks only the pedal-held flag). A fix would be one hook.
 - After power-on every voice's glide pitch is note 60, so with Glide on the
-  first notes glide from middle C.
+  first notes glide from middle C (fixed in v0.38).
 - With all eight voices still in their attack, a new note takes the newest
   one (the note just played).
 

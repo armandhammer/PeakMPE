@@ -434,10 +434,23 @@ in its release before it touches a held one. Plan step 18 as written
   sustain (observed above), so the rotation tie-break is what decides in
   practice. The slow-attack case is the one a player may notice: a pad's
   newest note is the one that disappears.
-- **Possible stock quirk, from the code only (inferred, not run):** at
-  sostenuto pedal up, `FUN_08011F90` releases every sostenuto-held voice
-  whose pedal-held flag is 0, with no check that its key is still down, so a
-  key held through the sostenuto pedal's release would stop sounding.
+- **Stock quirk: sostenuto pedal up releases keys still held down**
+  (code observed, behaviour emulated; first noted from the code
+  2026-11-15). `sostenuto_pedal` `0x08011FEC` calls `sostenuto_down`
+  `0x08011F6C` (marks every gated voice, +0x244+v) and `sostenuto_up`
+  `0x08011F90`, which releases every marked, gated voice whose pedal-held
+  flag (+0x23C+v) is 0. A note-off under the pedal does nothing to a marked
+  voice (`voice_release_part` `0x08011A80` skips it, and sets pedal-held
+  only under the sustain pedal), so the MCU keeps no record of which held
+  keys are up; `voice_alloc` clears both flags on the voice it starts a
+  note on. **Fixed in v0.38** (`sostenuto.c`): the patch keeps a bit per
+  voice for "key up": at pedal down it copies pedal-held, the note-off
+  hook (`mpe_note_release`) sets it for the marked voices it releases (poly
+  modes: by note; mono modes: all, since they release only with no key
+  held), and at pedal up the marked voices whose key is still down lose the
+  mark before stock's `sostenuto_up` runs; their own note-off releases them
+  later. `tests/test_peak_sostenuto.py` (5 tests; the three with a key down
+  at pedal up failed on v0.37); rig check `work/pedal_check.py` part 2.
 
 ## Glide (2026-11-15)
 
@@ -471,7 +484,12 @@ Code **observed**, behaviour **emulated**.
     notes rotating through eight voices the start is the note played eight
     notes ago on that voice (the guide's "unpredictable with chords").
   - After power-on every voice's glide pitch is note 60, so the first eight
-    notes glide from middle C.
+    notes glide from middle C. **v0.38** starts a voice's first note since
+    power-on on pitch, in every mode and every Glide setting
+    (`mpe_voice.c` `glide_start`; emulated,
+    `tests/test_peak_glide.py::test_a_voices_first_note_after_power_on_starts_on_pitch`,
+    which failed on v0.37 for Stock and LastNote); rig check
+    `work/pedal_check.py` part 1.
   - **Mono:** one voice, so always from the last note, legato or not.
   - **MonoLG:** from the last note when legato; a detached note starts on
     pitch.

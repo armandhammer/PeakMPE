@@ -197,6 +197,13 @@ void ptime_spp(uint32_t src, const uint8_t *msg); /* Song Position Pointer, from
 void ptime_boot(void);
 void ptime_poll(void);                            /* once per 1 kHz tick */
 
+/* sostenuto.c */
+void sostenuto_down(void);                        /* stock 0x08011F6C */
+void sostenuto_up(void);                          /* stock 0x08011F90 */
+void sost_down(void);                             /* hook: sostenuto_pedal's pedal down */
+void sost_up(void);                               /* hook: sostenuto_pedal's pedal up */
+void sost_note_off(uint8_t note, int poly);       /* from mpe_note_release */
+
 /* pfilter.c */
 int pfilter_drop(uint32_t src, const uint8_t *msg, const struct mpe_zone *z);   /* Settings USB IN / DIN IN */
 uint32_t ji_mode(void);                           /* Settings JUST TUNE: 0 Off, 1 Fixed, 2 Adapt */

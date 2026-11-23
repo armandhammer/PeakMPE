@@ -1,7 +1,9 @@
 """Peak: where a poly glide starts (Settings > MPE EXTRAS > Glide;
 docs/findings/peak-2.2-build2108.md, "Glide").
 
-Stock starts a note's glide from the pitch its voice last had. LastNote
+Stock starts a note's glide from the pitch its voice last had (a voice's
+first note after power-on starts on pitch, v0.38; stock glides it from note
+60, where power-on leaves every voice). LastNote
 starts it from the previous note; Legato does so only while another note is
 held. Pitches are the firmware's own, 1/256 semitone (voice_pitch_out).
 """
@@ -57,20 +59,40 @@ def _off(b, note):
 
 def test_stock_glides_from_the_voices_own_last_pitch(mpe_built):
     b = _board(mpe_built.patched, STOCK)
-    va, start = _on(b, 48)
-    assert _from(start, 60, 48)             # every voice is left at note 60 by power-on
+    notes = [48, 50, 53, 55, 57, 60, 62, 65]
+    last = {}
+    for n in notes:                         # all held: each takes a voice of its own
+        v, _ = _on(b, n)
+        last[v] = n
+    assert len(last) == 8
     b.run_ms(SETTLE_MS)
-    assert _out(b, va) == 48
-    vb, start = _on(b, 72)                  # 48 still held: another voice
-    assert vb != va and _from(start, 60, 72)    # from that voice's 60, not from 48
+    for n in notes:
+        _off(b, n)
+    b.run_ms(SETTLE_MS)
+    vb, start = _on(b, 72)
+    assert _from(start, last[vb], 72)       # from that voice's own last note, not from 65
     b.run_ms(SETTLE_MS)
     assert _out(b, vb) == 72
+
+
+@pytest.mark.parametrize("mode", [STOCK, LAST_NOTE, LEGATO])
+def test_a_voices_first_note_after_power_on_starts_on_pitch(mpe_built, mode):
+    """Power-on leaves every voice's glide pitch at note 60, and stock glides a
+    voice's first note from there (v0.37 and before, in every Glide setting:
+    LastNote and Legato have no previous note either). v0.38 starts it on pitch."""
+    b = _board(mpe_built.patched, mode)
+    va, start = _on(b, 48)
+    assert start == 48
+    if mode != LEGATO:                      # Legato glides a note played over a held one
+        vb, start = _on(b, 72)              # 48 held: another voice, its first note too
+        assert vb != va
+        assert start == 72 if mode == STOCK else _from(start, 48, 72)
 
 
 def test_last_note_glides_from_the_previous_note(mpe_built):
     b = _board(mpe_built.patched, LAST_NOTE)
     va, start = _on(b, 48)
-    assert _from(start, 60, 48)             # the first note has no previous one: as stock
+    assert start == 48                      # the first note has no previous one: on pitch (v0.38)
     b.run_ms(SETTLE_MS)
     vb, start = _on(b, 72)
     assert vb != va and _from(start, 48, 72)    # from 48

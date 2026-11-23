@@ -40,7 +40,9 @@
  * voice_alloc's voice_glide call. Poly modes only, with or without MPE; the
  * patch's Glide switch and time still decide whether and how fast it glides,
  * and PreGlide, when set, still starts the note from its own offset (stock
- * applies it inside voice_glide).
+ * applies it inside voice_glide). A voice's first note after power-on starts
+ * on pitch in every mode, mono included: power-on leaves every voice's glide
+ * pitch at note 60, and stock glided that note from middle C (v0.38).
  */
 
 #include "mpe.h"
@@ -63,6 +65,7 @@ static uint8_t glide_first;            /* the next allocation is a note's first 
 static uint8_t glide_have;             /* a note has been played since power-up */
 static uint8_t glide_prev;             /* the (first) voice of the last note */
 static uint8_t glide_from_ok;          /* this note: there was a note before it */
+static uint8_t glide_played;           /* a bit per voice: it has had a note since power-on */
 static uint8_t glide_legato;           /* this note: another note was held when it started */
 static uint16_t glide_from;            /* this note: the last note's pitch when it started */
 
@@ -184,6 +187,12 @@ static void glide_start(uint32_t v)
         glide_prev = (uint8_t)v;
         glide_have = 1;
     }
+    /* Power-on leaves every voice's glide pitch at note 60, so stock glided a
+     * voice's first note from middle C, in every mode (v0.38: on pitch). */
+    if (!(glide_played & (1u << v))) {
+        glide_played |= (uint8_t)(1u << v);
+        VOICE_GLIDE_PITCH(v) = (int32_t)voice_pitch[v] << 16;
+    }
     uint8_t mode = globals[MPE_G_GLIDE];
     if ((mode != GLIDE_LAST_NOTE && mode != GLIDE_LEGATO) || !poly() || !mpe_patch()[PATCH_GLIDE_ON])
         return;
@@ -250,6 +259,7 @@ void mpe_note_release(uint8_t note, uint8_t part)
     }
     relvel_release(note);
     voice_release(note, part);
+    sost_note_off(note, poly());      /* keys let go under the sostenuto pedal (v0.38) */
     for (uint32_t v = 0; v < MPE_VOICES; v++)
         if (hidden & (1u << v) && voice_note[v] == 0xFF)
             voice_note[v] = note;

@@ -199,3 +199,5 @@ address,name,kind,confidence,notes
 0x0800f5b0,midi_rx_put,function,observed,"(byte, port): into that port's receive ring; USB 0x0801d2f0 with port 0, the synth's own output (midi_out_byte) with port 2; DIN bytes land in port 1 (emulated)"
 0x0800f084,midi_input_port,function,observed,"(port): reads the port's ring, clock bytes to midi_clock_rx_0/1, the rest to midi_parse_byte 0x0800efc0; called for ports 0, 1, 2 by 0x0800f5f0, for port 2 alone by 0x0800f608"
 0x08017340,midi_out_byte,function,inferred,"(byte, dest 0-4): USB 0x0801d484 and DIN 0x0800ee48; with the flag at 0x20012340+0xf5 and globals+0x13 (Arp>MIDI) set, into port 2 instead"
+0x08011f6c,sostenuto_down,function,observed,"(): marks every gated voice sostenuto-held (voice_state+0x244+v = 1); called by sostenuto_pedal 0x08012010 on pedal down"
+0x08011f90,sostenuto_up,function,observed,"(): for each gated sostenuto-held voice clears the mark and, unless pedal-held (+0x23c+v), sends the three release commands and voice_clear_at; no check of the key; called by sostenuto_pedal 0x08012016 on pedal up"
