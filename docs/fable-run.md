@@ -3,13 +3,15 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** ask what next. Series AF closed 2026-11-23: v0.38 (label
-`MPEc`) on the synth, the sostenuto and first-glide fixes observed
-(`work/pedal_check.py`), rig 135/1/5 with the one fail the known marginal
-silence row (`bend_range_48`; passed alone), editor check only `settings`
-changed. No open series. Still open from the list: steal refinements, MTS
-device ID 7F and several notes per message, the J2 filter steps, and the
-stock quirk where with all voices in attack the newest is stolen.
+**Next step:** series AG (v0.39, label `MPEd`): the user flashes, then AG1
+boot, AG2 `work/attack_steal_check.py` and the rig. v0.39 (2026-11-23,
+chosen by the user): with every voice still in its attack a new note
+takes the oldest, not the newest (`steal.c`; tests failed on v0.38).
+Before: v0.38 done on the synth (series AF). Still open from the list:
+the other steal refinements (oldest on a tie between held voices,
+pedal-held first, keep the lowest note) and the J2 filter steps. (MIDI
+Tuning for device ID `7F` and several notes per message is done: v0.25,
+on the synth in series Q.)
 
 **v0.35 built** (label `MPEZ`): just intonation, `ji.c`, Settings JUST
 TUNE (Mode Off, Fixed, Adapt; Root C-B): a per-voice offset after
@@ -283,8 +285,8 @@ for MIDI Tuning (stock has single-note retuning: findings); ratchets as
 `Ratchet` x2/x3 with `Every` 1 to 8, over one note per step when `Pulses`
 is Off.
 
-**Still open, the user's choice:** MIDI Tuning for device ID `7F` and
-several notes per message; a chance for the ratchet; the stepwise closing of the filter
+**Still open, the user's choice:** (MIDI Tuning for device ID `7F` and
+several notes per message: done in v0.25) a chance for the ratchet; the stepwise closing of the filter
 seen in J2; the two decisions below. (The README describes 0.21 since
 2026-11-17; Strum was dropped by the user the same day.)
 
@@ -304,8 +306,8 @@ observed, all three Glide settings work, undo window ok, messages clear after
 3 s, Msg Time 127 = about 3 s accepted by the user. No hands-on test pending.
 
 **Open with the user (no hurry):** whether to build a steal refinement (oldest
-on a tie, pedal-held first, keep the lowest note, or protect the newest note
-in a slow attack); the sostenuto quirk is fixed in v0.38.
+on a tie, pedal-held first, keep the lowest note; the slow-attack case is
+v0.39); the sostenuto quirk is fixed in v0.38.
 
 ## Items
 
@@ -353,7 +355,7 @@ in a slow attack); the sostenuto quirk is fixed in v0.38.
 - After power-on every voice's glide pitch is note 60, so with Glide on the
   first notes glide from middle C (fixed in v0.38, observed in AF2).
 - With all eight voices still in their attack, a new note takes the newest
-  one (the note just played).
+  one (the note just played) (v0.39 takes the oldest).
 
 ## Notes for whoever resumes
 

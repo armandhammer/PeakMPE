@@ -204,6 +204,11 @@ void sost_down(void);                             /* hook: sostenuto_pedal's ped
 void sost_up(void);                               /* hook: sostenuto_pedal's pedal up */
 void sost_note_off(uint8_t note, int poly);       /* from mpe_note_release */
 
+/* steal.c */
+void voice_candidates(uint32_t start, uint32_t mask, uint32_t unison);   /* stock 0x08011B70 */
+extern volatile uint8_t cand_attack;              /* its pick among voices in their attack, 0x0F = none */
+void steal_candidates(uint32_t start, uint32_t mask, uint32_t unison);   /* hook: voice_alloc's call */
+
 /* pfilter.c */
 int pfilter_drop(uint32_t src, const uint8_t *msg, const struct mpe_zone *z);   /* Settings USB IN / DIN IN */
 uint32_t ji_mode(void);                           /* Settings JUST TUNE: 0 Off, 1 Fixed, 2 Adapt */
