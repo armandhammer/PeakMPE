@@ -3,13 +3,13 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** series AF (v0.38, label `MPEc`): the user flashes, then AF1
-boot and Glide = Stock, AF2 `work/pedal_check.py` (first after power-on)
-and the rig. v0.38 (2026-11-22, chosen by the user from the open list)
-fixes two stock quirks: sostenuto pedal up released keys still held down
-(`sostenuto.c`), and a voice's first note after power-on glided from
-middle C (`mpe_voice.c` `glide_start`). Tests for each failed on v0.37.
-Before: v0.37 done on the synth (series AE).
+**Next step:** ask what next. Series AF closed 2026-11-23: v0.38 (label
+`MPEc`) on the synth, the sostenuto and first-glide fixes observed
+(`work/pedal_check.py`), rig 135/1/5 with the one fail the known marginal
+silence row (`bend_range_48`; passed alone), editor check only `settings`
+changed. No open series. Still open from the list: steal refinements, MTS
+device ID 7F and several notes per message, the J2 filter steps, and the
+stock quirk where with all voices in attack the newest is stolen.
 
 **v0.35 built** (label `MPEZ`): just intonation, `ji.c`, Settings JUST
 TUNE (Mode Off, Fixed, Adapt; Root C-B): a per-voice offset after
@@ -347,11 +347,11 @@ in a slow attack); the sostenuto quirk is fixed in v0.38.
 ## Stock firmware quirks found (not fixed)
 
 - Sostenuto pedal up releases a note whose key is still down (fixed in
-  v0.38, `sostenuto.c`; emulated:
+  v0.38, `sostenuto.c`, observed on the synth in AF2; emulated:
   note 60 held, CC 66 127 then 0: the voice gets its release commands;
   `FUN_08011F90` checks only the pedal-held flag). A fix would be one hook.
 - After power-on every voice's glide pitch is note 60, so with Glide on the
-  first notes glide from middle C (fixed in v0.38).
+  first notes glide from middle C (fixed in v0.38, observed in AF2).
 - With all eight voices still in their attack, a new note takes the newest
   one (the note just played).
 

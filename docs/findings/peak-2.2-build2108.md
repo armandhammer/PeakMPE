@@ -436,7 +436,7 @@ in its release before it touches a held one. Plan step 18 as written
   newest note is the one that disappears.
 - **Stock quirk: sostenuto pedal up releases keys still held down**
   (code observed, behaviour emulated; first noted from the code
-  2026-11-15). `sostenuto_pedal` `0x08011FEC` calls `sostenuto_down`
+  2026-11-15; the fix observed on the synth 2026-11-23). `sostenuto_pedal` `0x08011FEC` calls `sostenuto_down`
   `0x08011F6C` (marks every gated voice, +0x244+v) and `sostenuto_up`
   `0x08011F90`, which releases every marked, gated voice whose pedal-held
   flag (+0x23C+v) is 0. A note-off under the pedal does nothing to a marked
@@ -450,7 +450,10 @@ in its release before it touches a held one. Plan step 18 as written
   held), and at pedal up the marked voices whose key is still down lose the
   mark before stock's `sostenuto_up` runs; their own note-off releases them
   later. `tests/test_peak_sostenuto.py` (5 tests; the three with a key down
-  at pedal up failed on v0.37); rig check `work/pedal_check.py` part 2.
+  at pedal up failed on v0.37); rig check `work/pedal_check.py` part 2:
+  on the synth (v0.38, run `pedal-2026-11-23_074510`) a key held through
+  pedal up kept sounding and keys let go under the pedal ended at pedal up
+  (observed).
 
 ## Glide (2026-11-15)
 
@@ -489,7 +492,9 @@ Code **observed**, behaviour **emulated**.
     (`mpe_voice.c` `glide_start`; emulated,
     `tests/test_peak_glide.py::test_a_voices_first_note_after_power_on_starts_on_pitch`,
     which failed on v0.37 for Stock and LastNote); rig check
-    `work/pedal_check.py` part 1.
+    `work/pedal_check.py` part 1: on the synth, right after power-on with
+    a slow glide, 48 and then 72 over it each started on its own pitch
+    (observed, run `pedal-2026-11-23_074510`).
   - **Mono:** one voice, so always from the last note, legato or not.
   - **MonoLG:** from the last note when legato; a detached note starts on
     pitch.
