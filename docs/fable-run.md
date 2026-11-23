@@ -3,9 +3,16 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** series AI (no new image, the user chose the J2 filter
-check first, 2026-11-23): AI1 `work/filter_step_check.py` on the rig. Before
-it, offline: J2's take (`morph-2026-11-16_140145-check`, re-read by
+**Next step:** series AI2 (the user sets Morph = ModWheel on a fresh D002,
+then "GO morph": `work/morph_step_check.py`), then AI3 (Morph back Off).
+AI1 done 2026-11-23 (run `fstep-2026-11-23_135843`, observed): FiltFreq set
+directly under a held saw (note 48) closes cleanly: 255 -> 40 falls to the
+floor in about 0.3 s with 3 windows 20 dB over the floor after the drop,
+255 -> 100 settles within 1 dB 0.06 s after the response, 40 -> 255 at
+once; the response comes 80-100 ms after the message in every take. J2's
+wheel close: 114 such windows over 2 s, as bright as the held note
+(harmonic 8 re 1 -22.8 dB against -18.7). So J2's slow fall came with the
+morph, not the filter alone (inferred until AI2). Before AI1, offline: J2's take (`morph-2026-11-16_140145-check`, re-read by
 `work/_j2_reread.py`) falls over about 1.3 s with the held note's harmonic
 balance kept (not what a closing filter does), and D002's delay, reverb and
 chorus levels are 0 (`work/_d002_fx.py` on today's editor-check dump), so
