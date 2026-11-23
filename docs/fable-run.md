@@ -3,12 +3,21 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** ask what next. Series AJ closed 2026-11-23: v0.41 (label
-`MPEf`) on the synth, Settings VOICE STEAL > Keep Low On kept the lowest
-note with keys held and under the sustain pedal (`work/keep_low_check.py`);
-with it Off, rig 136/0/5 and editor check nothing changed. No open series.
-The voice-stealing list is done (v0.38-v0.41), and the J2 filter steps
-are not reproduced on v0.40 (series AI).
+**Next step:** series AK (no new image, from the status audit the user
+chose, 2026-11-23): AK1 Keep Low On, AK2 rig (`work/unison_keep_check.py`,
+`work/arp_noloop_check.py`, `work/loopback_test.py`,
+`work/cc_filter_check.py --control`), AK3 Keep Low Off and USB IN CC Off,
+AK4 `work/cc_filter_check.py`, AK5 CC back On, AK6 editor check. The audit
+(same day): every feature labelled "not yet on the synth" in
+`docs/peak-features.md` and this file's item table was matched against the
+hardware log; display units, EnvSync, quick-assign, undo, param lock,
+section copy, MIDI monitor, Euclid, ratchets, glide, the motion recorder,
+Compare with undo and lanes are observed (labels corrected, each naming its
+series). Never on the synth: the four AK checks, DIN IN Patch Off (no DIN
+output on the rig; the LinnStrument sends no program change) and a loop
+through a real DAW (AK2's loopback stands in). Then: the ratchet chance
+(the user's list), or ask. Series AJ closed 2026-11-23: v0.41 (label
+`MPEf`) on the synth (hardware log).
 
 **v0.35 built** (label `MPEZ`): just intonation, `ji.c`, Settings JUST
 TUNE (Mode Off, Fixed, Adapt; Root C-B): a per-voice offset after
@@ -316,7 +325,7 @@ observed; keep the lowest note is open); the sostenuto quirk is fixed in v0.38.
 | A4 Rig experiment | done | `c63f5d0` | `work/steal_check.py` on v0.14, 2026-11-15: the 9th note took the releasing voice (released note -56 dB, held notes +0 dB); the 10th cut the next voice in rotation (63), not the oldest; all held: 48 then 53 cut; slow attack: the newest (83) cut. All as the code reads. No steal policy built; refinements listed in the findings are the user's call | observed |
 | B1 Trace stock glide | done | `aea1d4d` | A poly note glides from the pitch its own voice last had (`voice_state+0x74+4v` is never reset); after power-on from note 60; MonoLG glides only legato; PreGlide overrides | code observed, emulated (`work/_b1_glide.py`) |
 | B2 Glide findings | done | `aea1d4d` | [findings, "Glide"](findings/peak-2.2-build2108.md#glide-2026-11-15) | |
-| B3 Glide option | done, confirmed on the synth | `aea1d4d` | Settings > MPE EXTRAS > Glide: Stock / LastNote / Legato (globals `+0x3E`), in `mpe_voice.c` `glide_start`; `tests/test_peak_glide.py` 6 pass. Rig check `work/glide_check.py` run for all three settings on v0.14 | emulated and observed; by-ear check F7 open |
+| B3 Glide option | done, confirmed on the synth | `aea1d4d` | Settings > MPE EXTRAS > Glide: Stock / LastNote / Legato (globals `+0x3E`), in `mpe_voice.c` `glide_start`; `tests/test_peak_glide.py` 6 pass. Rig check `work/glide_check.py` run for all three settings on v0.14 | emulated and observed; by-ear check F7 done (user: Legato and LastNote both work) |
 | C1 Tick rate of `mpe_mod_update` | done without a measurement | `aea1d4d` | **1 kHz.** TIM6 PSC 59 ARR 99 = 10 kHz, a tick every 10th interrupt; the tempo constant 1,717,984 per BPM is 24 clocks per quarter at 1 kHz, and the arp step measured 125 ms on the synth. The simulator's 2000 per second was its own error (TIM6 raised every 50 us slot); fixed in `emu/board.py` | code observed + one hardware time; no new rig measurement needed |
 | C2 Quick-assign `dest_of[]` | done | `aea1d4d` | All 47 entries: the control's name (`patch_param_desc`) and the destination's name (matrix list `0x080464E0`) agree. The firmware has no control-to-destination table (searched in destination order at record sizes 1, 2, 4, 8, 12) | names observed; pairing by name |
 | C3 DIN overflow counter size | done | `aea1d4d` | One byte: `ldrb.w`/`strb.w [r3, #0x204]` at `0x0800EE2C`/`0x0800EE32` in the USART6 interrupt; wraps after 255 | observed |
@@ -324,14 +333,14 @@ observed; keep the lowest note is open); the sostenuto quirk is fixed in v0.38.
 | C5 Patch timing constants (found through C1) | done, on the synth in v0.14/v0.15 | `aea1d4d` | EnvSync check interval 128 -> 64 ticks, undo gesture 4000 -> 2000 ticks, message hold by ticks. On the synth v0.13 has the first two twice too long and the hold too short | emulated |
 | D1 Findings for steps 21, 22 | done | `6d22ee9` | Parameter changes are applied by 13 update groups, at most once per 16 ms (`FUN_08013014`); a group costs 5-40 chip writes, a waveform change about 1,290 with voices sounding (`work/_d_param_cost.py`); knob events and the tempo clock position are reachable without new hooks | code observed, counts emulated; bus time on the synth not measured |
 | D2 Design note | done | `6d22ee9` | [peak-motion-morph.md](peak-motion-morph.md): one-lane 32-step motion recorder; morph between the stored and the edited patch from the mod wheel; order and risks | proposal, nothing built |
-| D3 Motion recorder | done in the simulator | `b1e4e9f` | `motion.c`: Mod + Animate 1 arms, the next control moved is recorded for 32 steps and loops; replace while playing; stop restores the value. Settings > MOTION: Length 1/2/4 bars, state, `LateTicks` (late-tick counter, `diag.c`). `tests/test_peak_motion.py` 10 pass; Peak regression 95 pass | emulated; not on the synth |
+| D3 Motion recorder | done, on the synth in v0.17 (D4) | `b1e4e9f` | `motion.c`: Mod + Animate 1 arms, the next control moved is recorded for 32 steps and loops; replace while playing; stop restores the value. Settings > MOTION: Length 1/2/4 bars, state, `LateTicks` (late-tick counter, `diag.c`). `tests/test_peak_motion.py` 10 pass; Peak regression 95 pass | emulated and observed |
 | D4 Smooth | done, on the synth in v0.17 (the user: rises smoothly) | | Lane playback is a ramp from step to step, written every 16 ms; the loop start no longer jumps. `tests/test_peak_motion.py` 13 pass | emulated and heard by the user |
-| D5 Morph | done, confirmed on the synth in v0.18 (series J) | | `morph.c`: Settings > MORPH > Morph = ModWheel; CC 1 blends the edited patch (0) towards the stored one (127); 126 continuous controls, switches stay; 16 setter calls per 16 ms. `tests/test_peak_morph.py` 16 pass. Rig script `work/morph_check.py` | emulated; not on the synth |
-| E1 Compare with undo and a motion lane | done in the simulator, v0.20 | `6f56a92` | v0.19 cleared the undo step and stopped a lane at a Compare press (emulated first). Now both stand still while Compare is held; undo, paste, quick-assign and Mod + Animate 1 say `Not during Compare` | emulated; not on the synth |
-| E2 Euclidean arp rhythms (feature list step 17) | done in the simulator, v0.20 | `d1a25fd`, `daad110` | Settings > ARP EUCLID: Pulses, Steps, Rotate. Stock's 33 rhythms are lists of note and rest lengths in arp clocks; `euclid.c` builds one and points the arp at it (hook on the call of `arp_tick`). Ratchets not built | emulated; not on the synth |
+| D5 Morph | done, confirmed on the synth in v0.18 (series J) | | `morph.c`: Settings > MORPH > Morph = ModWheel; CC 1 blends the edited patch (0) towards the stored one (127); 126 continuous controls, switches stay; 16 setter calls per 16 ms. `tests/test_peak_morph.py` 16 pass. Rig script `work/morph_check.py` | emulated and observed (series J, K, M) |
+| E1 Compare with undo and a motion lane | done, on the synth in v0.21 (series M3, M4) | `6f56a92` | v0.19 cleared the undo step and stopped a lane at a Compare press (emulated first). Now both stand still while Compare is held; undo, paste, quick-assign and Mod + Animate 1 say `Not during Compare` | emulated and observed |
+| E2 Euclidean arp rhythms (feature list step 17) | done, on the synth in v0.21 (series M5) | `d1a25fd`, `daad110` | Settings > ARP EUCLID: Pulses, Steps, Rotate. Stock's 33 rhythms are lists of note and rest lengths in arp clocks; `euclid.c` builds one and points the arp at it (hook on the call of `arp_tick`). Ratchets not built | emulated and observed |
 | E3 Arp echo filter | done in the simulator, v0.20 | `c267544` | With Arp>MIDI on and no loop, v0.2 to v0.19 took a key let go within 100 ms of the arp's own note off for the echo, so the arp went on (emulated). A note off is now dropped only within a minute of an echoed note on | emulated; not on the synth |
 | E4 MIDI Tuning Standard (feature list, "Later") | checked | `25c11f2` | Stock already takes `F0 7F 00 08 02 tt 01 kk xx yy zz F7` (one note, device 00) and the bulk dump; nothing built | code observed, emulated on stock |
-| E5 Arp ratchets (the rest of step 17) | done in the simulator, v0.21 | `7d0224e` | Settings > ARP RATCHET: Ratchet Off/x2/x3, Every 1-8. A repeat is a marked note event; a hook on the arp's choice of the next note makes stock pick the same note again. All eight Types | emulated; not on the synth |
+| E5 Arp ratchets (the rest of step 17) | done, on the synth in v0.21 (series M6) | `7d0224e` | Settings > ARP RATCHET: Ratchet Off/x2/x3, Every 1-8. A repeat is a marked note event; a hook on the arp's choice of the next note makes stock pick the same note again. All eight Types | emulated and observed |
 
 ## Verified so far
 
@@ -340,8 +349,9 @@ observed; keep the lowest note is open); the sostenuto quirk is fixed in v0.38.
 - Full `scripts/check` for the v0.14 build: pytest 650 passed, 9 skipped
   (Summit and Peak), web 34 passed, descriptors equal.
 - On the synth (v0.14): rig regression 136 pass, 0 fail, 5 info; the steal
-  check (A4). Not yet on the synth: Glide, the timing corrections, the 2 s
-  message hold.
+  check (A4). Not yet on the synth then: Glide, the timing corrections, the
+  2 s message hold (all three on the synth since, series F and G on v0.15;
+  later images and series in the hardware log).
 
 ## Stock firmware quirks found (not fixed)
 

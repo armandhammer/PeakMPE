@@ -315,7 +315,8 @@ Measurements (step 6) can run on the rig while code is written for others.
 9. **Display system: value bars, units, note names** (M). Bipolar parameters
    are drawn from the centre. Note names go on the split point, transpose and
    fixed note. Units appear once step 6 has measured them.
-   **Built (v0.3, `patches/peak_mpe/disp.c`, emulated; not yet on the synth):**
+   **Built (v0.3, `patches/peak_mpe/disp.c`, emulated; on the synth: series O,
+   v0.22, 2026-11-17, O2 overlay and bar pass, user):**
    the knob-turn overlay (`knob_overlay` `0x08016B14`, mapped in the
    [findings](findings/peak-2.2-build2108.md)) now shows attack, decay, release
    and Hold in ms/s (Amp, Mod Env 1 and 2; the mod envelopes use the amp
@@ -362,7 +363,7 @@ Measurements (step 6) can run on the rig while code is written for others.
     (as stock's flywheel does). With `Repeats` this gives rhythmic looping
     envelopes. It syncs durations, not phase, and a matching duration won't
     always feel on the beat.
-    **Built (v0.6, `patches/peak_mpe/envsync.c`; emulated, not yet on the synth):**
+    **Built (v0.6, `patches/peak_mpe/envsync.c`; emulated, then measured on the synth, below):**
     Settings > MPE EXTRAS > EnvSync (Off, 1/2, 1/4, 1/8, 1/16; v0.7: a changed choice applies only after it has held about 1 s, because v0.6 applied the choices you scrolled past; **measured on the synth 2026-11-14:** 1/8 gives Decay 264 ms and Release 272 ms at 120 BPM, about 514/533 ms at 60). While on, the amp
     Decay and Release go to the value whose measured time to -40 dB is nearest the
     note length at the current tempo, when the tempo or the setting changes (a
@@ -382,8 +383,8 @@ Measurements (step 6) can run on the rig while code is written for others.
     skip empty slots when paging. First check: whether the panel scan
     reports a held menu button while a knob moves (`panel_button_event`
     `0x08016FF0`, button table `0x20000AB8`, observed).
-    **Built (v0.8, `patches/peak_mpe/qassign.c`; emulated, not yet on the
-    synth):** hold **Mod** (panel button 7, `button_table` entry 7: type 3,
+    **Built (v0.8, `patches/peak_mpe/qassign.c`; emulated, on the synth in
+    v0.9, below):** hold **Mod** (panel button 7, `button_table` entry 7: type 3,
     mode 5, observed in the table; the event read at `0x08016FF4` is hooked and
     gives press/release), turn the value encoder or press the value buttons to
     choose the source (default Lfo1+, shown on the OLED for the message time),
@@ -406,8 +407,8 @@ Measurements (step 6) can run on the rig while code is written for others.
 
 13. **Snapshot system, then undo** (M). One level of undo. One knob gesture
     (a continuous turn) is one undo step, and a section paste is one step.
-    **Built (v0.12, `patches/peak_mpe/section.c`; emulated, not yet on the
-    synth):** one level, no separate snapshot system. The parameters (0x1A2
+    **Built (v0.12, `patches/peak_mpe/section.c`; emulated, on the synth:
+    series E, undo and redo pass, E3):** one level, no separate snapshot system. The parameters (0x1A2
     bytes) are saved before a section paste, a quick-assign and the first move
     of a control after about 2 s of stillness (one gesture is one step; a
     different control starts a new one); **Mod + Page left** undoes, **Mod + Page
@@ -417,8 +418,8 @@ Measurements (step 6) can run on the rig while code is written for others.
 
 14. **Parameter lock** (M). Keep chosen parameters (FX, arp, performance
     settings) across patch changes.
-    **Built (v0.11, `patches/peak_mpe/paramlock.c`; emulated, not yet on the
-    synth):** Settings > PARAM LOCK has Lock FX, Lock Arp and Lock Voice (Off/On,
+    **Built (v0.11, `patches/peak_mpe/paramlock.c`; emulated, on the synth:
+    series D, each lock kept its group through a patch change, user):** Settings > PARAM LOCK has Lock FX, Lock Arp and Lock Voice (Off/On,
     saved with the Settings). A locked group keeps its current values when a
     patch loads: the load is one function (`0x0801AEB8`, traced in the
     simulator), and its copy into the patch (`0x0801AECC`, the byte loop at
@@ -432,7 +433,8 @@ Measurements (step 6) can run on the rig while code is written for others.
     a group.
 
 15. **Section copy and paste** (M). LFO 1 → LFO 2, Env 2 → Env 3, and so on.
-    **Built (v0.12, `section.c`; emulated, not yet on the synth):** Settings >
+    **Built (v0.12, `section.c`; emulated, on the synth: series E, and
+    series G for its messages):** Settings >
     COPY SECTION: "Section" picks one of 14 copies (Osc 1>2, 1>3, 2>1, 2>3, 3>1,
     3>2; Amp>E1, E1>Amp, Amp>E2, E2>Amp, E1>E2, E2>E1; LFO 1>2, 2>1), "Do it" set to
     Yes performs it. Blocks (patch offsets): oscillators `0x30/0x45/0x5A` (19
@@ -442,7 +444,8 @@ Measurements (step 6) can run on the rig while code is written for others.
 
 16. **Diagnostics and MIDI monitor page** (S–M). DIN overflow count, the MPE
     zone in effect, the last incoming messages.
-    **Built (v0.12, `patches/peak_mpe/diag.c`; emulated, not yet on the synth):**
+    **Built (v0.12, `patches/peak_mpe/diag.c`; emulated, on the synth: series E,
+    5 messages sent read count 5, DIN overflow 0 after a minute of play):**
     Settings > MIDI MONITOR (read-only): the last channel message in hex, the
     message count since power-up, and the DIN overflow counter (a byte at
     `0x20003EAC+0x204`, address from the earlier DIN tests; **one byte,
@@ -456,8 +459,8 @@ Measurements (step 6) can run on the rig while code is written for others.
     retriggered note reuses or takes a new voice under Poly, Poly2 and MPE,
     which changes how a ratchet sounds. Needs the allocation generation
     counter (engineering rules).
-    **Euclidean rhythms built 2026-11-16 (v0.20, emulated, not on the
-    synth):** Settings > ARP EUCLID with `Pulses` (Off, 1-32), `Steps`
+    **Euclidean rhythms built 2026-11-16 (v0.20, emulated; on the synth in
+    v0.21, series M5: 3/8, 5/8, 1/8 and Rotate pass):** Settings > ARP EUCLID with `Pulses` (Off, 1-32), `Steps`
     (1-32) and `Rotate`. With Pulses on, the arp plays that many notes
     spread evenly over the steps in place of the patch's Rhythm; SyncRate,
     Type, Octaves, Gate, Swing and Latch stay stock's. Stock's rhythms are
@@ -468,7 +471,8 @@ Measurements (step 6) can run on the rig while code is written for others.
     `tests/test_peak_euclid.py`). The setting is global, like Lock Arp,
     not per patch: a patch's Rhythm byte above 32 would index past stock's
     table on a Peak without the patch.
-    **Ratchets built 2026-11-16 (v0.21, emulated, not on the synth):**
+    **Ratchets built 2026-11-16 (v0.21, emulated; on the synth, series M6:
+    x2, x3 and Every 4 pass):**
     Settings > ARP RATCHET with `Ratchet` (Off, x2, x3: a note sounds two
     or three times within its step) and `Every` (1 to 8: every note, every
     second one, and so on). The voice check came first: in the poly modes
@@ -504,7 +508,7 @@ Measurements (step 6) can run on the rig while code is written for others.
     bend. The useful case is likely a mono or legato lead played in MPE.
     First check: decide the musical use with the LinnStrument before
     building.
-    **Traced and built 2026-11-15 (emulated, not yet on the synth):** stock
+    **Traced and built 2026-11-15 (emulated, then on the synth, below):** stock
     keeps one glide pitch per voice and never resets it, so in Poly (and in
     MPE, where each note gets its own voice) a note glides from whatever its
     voice played last, the guide's "unpredictable"; after power-on from
