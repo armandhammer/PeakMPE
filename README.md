@@ -48,8 +48,8 @@ per-port receive filters, the USB patch and DIN notes filters checked on
 the synth, the rest in the simulator; 0.35 adds just intonation, measured
 on the synth within 0.2 cents; 0.36 lets a chord on a zone's master
 channel play in full, also on the synth; 0.37 fixes patch timing after
-power-up and a patch dump lost beside an editor request, checked in the
-simulator so far), a 600-run stress soak left no stuck note, a LinnStrument played
+power-up, checked on the synth, and a patch dump lost beside an editor
+request, checked in the simulator), a 600-run stress soak left no stuck note, a LinnStrument played
 it over DIN in one and two zones, and each feature below was tried on the
 synth (by hand, or by the rig where the panel can't do it). Not tested on other firmware versions or other units.
 

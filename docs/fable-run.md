@@ -3,12 +3,14 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** series AE (v0.37, label `MPEb`): the user flashes, then AE1
-boot and settings, AE2 `work/powerup_check.py` and the rig, AE3 settings
-back. v0.37 (2026-11-22) fixes the two issues left open since v0.33: a
-bare Continue after power-up counted bars from 1 (`ptime.c` `placed`), and
-an editor request in the same main-loop pass as a patch dump replaced it
-(`pdump.c` `pdump_reply_poll`). One test for each failed on v0.36.
+**Next step:** AE3 (the user sets PATCH DUMP and PATCH TIMING back), then
+ask what next. v0.37 (label `MPEb`, 2026-11-22) fixes the two issues left
+open since v0.33: a bare Continue after power-up counted bars from 1
+(`ptime.c` `placed`), and an editor request in the same main-loop pass as a
+patch dump replaced it (`pdump.c` `pdump_reply_poll`). One test for each
+failed on v0.36. Flashed 2026-11-22: AE1 pass; AE2 `powerup_check.py` all
+as expected (the same-pass dump case didn't come up on the synth), rig
+136/0/5, editor check only `settings` changed.
 Before: Summit v1.3 (`2751b47`, master-channel chords, simulator only).
 
 **v0.35 built** (label `MPEZ`): just intonation, `ji.c`, Settings JUST

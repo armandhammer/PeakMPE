@@ -1117,8 +1117,13 @@ behaviour **emulated** (`tests/test_peak_pdump.py`).
   pass right before `sysex_rx_poll` (in `mpe_ui_poll`), makes the
   request when the state is 0, and the same call answers it.
   `tests/test_peak_pdump.py::test_an_editor_request_in_the_same_pass_does_not_lose_the_dump`
-  failed on v0.36 and passes on v0.37; rig check `work/powerup_check.py`
-  part 2.
+  failed on v0.36 and passes on v0.37. On the synth (series AE2,
+  2026-11-22, observed): six program changes, each sent over USB with an
+  identity request right behind it, gave one dump and one identity reply
+  each; the dump came first every time (the patch load ran its pass
+  before the request was read), so the same-pass case itself did not
+  come up on the synth: the fix is emulated only, and the trials show it
+  changed nothing else.
 - **On the synth** (v0.30, series W, 2026-11-19; **observed**): with Send
   = USB, a bank select and program change for D002 brought one answer 00
   over USB, equal to the current patch; with Send = Off, none. The dump
@@ -1190,8 +1195,11 @@ disassembly, the `.data` image); behaviour **emulated**
   Start or a Song Position Pointer; until then a Continue doesn't start
   it and changes load at once, as stock.
   `tests/test_peak_ptime.py::test_continue_after_power_up_waits_for_a_song_position`
-  failed on v0.36 and passes on v0.37; rig check `work/powerup_check.py`
-  part 1.
+  failed on v0.36 and passes on v0.37. On the synth (series AE2,
+  2026-11-22, observed; `work/hw-runs/powerup-2026-11-22_185327`): after
+  power-up, a Continue and 60 BPM clock over USB, a change asked after
+  clock 10 loaded at once; after a Song Position Pointer 0 and Continue,
+  one asked after clock 10 loaded on clock 96.
 - **On the synth** (v0.32, series Y, 2026-11-20; **observed**): `work/ptime_check.py` at 120 BPM (run `ptime-2026-11-20_095426`) reported the first D001 and the third change one clock late (dumps 27.6 and 22.6 ms after the expected clock, past the next clock byte at 20.8 ms) and D002 on time; the check reads the load's clock from when its dump arrives, which a clock period this short can't separate. Re-run at 60 BPM with each patch's load-to-dump time measured first without a clock (run `ptime-2026-11-20_095536`: D002 5.2 ms, D001 5.5 ms): D001 on clock 96 (+10.6 ms), D002 on 192 (+9.5 ms), D001 asked for just after bar 4's clock on 288, at once (+18.8 ms): all as expected. With the clock running, the dumps came 9.5-27.6 ms after their clock byte against 5.2-5.5 ms without one (inferred: USB scheduling of the program change and the dump). The check now runs at 60 BPM by default.
 - **The panel's patch choice on the synth** (v0.32): **Series Z (2026-11-20, no new image; observed):** `work/ptime_panel.py`: Start, 60 s of clock at 60 BPM, Stop, nothing else sent, while the user chose patches on the panel. Run `ptpanel-2026-11-20_103015`: no presses (the steps hadn't said clearly that they go during the run). Run `ptpanel-2026-11-20_103403`: about 7 taps of Patch + and Patch -, mixed: six loads, all on bar lines but one 63 ms after another (a choice just after a line) and the last released by Stop; not matched to presses. Run `ptpanel-2026-11-20_104045`, Patch + only, three times from D002: D003 on clock 288 (bar 4's line), D004 on 768 (bar 9), D005 on 960 (bar 11), each dump 12-16 ms after its clock: **patches chosen on the panel land on the bar line.** **Open: the waiting message showed the wrong number on the synth:** `PATCH TIMING` / `D 55` / `at the next bar` while D003 waited (then `D 56` for D004, `D 57` for D005; user); the loads were right, and the simulator draws `D003`, `D004` (`work/_panel_probe.py`); not explained.
 - **The wrong number, found (2026-11-20; observed in the disassembly, emulated):** `program_change` `0x0800F0EC` builds its argument for `patch_select_load` as two bytes on its stack (bank at sp+4, program at sp+5) and loads it with `ldr r0, [sp, #4]` (`0x0800F110`), so bits 16-31 are whatever the stack held; stock's `patch_select_load` uses only the low half. `ptime_select` took a `uint16_t`, the compiler trusted the register, and the message's number (`arg >> 8`) took the garbage in (the simulator showed `D·55` for D003 after a program change, `tests/test_peak_ptime.py`); the waiting load was stored as 16 bits and was right. On the synth the panel's own message (`D003`) is replaced by the program-change one because stock sends its program change out after a panel choice (Bank/Patch transmit) and reads port 2 back in right away (`0x08018DBC` calls `0x0800F608`; inferred, the simulator doesn't loop it). v0.33 takes a word and masks it. The other hooks with 8-bit parameters were checked at their call sites: stock forms those arguments with ldrb, uxtb, ubfx or immediates (`work/_narrow_args.py`). **On the synth (v0.33, series AA, observed):** three Patch + choices during a 60 BPM clock showed `D004`, `D005`, `D006` while each waited, and each loaded on a bar line (`ptpanel-2026-11-20_145348`).
