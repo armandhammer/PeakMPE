@@ -3,13 +3,12 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** series AH (v0.40, label `MPEe`): the user flashes, then AH1
-boot, AH2 `work/held_steal_check.py` and the rig. v0.40 (2026-11-23,
-chosen by the user): among the quietest held voices a note a pedal holds
-with its key up goes first, then the oldest (`steal.c`; stock: rotation
-order; tests failed on v0.39). Before: v0.39 done on the synth (series
-AG). Still open from the list: keep the lowest note (a matter of taste)
-and the J2 filter steps.
+**Next step:** ask what next. Series AH closed 2026-11-23: v0.40 (label
+`MPEe`) on the synth, of equally loud held notes the 10th note cut the
+oldest and, under the sustain pedal, the 9th cut the oldest note the pedal
+holds rather than a key held down (`work/held_steal_check.py`), rig
+136/0/5, editor check nothing changed. No open series. Still open from the
+list: keep the lowest note (a matter of taste) and the J2 filter steps.
 
 **v0.35 built** (label `MPEZ`): just intonation, `ji.c`, Settings JUST
 TUNE (Mode Off, Fixed, Adapt; Root C-B): a per-voice offset after
@@ -304,8 +303,8 @@ observed, all three Glide settings work, undo window ok, messages clear after
 3 s, Msg Time 127 = about 3 s accepted by the user. No hands-on test pending.
 
 **Open with the user (no hurry):** whether to build a steal refinement (oldest
-on a tie and pedal-held first are v0.40, the slow-attack case v0.39; keep
-the lowest note is open); the sostenuto quirk is fixed in v0.38.
+on a tie and pedal-held first are v0.40 and the slow-attack case v0.39, both
+observed; keep the lowest note is open); the sostenuto quirk is fixed in v0.38.
 
 ## Items
 

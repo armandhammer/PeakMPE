@@ -54,7 +54,7 @@ own firmware, the sostenuto pedal and the first glide after power-on,
 checked in the simulator and on a Peak; 0.39 changes which note the
 Peak cuts when every voice is still in its attack, checked in the
 simulator and on a Peak; 0.40 changes which held note it cuts when
-they are equally loud, checked in the simulator so far), a 600-run stress soak left no stuck note, a LinnStrument played
+they are equally loud, checked in the simulator and on a Peak), a 600-run stress soak left no stuck note, a LinnStrument played
 it over DIN in one and two zones, and each feature below was tried on the
 synth (by hand, or by the rig where the panel can't do it). Not tested on other firmware versions or other units.
 
