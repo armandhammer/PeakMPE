@@ -435,7 +435,7 @@ in its release before it touches a held one. Plan step 18 as written
   practice. The slow-attack case is the one a player may notice: a pad's
   newest note is the one that disappears.
 - **v0.39: of the voices in their attack, the oldest goes** (`steal.c`;
-  emulated). A hook on `voice_alloc`'s `voice_candidates` call
+  emulated, then observed on the synth 2026-11-23). A hook on `voice_alloc`'s `voice_candidates` call
   (`0x08012392`) runs stock's ranking, then sets `cand_attack`
   (`0x200127AC`) to the state-0 voice with the smallest start stamp, first
   in stock's scan order on a tie. The release and held candidates and the
@@ -445,7 +445,10 @@ in its release before it touches a held one. Plan step 18 as written
   for held voices only by rotation and never in the attack.
   `tests/test_peak_steal.py` (3 tests; the two with all voices in attack
   failed on v0.38: the 9th note cut the 8th, the 10th the 9th); rig check
-  `work/attack_steal_check.py` (A4's take 3 with a 10th note).
+  `work/attack_steal_check.py` (A4's take 3 with a 10th note): on the
+  synth (v0.39, run `attack-2026-11-23_095321`) the 9th and 10th notes cut
+  48 and 53, the first two played (-96 and -105 dBFS late in the attack,
+  the other eight at -35 to -36) (observed).
 - **Stock quirk: sostenuto pedal up releases keys still held down**
   (code observed, behaviour emulated; first noted from the code
   2026-11-15; the fix observed on the synth 2026-11-23). `sostenuto_pedal` `0x08011FEC` calls `sostenuto_down`

@@ -3,15 +3,12 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** series AG (v0.39, label `MPEd`): the user flashes, then AG1
-boot, AG2 `work/attack_steal_check.py` and the rig. v0.39 (2026-11-23,
-chosen by the user): with every voice still in its attack a new note
-takes the oldest, not the newest (`steal.c`; tests failed on v0.38).
-Before: v0.38 done on the synth (series AF). Still open from the list:
+**Next step:** ask what next. Series AG closed 2026-11-23: v0.39 (label
+`MPEd`) on the synth, with every voice in its attack the 9th and 10th
+notes cut the two oldest (`work/attack_steal_check.py`), rig 136/0/5,
+editor check nothing changed. No open series. Still open from the list:
 the other steal refinements (oldest on a tie between held voices,
-pedal-held first, keep the lowest note) and the J2 filter steps. (MIDI
-Tuning for device ID `7F` and several notes per message is done: v0.25,
-on the synth in series Q.)
+pedal-held first, keep the lowest note) and the J2 filter steps.
 
 **v0.35 built** (label `MPEZ`): just intonation, `ji.c`, Settings JUST
 TUNE (Mode Off, Fixed, Adapt; Root C-B): a per-voice offset after
@@ -355,7 +352,7 @@ v0.39); the sostenuto quirk is fixed in v0.38.
 - After power-on every voice's glide pitch is note 60, so with Glide on the
   first notes glide from middle C (fixed in v0.38, observed in AF2).
 - With all eight voices still in their attack, a new note takes the newest
-  one (the note just played) (v0.39 takes the oldest).
+  one (the note just played) (v0.39 takes the oldest; observed in AG2).
 
 ## Notes for whoever resumes
 
