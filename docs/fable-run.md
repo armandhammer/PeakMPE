@@ -3,12 +3,15 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** ask what next. Series AH closed 2026-11-23: v0.40 (label
-`MPEe`) on the synth, of equally loud held notes the 10th note cut the
-oldest and, under the sustain pedal, the 9th cut the oldest note the pedal
-holds rather than a key held down (`work/held_steal_check.py`), rig
-136/0/5, editor check nothing changed. No open series. Still open from the
-list: keep the lowest note (a matter of taste) and the J2 filter steps.
+**Next step:** series AI (no new image, the user chose the J2 filter
+check first, 2026-11-23): AI1 `work/filter_step_check.py` on the rig. Before
+it, offline: J2's take (`morph-2026-11-16_140145-check`, re-read by
+`work/_j2_reread.py`) falls over about 1.3 s with the held note's harmonic
+balance kept (not what a closing filter does), and D002's delay, reverb and
+chorus levels are 0 (`work/_d002_fx.py` on today's editor-check dump), so
+an effect tail is ruled out. Then: keep the lowest note as a Settings
+option, off by default (recommended; it would be series AJ). Series AH
+closed 2026-11-23: v0.40 (label `MPEe`) on the synth (hardware log).
 
 **v0.35 built** (label `MPEZ`): just intonation, `ji.c`, Settings JUST
 TUNE (Mode Off, Fixed, Adapt; Root C-B): a per-voice offset after

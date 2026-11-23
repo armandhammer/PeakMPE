@@ -15,7 +15,20 @@ Setup for all series: **quit Ableton and any other MIDI app.**
 
 ---
 
-## No open series
+## Series AI: the filter steps seen in J2 (no new image)
 
-Series A to AH are done (results in
-[docs/hardware-log.md](docs/hardware-log.md)). The next series will be AI.
+The synth stays on v0.40 (boot screen `MPEe Ver 108.469`). Series A to AH
+are done (results in [docs/hardware-log.md](docs/hardware-log.md)).
+
+What this checks: in J2, after the filter Frequency came down from 255 to 40
+under a held note, the level fell in steps over about 1.4 s instead of at
+once. This series asks whether that happens with the filter set directly.
+
+### AI1. Rig (I play)
+
+1. Leave the Peak as it is after AH (D002 selected; nothing to set).
+2. Say **GO rig**. I run `work/filter_step_check.py` (about 20 s). It builds
+   a saw in the edit buffer (nothing saved), holds note 48 and moves the
+   filter Frequency four times: 255 to 40, 255 to 100, 40 to 255, 100 to 40.
+   Expected if nothing is wrong: each move settles within about 0.1 s, with
+   no drops of 3 dB or more after that.
