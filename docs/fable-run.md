@@ -3,23 +3,14 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** series AK continues at AK5 (the user: USB IN CC back On),
-then AK6 "GO rig" (editor check). AK1 to AK4 done 2026-11-23, all as expected
-(hardware log, 6a79415 row). Series AK (no new image, from the status
-audit the user chose, 2026-11-23): AK1 Keep Low On, AK2 rig (`work/unison_keep_check.py`,
-`work/arp_noloop_check.py`, `work/loopback_test.py`,
-`work/cc_filter_check.py --control`), AK3 Keep Low Off and USB IN CC Off,
-AK4 `work/cc_filter_check.py`, AK5 CC back On, AK6 editor check. The audit
-(same day): every feature labelled "not yet on the synth" in
-`docs/peak-features.md` and this file's item table was matched against the
-hardware log; display units, EnvSync, quick-assign, undo, param lock,
-section copy, MIDI monitor, Euclid, ratchets, glide, the motion recorder,
-Compare with undo and lanes are observed (labels corrected, each naming its
-series). Never on the synth: the four AK checks, DIN IN Patch Off (no DIN
-output on the rig; the LinnStrument sends no program change) and a loop
-through a real DAW (AK2's loopback stands in). Then: the ratchet chance
-(the user's list), or ask. Series AJ closed 2026-11-23: v0.41 (label
-`MPEf`) on the synth (hardware log).
+**Next step:** ask what next (the ratchet chance is the last item on the
+user's list). Series AK closed 2026-11-23 (no new image; hardware log,
+6a79415 row): Keep Low with Unison 8, the arp echo filter with and
+without a loop, and USB IN CC Off all work on the synth; the editor check
+after AK5 shows the settings as before. The status audit the same day
+corrected the labels of twelve features the hardware log shows observed.
+Never on the synth: DIN IN Patch Off (no DIN output on the rig; the
+LinnStrument sends no program change) and a loop through a real DAW.
 
 **v0.35 built** (label `MPEZ`): just intonation, `ji.c`, Settings JUST
 TUNE (Mode Off, Fixed, Adapt; Root C-B): a per-voice offset after
@@ -340,7 +331,7 @@ observed; keep the lowest note is open); the sostenuto quirk is fixed in v0.38.
 | D5 Morph | done, confirmed on the synth in v0.18 (series J) | | `morph.c`: Settings > MORPH > Morph = ModWheel; CC 1 blends the edited patch (0) towards the stored one (127); 126 continuous controls, switches stay; 16 setter calls per 16 ms. `tests/test_peak_morph.py` 16 pass. Rig script `work/morph_check.py` | emulated and observed (series J, K, M) |
 | E1 Compare with undo and a motion lane | done, on the synth in v0.21 (series M3, M4) | `6f56a92` | v0.19 cleared the undo step and stopped a lane at a Compare press (emulated first). Now both stand still while Compare is held; undo, paste, quick-assign and Mod + Animate 1 say `Not during Compare` | emulated and observed |
 | E2 Euclidean arp rhythms (feature list step 17) | done, on the synth in v0.21 (series M5) | `d1a25fd`, `daad110` | Settings > ARP EUCLID: Pulses, Steps, Rotate. Stock's 33 rhythms are lists of note and rest lengths in arp clocks; `euclid.c` builds one and points the arp at it (hook on the call of `arp_tick`). Ratchets not built | emulated and observed |
-| E3 Arp echo filter | done in the simulator, v0.20 | `c267544` | With Arp>MIDI on and no loop, v0.2 to v0.19 took a key let go within 100 ms of the arp's own note off for the echo, so the arp went on (emulated). A note off is now dropped only within a minute of an echoed note on | emulated; not on the synth |
+| E3 Arp echo filter | done, on the synth in v0.41 (series AK2) | `c267544` | With Arp>MIDI on and no loop, v0.2 to v0.19 took a key let go within 100 ms of the arp's own note off for the echo, so the arp went on (emulated). A note off is now dropped only within a minute of an echoed note on | emulated and observed |
 | E4 MIDI Tuning Standard (feature list, "Later") | checked | `25c11f2` | Stock already takes `F0 7F 00 08 02 tt 01 kk xx yy zz F7` (one note, device 00) and the bulk dump; nothing built | code observed, emulated on stock |
 | E5 Arp ratchets (the rest of step 17) | done, on the synth in v0.21 (series M6) | `7d0224e` | Settings > ARP RATCHET: Ratchet Off/x2/x3, Every 1-8. A repeat is a marked note event; a hook on the arp's choice of the next note makes stock pick the same note again. All eight Types | emulated and observed |
 
