@@ -907,7 +907,9 @@ Patch code needs RAM the firmware never touches. **Answer: CCM,
   `0x0801298A`, inside `system_init` `0x08012954`, the first call of
   `main_loop`. Reset_Handler doesn't enable it. Code running before that
   (`__patch_start`, `patch_init`) must not use the FPU; `start.c` is built
-  with `general-regs-only`.
+  with `general-regs-only`, and from 2026-11-24 `tools/patch.py --verify`
+  refuses a blob with a VFP instruction or an indirect call in any patch
+  function reached from those two (Summit and Peak MPE: 4 functions, none).
 - **Hooked code runs in thread mode (observed):** MIDI handlers run from
   `midi_drain`, which `0x08010BDC` calls for sources 0 and 1 from `main_loop`,
   and `0x08010BF4` for source 2 from UI code. The input ISRs only fill queues.

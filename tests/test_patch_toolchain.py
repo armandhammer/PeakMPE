@@ -58,6 +58,35 @@ def test_bl_decodes_firmware_calls(site, raw, target):
     assert patch.encode_bl(site, target) == bytes.fromhex(raw)
 
 
+# ------------------------------------------- code run before the FPU is on
+
+def _funcs():
+    """A synthetic blob: start -> init (a tail branch to helper, a call into
+    stock), and a float function only reached from elsewhere."""
+    return {
+        0x100: ("__patch_start", [(0x100, "bl 0x120"), (0x104, "bl 0x08001000"), (0x108, "pop {r4, pc}")]),
+        0x120: ("patch_init", [(0x120, "push {r4, lr}"), (0x122, "b.w 0x140")]),
+        0x140: ("helper", [(0x140, "movs r0, #1"), (0x142, "bx lr")]),
+        0x160: ("uses_float", [(0x160, "vldr s0, [r0]"), (0x164, "bx lr")]),
+    }
+
+
+def test_init_reach_follows_calls_and_tail_branches_only_inside_the_blob():
+    reached, vfp, indirect = patch.init_reach(_funcs(), [0x100], (0x100, 0x180))
+    assert reached == {0x100, 0x120, 0x140}
+    assert vfp == [] and indirect == []
+
+
+def test_init_reach_finds_fpu_use_and_indirect_calls_on_the_path():
+    funcs = _funcs()
+    funcs[0x140][1].insert(1, (0x141, "bl 0x160"))
+    funcs[0x120][1].insert(1, (0x121, "blx r3"))
+    reached, vfp, indirect = patch.init_reach(funcs, [0x100], (0x100, 0x180))
+    assert 0x160 in reached
+    assert vfp == [(0x160, "uses_float", "vldr s0, [r0]")]
+    assert indirect == [(0x121, "patch_init", "blx r3")]
+
+
 @pytest.mark.parametrize("delta", [4, -4, 0x100000, -0x100000, (1 << 24) - 2, -(1 << 24)])
 def test_bl_round_trips(delta):
     site = 0x08030000
@@ -244,6 +273,7 @@ def test_demo_verifies(demo):
     lines = []
     patch.verify(demo.patched, demo.hooks, demo.blob, out=lines.append)
     assert lines[-1] == "verify  ok"
+    assert lines[-2].startswith("verify  before the FPU is on: 2 function(s), 0 FPU")
     assert {h.symbol for h in demo.hooks} == {"__patch_start", "demo_note_on", "demo_voice_trigger"}
 
 

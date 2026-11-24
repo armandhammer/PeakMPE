@@ -112,7 +112,8 @@ These apply to every module in the combined definition.
   - main-loop and modulation-tick time, and sound-chip write rate and
     duration (simulator cycle counts, step 6 on hardware)
   - DIN receive ring and any queue of ours: peak occupancy
-  - stack high-water mark (painted stack in the simulator)
+  - stack high-water mark (painted stack in the simulator,
+    `tests/test_peak_stack.py`: 496 B at most against stock's 480 B, v0.43)
   - screen update time. Display and diagnostic work stays out of
     interrupt and timing-critical paths
 - **Recovery and persistent settings.** Before a feature image is flashed:

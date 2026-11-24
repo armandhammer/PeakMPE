@@ -88,6 +88,12 @@ void envsync_poll(void)
     if ((uint32_t)(ticks - last_check) < CHECK_TICKS)
         return;
     last_check = ticks;
+    /* Compare held: stock throws away the patch it plays at the release, so
+     * times set there would be lost and still count as applied; up to v0.43
+     * the edited patch then kept the old tempo's times (outside audit MED-6a).
+     * A tempo that changed meanwhile applies once Compare is let go. */
+    if (compare_held)
+        return;
     uint32_t div = globals[MPE_G_ENVSYNC];
     if (div > 4)
         div = 0;

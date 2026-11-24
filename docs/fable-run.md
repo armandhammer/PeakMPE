@@ -3,10 +3,26 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** ask what next. v0.43 (label `MPEh`) on the synth
-2026-11-24: rig 136/0/5, arp loopback stops on release on the rig's P1
-sound, editor check unchanged but for the unsaved Chance byte. No open
-series.
+**Next step:** v0.44 (label `MPEi`, image `2da22466…`) is built and
+checked, not yet flashed: after the user's flash, the boot label, the rig
+and the editor check, as for v0.43. No open series.
+
+**v0.44** (label `MPEi`): the rest of the outside audit, all in the
+simulator. EnvSync waits while Compare is held (`envsync.c`): with an
+external clock, a tempo change during Compare set the times in the patch
+Compare plays, which stock throws away, and counted them as applied, so
+the edited patch kept the old tempo's times (MED-6a; the test fails on
+v0.43). Checked and left as they are: a bar-timed patch change falling due
+during Compare ends as stock's change at once does (MED-5b), and
+`param_put` changes only bit 0 of stock's changed flag, so morph and
+motion keeping the whole byte loses nothing (MED-7a). New checks: the
+stack high-water test (`tests/test_peak_stack.py`: 496 B at most, stock
+480 B) and `tools/patch.py --verify` refusing FPU use or an indirect call
+before main turns the FPU on. Full check: pytest 889 passed, web 34.
+
+v0.43 (label `MPEh`) on the synth 2026-11-24: rig 136/0/5, arp loopback
+stops on release on the rig's P1 sound, editor check unchanged but for the
+unsaved Chance byte.
 
 **v0.43** (label `MPEh`): fixes from an outside code audit of v0.42
 (2026-11-23; most findings did not hold up against stock and the compiled

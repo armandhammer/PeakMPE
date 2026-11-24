@@ -416,6 +416,25 @@ def test_morphing_asks_for_no_page_redraw(mpe_built):
     assert b.u8(MSG_STATE + 1) == 0
 
 
+@pytest.mark.parametrize("before", [0x00, 0xFE])
+def test_a_patch_write_changes_only_bit_0_of_the_changed_flag(mpe_built, before):
+    """morph.c's put and motion.c's write keep the whole byte ui_msg_state+1
+    across param_put and put it back. That drops no other flag only if
+    param_put changes nothing but bit 0: param_write (0x0800F658) sets it
+    through mark_changed (0x08018A88, `orr #1`), pickup_arm writes only
+    pickup_state (code observed; checked for an outside audit's MED-7a,
+    2026-11-24). Here for a 7-bit control and both bytes of a 9-bit pair."""
+    b = _board(mpe_built, on=False)
+    put = mpe_built.blob.address("param_put")
+    for offset, value in ((RESONANCE, 33), (FILT_FREQ, 70), (FILT_FREQ + 1, 0x40), (O1_FINE, 90)):
+        if b.u8(PATCHES + offset) == value:      # an equal value isn't written, nor flagged
+            value ^= 0x40
+        b.uc.mem_write(MSG_STATE + 1, bytes([before]))
+        _call(b, put, offset, value)
+        assert b.u8(PATCHES + offset) == value, hex(offset)
+        assert b.u8(MSG_STATE + 1) == before | 1, hex(offset)
+
+
 def test_morph_page(mpe_built):
     b, blob = _board(mpe_built, on=False), mpe_built.blob
     rows = _show(b, 8, MORPH_PAGE, 0)
