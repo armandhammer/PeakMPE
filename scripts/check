@@ -20,6 +20,11 @@
 #              compiled blob always, the whole descriptor with the firmware;
 #              and tools/web_descriptor.py check (no Novation bytes), which
 #              needs the firmware
+#
+# A full run (firmware present, no --quick, no --shard) that passes writes
+# work/check-stamp with scripts/check-key's key, taken before and after the
+# run (both must agree: nothing edited meanwhile). scripts/build-image.sh then
+# reuses it while the key is the same, instead of running the check again.
 set -uo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -27,12 +32,13 @@ cd "$root"
 descriptors=(web/patches/mpe.json web/patches/peak-mpe.json)
 pytest_args=(-q -n auto)
 shard=""
+full=yes
 usage() { echo "usage: scripts/check [--no-firmware] [--quick] [--shard I/N]" >&2; exit 2; }
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --no-firmware) export DEV_NO_FIRMWARE=1 ;;
-        --quick) pytest_args+=(-m "not slow") ;;
-        --shard) [[ "${2:-}" =~ ^[0-9]+/[0-9]+$ ]] || usage; shard="$2"; pytest_args+=(--shard "$2"); shift ;;
+        --no-firmware) export DEV_NO_FIRMWARE=1; full=no ;;
+        --quick) pytest_args+=(-m "not slow"); full=no ;;
+        --shard) [[ "${2:-}" =~ ^[0-9]+/[0-9]+$ ]] || usage; shard="$2"; pytest_args+=(--shard "$2"); full=no; shift ;;
         *) usage ;;
     esac
     shift
@@ -44,6 +50,8 @@ if [[ -n "${DEV_NO_FIRMWARE:-}" ]] || [[ ! -e firmware/summit-firmware-2.2-build
 fi
 if [[ $firmware == yes ]]; then view="firmware present: full suite"; else view="no firmware: tests that need it skip"; fi
 echo "== scripts/check ($view), image $(scripts/dev --image)"
+key_before=""
+[[ $full == yes && $firmware == yes ]] && key_before="$(scripts/check-key 2>/dev/null || true)"
 
 results=()
 failed=0
@@ -76,6 +84,18 @@ for descriptor in "${descriptors[@]}"; do
         results+=("skipped descriptor check ($name, needs the firmware)")
     fi
 done
+
+if [[ $failed == 0 && -n "$key_before" ]]; then
+    key_after="$(scripts/check-key 2>/dev/null || true)"
+    if [[ "$key_after" == "$key_before" ]]; then
+        mkdir -p work
+        printf 'key %s\npassed %s\ncommit %s\n' "$key_before" "$(date '+%Y-%m-%d %H:%M %Z')" \
+            "$(git rev-parse --short=12 HEAD 2>/dev/null || echo unknown)" > work/check-stamp
+        results+=("stamp   work/check-stamp (scripts/build-image.sh reuses it while nothing tested changes)")
+    else
+        results+=("no stamp: files changed during the run")
+    fi
+fi
 
 echo
 echo "== summary"

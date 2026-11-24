@@ -6,8 +6,9 @@ clock, and preempts the main thread with the interrupts the MIDI path needs.
 
 Time model (inferred CPU rate, see the findings "Modulation tick"):
 
-* The clock advances in 50 µs slots, one TIM6 update each (TIM6 runs at
-  20 kHz). A slot gives the main thread :data:`SLOT_INSTRUCTIONS` = 6000
+* The clock advances in 50 µs slots. TIM6 updates at the rate the firmware
+  programs (PSC and ARR; :meth:`Board.tim6_period_us`): every slot on the
+  Summit (20 kHz), every second slot on the Peak (10 kHz). A slot gives the main thread :data:`SLOT_INSTRUCTIONS` = 6000
   instructions, 120 MHz at one instruction per cycle, minus what the
   interrupts in that slot used.
 * Optional, closer to the board (:attr:`Board.spi1_frame_cycles`,
@@ -102,6 +103,13 @@ EXTI15_IRQ = 40
 EXTI_PERIOD_US = 100
 
 TIM6_CR1, TIM6_DIER = 0x40001000, 0x4000100C
+# The update rate follows what the firmware programs: (PSC + 1) * (ARR + 1)
+# timer clocks per update, at the 60 MHz TIM6 clock inferred from the PLL
+# set-up (the same RCC values in both images). Summit: PSC 59, ARR 49, 50 us
+# (20 kHz). Peak: PSC 59, ARR 99 (0x0800E414), 100 us (10 kHz); its ISR counts
+# 10 updates per mod tick, the Summit's 20, so both tick at 1 kHz.
+TIM6_PSC, TIM6_ARR = 0x40001028, 0x4000102C
+TIM6_CLOCK_MHZ = 60
 NVIC_ISER = 0xE000E100
 NVIC_ICER = 0xE000E180
 
@@ -444,8 +452,17 @@ class Board(Machine):
             self.regs.get(TIM6_CR1, 0) & 1
             and self.regs.get(TIM6_DIER, 0) & 1
             and self._irq_enabled(TIM6_IRQ)
+            and self.time_us % self.tim6_period_us() == 0
         ):
             self.run_isr(self._isr[TIM6_IRQ], "tim6")
+
+    def tim6_period_us(self) -> int:
+        """TIM6's update period as the firmware programmed it, in whole slots."""
+        psc, arr = self.regs.get(TIM6_PSC), self.regs.get(TIM6_ARR)
+        if psc is None or arr is None:
+            return SLOT_US
+        us = (psc + 1) * (arr + 1) // TIM6_CLOCK_MHZ
+        return max(SLOT_US, us - us % SLOT_US)
 
     def run_isr(self, addr: int, name: str = "") -> None:
         """Run a handler to completion on the main thread's stack."""

@@ -96,6 +96,15 @@ These apply to every module in the combined definition.
   voice has since been stolen or released. Panic, patch change, MPE channel
   reuse and sustain release clear the queue. In place before strum and
   ratchets.
+- **Times in the patch are counted in modulation ticks, 1000 per second**
+  (`mpe_ticks()`). The Peak's TIM6 runs at 10 kHz and requests a tick every
+  10th interrupt ([findings](findings/peak-2.2-build2108.md#timers-and-the-1-khz-tick-2026-11-15)).
+  Until 2026-11-15 the simulator ran the Peak's timers twice too fast, and
+  v0.6 to v0.13 carried tick counts twice too large (EnvSync's holds, the
+  undo gesture window). Stock's message countdown is not used for timing.
+  From v0.15 one count of it is 22 ms (stock: 11 ms), so `Msg Time` 127
+  lasts about 3 s as the guide says, and a message of the patch always sets
+  stock's changed flag, without which the page is never redrawn after it.
 - **Timing budget, checked for every combined image:**
   - note latency (MIDI in to sound) under combined load: dense MPE
     expression while changing patches, paging the screen and receiving
@@ -103,7 +112,8 @@ These apply to every module in the combined definition.
   - main-loop and modulation-tick time, and sound-chip write rate and
     duration (simulator cycle counts, step 6 on hardware)
   - DIN receive ring and any queue of ours: peak occupancy
-  - stack high-water mark (painted stack in the simulator)
+  - stack high-water mark (painted stack in the simulator,
+    `tests/test_peak_stack.py`: 496 B at most against stock's 480 B, v0.43)
   - screen update time. Display and diagnostic work stays out of
     interrupt and timing-critical paths
 - **Recovery and persistent settings.** Before a feature image is flashed:
@@ -190,20 +200,48 @@ Measurements (step 6) can run on the rig while code is written for others.
    +31,318 of 32,767 (emulated). Details in the
    [findings](findings/peak-2.2-build2108.md). MPE voices already clamp
    their own bend.
-3. **Blank-settings-chip guard** (S). `settings_load` trusts the stored
-   indices (port plan 2b item 4). First check: the simulator with a blank
-   DataFlash.
+3. ~~**Blank-settings-chip guard**~~ **Closed without a firmware change
+   (2026-11-18).** On the Peak, `settings_load` reads no index from a blank
+   chip (the patch loader skips `0xFFFF`), and the patch's stored settings
+   already fall back to their defaults at 0xFF; `tests/test_peak_blank.py`
+   checks both (emulated). Stock itself doesn't run on an unformatted chip
+   (the 0xFF edit buffer turns on the arp, which reads through a null
+   pointer); that needs a factory format, which isn't worth carrying in
+   the patch. Details in the [findings](findings/peak-2.2-build2108.md).
 4. **Combined definition, shared hooks and the golden baseline** (M).
    Restructure into the one definition described above, MPE first, with
    the dispatch hooks and the resource report. Done when the MPE image built
    this way passes the full rig run, as today's does. That image and its
    recorded MIDI/audio results become the known-good baseline every later
    feature is compared against, including the first timing-budget numbers.
+   **Struck (the user, 2026-11-18): done in practice.** Every release is
+   built from the one definition (`patches/peak_mpe/patch.py`) and passes
+   the same `hwrig run --stage all` (136 measured rows) before its
+   hands-on series; the hardware log is the baseline.
 5. **Front-panel panic and editor/MIDI baseline** (S). A button combination
    that runs stock's CC 120 handling and also clears our MPE note ownership
    and anything our features have queued (arp, strum). Plus a recorded
    baseline of the Novation editor's traffic (Components) and of MIDI out
    for a fixed set of actions, kept as a regression check.
+   **Panic built (v0.28, `panic.c`; on the synth 2026-11-19, series T passed):**
+   hold **Mod** and press **Audition**. Stock's CC 120, then the held keys,
+   the arp's keys and play map (a latched or stuck chord stops), the MPE
+   voice bindings and every channel's bend, pressure and slide. Delay and
+   reverb tails ring out. Message `PANIC` / `All notes off`. Tests
+   `tests/test_peak_panic.py` (with control cases that fail without the
+   panic); findings, "All sound off, all notes off and the panic".
+   **Editor/MIDI baseline built (2026-11-19; on the synth the same day,
+   series U: Components reads the Peak; `editor-2026-11-19_085344` is the first hardware baseline):** the editor protocol read from stock's SysEx parsers
+   (findings, "The editor protocol"). `tests/test_peak_editor.py` plays
+   fixed sessions into stock and the patch and requires the same bytes
+   out: every editor request, a bank dump's start, each write read back,
+   and MIDI out for arp notes, CCs, a program change and All Notes Off;
+   plus the patch's settings surviving a settings dump and write-back
+   (step 7's open question about Components, as far as the protocol
+   goes). `tools/editor_check.py` sends the read requests (and one write
+   to the edit buffer) to the synth and compares the answers with its
+   previous run. Not covered: what Components itself sends (not
+   recorded), the Backup page's dump from the panel.
 
 ### 2. Expression, first part
 
@@ -233,6 +271,26 @@ Measurements (step 6) can run on the rig while code is written for others.
    stock's squared aftertouch, plus CC 11 as pressure on member channels.
    Smoothing for CC 74 and bend. Check that poly aftertouch on member
    channels reaches the right voice under MPE.
+   **Mapped (2026-11-13, observed in the disassembly, image base
+   `0x0800C000`):** the squaring is `mod_update`'s last block. `ubfx r4, r4,
+   #12, #16` (`0x08010A6C`) takes x from the smoother (`voice_state+0x54+4v`),
+   `mul.w r4, r4, r4` (`0x08010A70`) and `ubfx r4, r4, #15, #16`
+   (`0x08010A74`) give x²>>15, then `bl voice_mod_write` (`0x08010A7C`, r0 =
+   voice, r1 = 1, r2 = value) and a `part_mod_write` call just after. x tops
+   out at `0x7F00` for pressure 127, so squared gives `0x7E00`, linear
+   `0x7F00`. Plan: hook both `bl`s to C wrappers that send x instead of x²>>15
+   when the setting is Linear (no asm needed, x is recomputed from the
+   smoother); `mpe_pressure_voice`'s note-on write uses the same helper. The
+   setting is a third item on the Settings MPE page (a new record, display
+   type and `edit_setting` case in `mpe_ui.c`, one globals byte). Open
+   before building: which globals byte is free on the Peak (`+0x34` is read
+   on the Summit), and that Save and Components leave it alone.
+   **Built (v0.4, `mpe_pressure.c`, `mpe_ui.c`; rig unchanged, 136/0):** the
+   Squared/Linear option. **v0.5 (emulated, `test_peak_sim.py`):** CC 11 on a
+   member channel is pressure; poly aftertouch on a member channel reaches
+   only its own voice (checked, no change needed). CC 74 and bend are already
+   smoothed per voice (1/8 and 1/4 of the step per tick, `mpe_slide.c`,
+   `mpe_bend.c`); an adjustable amount is not built. Checked on the synth 2026-11-14: Linear works and persists through Save and a power cycle.
 8. **New per-voice mod values, proof first** (M). Feeding values into the
    matrix is proven: the MPE patch writes each voice's pressure into the
    slots the matrix reads (`voice_state` +0x44, observed on hardware). First
@@ -240,13 +298,26 @@ Measurements (step 6) can run on the rig while code is written for others.
    and hear it on a per-voice destination. Only then work out how source IDs
    are stored and listed, to add release velocity, random per note and voice
    index as real choices in the matrix.
+   **Release velocity done (v0.24, `relvel.c`; on the synth 2026-11-18):** no new source ID. Settings `RELEASE VEL` > `Source` lends one
+   of the two pedal sources (`ExprPED1`, `BrthPED2`, parameters 0x62/0x63):
+   its per-tick broadcast is dropped and each note-off writes its velocity
+   into that source of the voices it releases, just before their release
+   command. Route the source to `AmpEnv R`; the chip reads the release time
+   at note-off (step 6), so each note gets its own. Rig (observed): t20
+   grows from 0.12 s at note-off velocity 1 to about 3.8 s at 127, with no
+   carry-over; the LinnStrument sends release velocity. Random per
+   note and voice index could lend a source the same way; not built.
+   **The rest is optional, for later (the user, 2026-11-18):** random
+   per note and voice index stay possible (no controller can send them
+   per voice) but are not planned.
 
 ### 3. Screen
 
 9. **Display system: value bars, units, note names** (M). Bipolar parameters
    are drawn from the centre. Note names go on the split point, transpose and
    fixed note. Units appear once step 6 has measured them.
-   **Built (v0.3, `patches/peak_mpe/disp.c`, emulated; not yet on the synth):**
+   **Built (v0.3, `patches/peak_mpe/disp.c`, emulated; on the synth: series O,
+   v0.22, 2026-11-17, O2 overlay and bar pass, user):**
    the knob-turn overlay (`knob_overlay` `0x08016B14`, mapped in the
    [findings](findings/peak-2.2-build2108.md)) now shows attack, decay, release
    and Hold in ms/s (Amp, Mod Env 1 and 2; the mod envelopes use the amp
@@ -262,6 +333,14 @@ Measurements (step 6) can run on the rig while code is written for others.
    and note names: stock already prints `FixedNote` and `SplitPoint` as note
    names (display types 0x40/0x41) and Transpose is a Settings page number,
    not a knob, so there was nothing to add to the overlay.
+   **Cost, v0.23 (`lcdcache.c`, emulated):** series M7 measured about half
+   the 1 kHz modulation ticks lost while a knob turned (observed). Stock
+   rewrites the whole overlay on every knob event (37 writes, about 1.9 ms
+   of busy-waited bus time) and v0.22's bar doubled it; with the LCD cache
+   only changed characters are sent (about 4 per event, 0.2 ms), and the
+   bar's characters load one per main-loop pass. On the synth (series O4,
+   2026-11-17): 17 ticks lost over a knob turn against 2,645 on v0.21.
+   Findings, "The patch's LCD cache".
 10. **Pickup feedback** (M). Show which way to turn and how far, as an arrow
     and a bar closing on the saved value, in place of stock's numbers.
     **Built (v0.3, `disp.c`; checked on the synth by the user, 2026-11-13):**
@@ -285,6 +364,17 @@ Measurements (step 6) can run on the rig while code is written for others.
     (as stock's flywheel does). With `Repeats` this gives rhythmic looping
     envelopes. It syncs durations, not phase, and a matching duration won't
     always feel on the beat.
+    **Built (v0.6, `patches/peak_mpe/envsync.c`; emulated, then measured on the synth, below):**
+    Settings > MPE EXTRAS > EnvSync (Off, 1/2, 1/4, 1/8, 1/16; v0.7: a changed choice applies only after it has held about 1 s, because v0.6 applied the choices you scrolled past; **measured on the synth 2026-11-14:** 1/8 gives Decay 264 ms and Release 272 ms at 120 BPM, about 514/533 ms at 60). While on, the amp
+    Decay and Release go to the value whose measured time to -40 dB is nearest the
+    note length at the current tempo, when the tempo or the setting changes (a
+    tempo must hold 4 checks of 128 ms and move by 1 BPM). Amp envelope only; the
+    mod envelopes, Attack and Hold are not synced. Tempo is stock's own word at
+    `0x20000264` (1,717,984 per BPM; internal and external clock both), values go
+    in through the setter behind a received CC (`0x0800F6AC`), so the patch, the
+    FPGA update and pickup follow as for a CC. Tests: `test_peak_sim.py`
+    (`test_envsync_*`: 1/8 at 120 BPM picks about 250 ms, at 240 BPM about
+    125 ms; Off changes nothing).
 
 ### 4. Editing
 
@@ -294,13 +384,74 @@ Measurements (step 6) can run on the rig while code is written for others.
     skip empty slots when paging. First check: whether the panel scan
     reports a held menu button while a knob moves (`panel_button_event`
     `0x08016FF0`, button table `0x20000AB8`, observed).
+    **Built (v0.8, `patches/peak_mpe/qassign.c`; emulated, on the synth in
+    v0.9, below):** hold **Mod** (panel button 7, `button_table` entry 7: type 3,
+    mode 5, observed in the table; the event read at `0x08016FF4` is hooked and
+    gives press/release), turn the value encoder or press the value buttons to
+    choose the source (default Lfo1+, shown on the OLED for the message time),
+    then move a slider or knob: its destination goes into the first free slot
+    (both sources Direct, depth 0) at depth +32. The same control again does
+    nothing; a control with no destination says so. Control-to-destination
+    table: names matched to the matrix's destination list (checked
+    2026-11-15: for all 47 entries the control's own name in
+    `patch_param_desc` and the destination's name in the matrix list
+    `0x080464E0` agree, e.g. `O1Shape` → `Osc1Shpe`; the firmware has no
+    table of its own from control to destination, searched for in
+    destination order at five record sizes; mod
+    destinations without a control are left out). Values go in through the CC
+    setter with the slot's NRPN number (emulated: slots updated). **On the synth
+    (v0.9, 2026-11-14, user):** assign, slot choice, the Mod menu entry and the
+    filter following LFO 1 all worked; stock's knob overlay flickered behind the
+    message and the moved control still changed, so from v0.10 (`MPEA`) a control
+    moved with Mod held draws nothing of stock's and is not applied. Not built:
+    skipping empty slots when paging.
+
 13. **Snapshot system, then undo** (M). One level of undo. One knob gesture
     (a continuous turn) is one undo step, and a section paste is one step.
+    **Built (v0.12, `patches/peak_mpe/section.c`; emulated, on the synth:
+    series E, undo and redo pass, E3):** one level, no separate snapshot system. The parameters (0x1A2
+    bytes) are saved before a section paste, a quick-assign and the first move
+    of a control after about 2 s of stillness (one gesture is one step; a
+    different control starts a new one); **Mod + Page left** undoes, **Mod + Page
+    right** redoes, written back through the CC setter for the parameters that
+    differ. Not recorded: value-button and encoder edits, and parameters
+    without a CC/NRPN number. A patch load clears it.
+
 14. **Parameter lock** (M). Keep chosen parameters (FX, arp, performance
     settings) across patch changes.
+    **Built (v0.11, `patches/peak_mpe/paramlock.c`; emulated, on the synth:
+    series D, each lock kept its group through a patch change, user):** Settings > PARAM LOCK has Lock FX, Lock Arp and Lock Voice (Off/On,
+    saved with the Settings). A locked group keeps its current values when a
+    patch loads: the load is one function (`0x0801AEB8`, traced in the
+    simulator), and its copy into the patch (`0x0801AECC`, the byte loop at
+    `0x0801D736`) is hooked to save the locked ranges and write them back
+    before the push to the sound chip. Ranges (mine, from the parameter table):
+    FX `0xC7-0xEC`, Arp `0xED-0xFA` (includes the tempo), Voice `0x22-0x2F`
+    (v0.11-v0.25 had `0xEC`, the chorus Mode, in Arp; fixed in v0.26)
+    (mode, unison, glide, diverge, drift, noise filters). Initialise and
+    Compare loads are covered too (any load into the current patch); the first
+    load after power-up is not. The mod matrix and per-patch MPE flag are not in
+    a group.
+
 15. **Section copy and paste** (M). LFO 1 → LFO 2, Env 2 → Env 3, and so on.
+    **Built (v0.12, `section.c`; emulated, on the synth: series E, and
+    series G for its messages):** Settings >
+    COPY SECTION: "Section" picks one of 14 copies (Osc 1>2, 1>3, 2>1, 2>3, 3>1,
+    3>2; Amp>E1, E1>Amp, Amp>E2, E2>Amp, E1>E2, E2>E1; LFO 1>2, 2>1), "Do it" set to
+    Yes performs it. Blocks (patch offsets): oscillators `0x30/0x45/0x5A` (19
+    bytes), envelopes `0x92/0x9B/0xA3` (8 bytes), LFOs `0xAC/0xBA` (12 bytes).
+    Parameters without a CC or NRPN number are skipped. Setter ids come from
+    the descriptors (msb 252-254 CC, 255 none, else NRPN).
+
 16. **Diagnostics and MIDI monitor page** (S–M). DIN overflow count, the MPE
     zone in effect, the last incoming messages.
+    **Built (v0.12, `patches/peak_mpe/diag.c`; emulated, on the synth: series E,
+    5 messages sent read count 5, DIN overflow 0 after a minute of play):**
+    Settings > MIDI MONITOR (read-only): the last channel message in hex, the
+    message count since power-up, and the DIN overflow counter (a byte at
+    `0x20003EAC+0x204`, address from the earlier DIN tests; **one byte,
+    observed 2026-11-15** in the USART6 interrupt's `ldrb`/`strb`, so it
+    wraps after 255). The MPE zone in effect is on the Settings MPE page already.
 
 ### 5. Playing
 
@@ -309,10 +460,50 @@ Measurements (step 6) can run on the rig while code is written for others.
     retriggered note reuses or takes a new voice under Poly, Poly2 and MPE,
     which changes how a ratchet sounds. Needs the allocation generation
     counter (engineering rules).
+    **Euclidean rhythms built 2026-11-16 (v0.20, emulated; on the synth in
+    v0.21, series M5: 3/8, 5/8, 1/8 and Rotate pass):** Settings > ARP EUCLID with `Pulses` (Off, 1-32), `Steps`
+    (1-32) and `Rotate`. With Pulses on, the arp plays that many notes
+    spread evenly over the steps in place of the patch's Rhythm; SyncRate,
+    Type, Octaves, Gate, Swing and Latch stay stock's. Stock's rhythms are
+    lists of note and rest lengths
+    ([findings, "Arp rhythm patterns"](findings/peak-2.2-build2108.md#arp-rhythm-patterns-2026-11-16)),
+    so the patch builds such a list in RAM and points the arp at it
+    (`euclid.c`, one hook on the call of `arp_tick`; tests
+    `tests/test_peak_euclid.py`). The setting is global, like Lock Arp,
+    not per patch: a patch's Rhythm byte above 32 would index past stock's
+    table on a Peak without the patch.
+    **Ratchets built 2026-11-16 (v0.21, emulated; on the synth, series M6:
+    x2, x3 and Every 4 pass). Chance built 2026-11-23 (v0.42, emulated; on the synth, series AL3):**
+    `Chance` (10-100 %) on the same page rolls once at each ratcheted
+    note; a lost roll turns its repeats into rests of the same length.
+    Settings > ARP RATCHET with `Ratchet` (Off, x2, x3: a note sounds two
+    or three times within its step) and `Every` (1 to 8: every note, every
+    second one, and so on). The voice check came first: in the poly modes
+    each repeat takes the next voice, in Mono and MonoLG it retriggers the
+    one voice (emulated). A repeat is an extra note event in the generated
+    pattern, marked so that a second hook (on the arp's choice of the next
+    note) makes stock choose the same note again; it works with all eight
+    Types. With `Pulses` Off the ratchet plays over one note per step, not
+    over the patch's Rhythm (stock's own patterns are not rewritten). Not
+    built: a chance for the ratchet, and x4 (a step is six arp clocks, so
+    four equal parts do not fit).
 18. **Tail-aware voice stealing** (M, an experiment). Prefer an idle voice,
     then one in release, then the least disruptive. First check: what stock
     does (the search at `0x08011B70` keeps the largest age counter, inferred
     oldest-voice), measured on the rig. Kept only if it measurably helps.
+    **Traced 2026-11-15: stock already does this.** The allocator reads each
+    voice's envelope state and level from the sound chip on every note-on and
+    takes the quietest voice in its release first, then the quietest held
+    voice, then the newest still in its attack (code observed; the chip's
+    replies inferred; emulated in `tests/test_peak_voice_steal.py`). The search
+    is not by age. Details and what a patch could still add (oldest on a tie,
+    pedal-held notes before key-held, keep the lowest note) are in the
+    [findings](findings/peak-2.2-build2108.md#voice-allocation-and-stealing-2026-11-15).
+    **Confirmed on the synth 2026-11-15 (observed, `work/steal_check.py`):**
+    with eight notes held and one let go, a 9th takes the releasing voice
+    and no held note is cut; with all held, the voice after the last pick
+    goes (rotation, not age); with all eight still in a slow attack, the
+    newest goes. Step closed: nothing to build for "tail-aware".
 19. **Per-note glide in MPE** (M). Scope still open. With channel rotation
     (the LinnStrument's default) a member channel's previous note is
     unrelated to its next one, so seeding glide per channel would glide from
@@ -320,7 +511,32 @@ Measurements (step 6) can run on the rig while code is written for others.
     bend. The useful case is likely a mono or legato lead played in MPE.
     First check: decide the musical use with the LinnStrument before
     building.
-20. **Strum** (S–M as an arp/Chord mode; M–L for incoming MIDI). MIDI sends
+    **Traced and built 2026-11-15 (emulated, then on the synth, below):** stock
+    keeps one glide pitch per voice and never resets it, so in Poly (and in
+    MPE, where each note gets its own voice) a note glides from whatever its
+    voice played last, the guide's "unpredictable"; after power-on from
+    middle C ([findings, "Glide"](findings/peak-2.2-build2108.md#glide-2026-11-15)).
+    Settings > MPE EXTRAS > **Glide** chooses where a poly glide starts:
+    `Stock`; `LastNote`, from where the previous note's pitch is now,
+    whichever voice or member channel played it; `Legato`, the same but only
+    while another note is held, a detached note starting on pitch (what
+    MonoLG does with its one voice, here with a voice per note, so per-note
+    bend, Slide and pressure keep working). It only moves the start: the
+    patch's Glide On and Glide Time decide whether and how fast, PreGlide
+    still wins when it is not 0, and the mono modes are untouched. The
+    start is the previous note's unbent pitch (a per-note bend is added
+    after the glide). Code: `mpe_voice.c` (`glide_start`, in the existing
+    hook on `voice_alloc`'s `voice_glide` call); tests
+    `tests/test_peak_glide.py`. **On the synth, v0.14, 2026-11-15
+    (observed, `work/glide_check.py`):** all three settings start a glide
+    where designed (table in the findings), and by ear on the LinnStrument both Legato and
+    LastNote "work as expected" (user): they are two different functions, not
+    alternatives, and both stay. Musical success as stated before the build: a legato
+    line on the LinnStrument glides note to note as a mono lead would, and
+    chords no longer swoop in from unrelated pitches.
+20. ~~**Strum**~~ **Dropped (2026-11-17, the user):** strumming is the MIDI
+    controller's job, not the synth's. The plan as it stood:
+    (S–M as an arp/Chord mode; M–L for incoming MIDI). MIDI sends
     a chord as separate notes, so strumming live input needs a short
     chord-detection window and care with note-offs, sustain and expression
     arriving during the delay. Prototype it as an arp Chord-mode option
@@ -331,28 +547,163 @@ Measurements (step 6) can run on the rig while code is written for others.
 Only after step 6 has measured the sound-chip write budget, and kept out of
 the earlier modules so their needs don't shape them.
 
+**Design note, 2026-11-15:** [peak-motion-morph.md](peak-motion-morph.md)
+has the findings both need (parameters are applied in 13 update groups, at
+most once per 16 ms; what each group costs) and a proposal for each. Nothing
+built.
+
 21. **Motion recording** (L). Record one knob's movement for 1–4 bars at a
     clock subdivision and loop it, with overdub or replace. Prototype in RAM
     with one lane of 16 steps.
+    **Built (`patches/peak_mpe/motion.c`; on the synth as v0.17,
+    2026-11-16: recording, looping, replacing and stopping work by hand and
+    ear, hardware log):** one lane of 32 steps. Hold **Mod** and press **Animate 1**
+    (the screen says `Move a control`), then move a slider or knob: from that
+    move its values are recorded for one loop and then played back, as a
+    ramp from each step's value to the next, until Mod + Animate 1 is pressed
+    again, which puts the control back
+    to its value from before. Moving the control while it plays replaces the
+    steps that pass meanwhile. Settings > MOTION has `Length` (1, 2 or 4
+    bars: a step is a 1/32, 1/16 or 1/8 note), the recorder's state, and
+    `LateTicks`, a count of modulation ticks the main loop lost and the
+    longest stall in ms, read when the page is drawn (the measure
+    of how much parameter traffic the synth has room for, needed before the
+    morph). Time is stock's own tempo clock, internal or external; the loop's
+    "one" is the move that started the recording. Not stored with the patch;
+    a patch load clears it. Controls without a CC or NRPN number are not
+    taken. Not built: more than one lane. Tests:
+    `tests/test_peak_motion.py`.
 22. **Patch morph** (L). Blend selected parameter groups (cutoff,
     resonance, mix, wavetable position, FX levels) between two snapshots,
     from the mod wheel or pressure; discrete settings switch at an
     endpoint. Interpolate times and frequencies in a perceptual scale.
+    **Built (v0.18, `patches/peak_mpe/morph.c`; on the synth 2026-11-16:
+    the blend measured equal to the directly set value, a 10 s sweep of 24
+    controls cost about 3 modulation ticks; hardware log):** Settings > MORPH > `Morph` = `ModWheel`. The mod wheel (CC 1
+    on the zone's master channel with MPE on, on the synth's channel
+    without) blends the patch as you have edited it (wheel at 0) towards
+    the patch as it is stored (wheel at 127): load a patch, turn some
+    knobs, and the wheel takes the changes out and brings them back. No
+    second snapshot and nothing new to store. 126 continuous controls
+    move (levels, amounts, times, rates, the filter, FX amounts, the
+    depths of the mod matrix); switches, waves, ranges, sync settings and
+    the arp stay as edited, so nothing switches halfway. A matrix slot
+    routed by hand fades to zero depth. A knob turned with the wheel up
+    still sets the edited value, and what sounds and shows is its blend.
+    Values are written through stock's setter, 16 per 16 ms at most; a
+    wheel jump becomes a ramp of about 130 ms. The page also shows the
+    `Position` in effect and `Differ`, the number of controls that differ.
+    Save stores what sounds. Not built: pressure or a pedal as the source,
+    a second snapshot. Tests: `tests/test_peak_morph.py`.
 
 ### Later
 
-Adaptive just intonation (per-voice pitch path, fixed root first), chord
-memory, scale quantise, patch randomiser by section, patch change timed to
-the bar, opt-in patch dump on program change (USB only), per-port MIDI
-filters, a stuck-note watchdog that looks for inconsistent state rather than
+Random per note and voice index as lent sources (step 8), a stuck-note watchdog that looks for inconsistent state rather than
 note age (2.2 fixed the hanging-note bug, and our 400-run soak found none).
+
+**Patch dump on patch change:** **built (v0.30, `pdump.c`; on the synth
+2026-11-19, series W passed).** Settings PATCH DUMP > Send (Off, USB): after a
+stored patch loads (program change, the patch buttons, a cued patch) the
+Peak sends it over USB as the editor's current-patch answer (00).
+Compare, Initialise and patches received by SysEx send nothing, nor
+does the power-up load. Tests `tests/test_peak_pdump.py`; rig check
+`tools/editor_check.py --pdump`; findings, "Patch selection and the
+patch dump".
+
+**Patch change timed to the bar:** **built (v0.31, `ptime.c`; on the synth
+2026-11-20, series X: program changes land on the bar line; review fixes
+in v0.32, on the synth 2026-11-20; series Z: patches chosen on the panel
+land on the bar line too; v0.33 fixes the patch number in the waiting
+message, on the synth 2026-11-20).** Settings PATCH TIMING > Change at (Now, Beat,
+Bar, 2 Bars, 4 Bars): while an external MIDI clock plays, a program
+change or a patch chosen on the panel (a cued one included) loads on the
+clock byte of the next beat or bar line. Bars are 4/4. The patch counts
+the clock itself from Start and Song Position Pointer, which stock
+ignores. Without a playing clock, or at Now, changes load at once. The
+Settings display types now start at 0xA0 (room for 64 more). Tests
+`tests/test_peak_ptime.py`; rig check `work/ptime_check.py`; findings,
+"MIDI clock, Start and Song Position". v0.34 counts the clock only from
+the port stock's Clock Source follows (a clock on both ports counted
+twice before); with Source Internal, changes load at once.
+
+**Per-port receive filters:** **built (v0.34, `pfilter.c`; on the synth
+2026-11-21, series AB: USB IN Patch Off dropped a USB program change;
+DIN IN Notes Off silenced the LinnStrument, left USB notes alone and let
+a held note end; series AK, 2026-11-23: USB IN CC Off dropped a CC and an
+NRPN and let notes through; DIN patch changes are emulated only, the rig
+having no DIN output).** Settings USB IN and DIN IN, each `Notes`, `CC`, `Patch`, On
+(default, as stock) or Off. Notes: note-ons, bend, pressure, everything
+on an MPE member channel, and RPNs; CC: every other controller, NRPNs
+included; Patch: program change and bank select. Note-offs and CC
+120/123 always pass. The synth's own output read back in (port 2) is
+never filtered; SysEx and clock aren't either (the clock follows Clock
+Source). Outputs aren't filtered. Tests `tests/test_peak_pfilter.py`;
+rig check `work/pfilter_check.py`; findings, "MIDI input ports and the
+clock source".
+
+**Just intonation, fixed or adaptive:** **built (v0.35, `ji.c`; on the
+synth: series AC, every note within 0.2 cents).** Static just tunings are stock (the guide: tuning tables
+from Scala files through Components), so this adds what a table can't:
+a root chosen on the panel and a root that follows the chord. Settings
+JUST TUNE: `Mode` Off (default, as stock), Fixed or Adapt; `Root` C to B
+(Fixed). Each voice gets its own pitch offset after osc_pitch and the
+MPE bend (0.29 cents a step), so it works with and without MPE and over
+the patch's tuning table. 5-limit intervals (16/15, 9/8, 6/5, 5/4, 4/3,
+45/32, 3/2, 8/5, 5/3, 9/5, 15/8). Adapt: at each note-on the root is
+picked from the sounding notes (and the arp's held keys) by how many are
+its fifth, thirds, sixth, seventh or ninth, ties to the bass; held notes
+keep their pitch and the new notes are tuned around them; notes within
+30 ms of each other are one chord; a note alone, and the first chord after
+silence, keep the root at its equal-tempered pitch, so the tuning drifts
+only while notes are held across chord changes (a comma, 21.5 cents, a
+time; clamped to a semitone). Tests `tests/test_peak_ji.py`; rig check
+`work/ji_check.py`.
 
 **Plug-in communication:** too vague to plan. The baseline in step 5 is the
 first look; enhancements only if it shows gaps.
 
 **MTS real-time retuning:** check the SysEx handler (`0x0800D040`) for
 real-time single-note tuning before planning anything; stock may already
-have it.
+have it. **Checked 2026-11-16: it does** (code observed, emulated on the
+stock image; [findings](findings/peak-2.2-build2108.md#midi-tuning-standard-in-stock-2026-11-16)).
+`F0 7F 00 08 02 tt 01 kk xx yy zz F7` retunes one note of tuning table
+`tt` (0 to 16), sounding voices included, and the bulk dump (`7E 00 08
+00/01`) is there too. `0x0800D040` itself is a factory-test handler. Two
+limits a patch could lift: the device ID has to be `00` (not `7F`), and a
+message carries one note.
+**Both lifted (v0.25, `mts.c`; on the synth 2026-11-18, every rig row
+within 0.2 cents of its target):** a second
+parser runs after stock's on every SysEx byte (hook on `sysex_rx_byte`'s
+call of the single-note parser, `0x0801AE42`) and takes the single-note
+change with device ID `7F` or `00` and any number of notes, and the bulk
+dump with device ID `7F`; the one case stock handles (device `00`, one
+note) stays stock's. As stock, a message is applied at its `F7` at its
+exact length, through stock's `tuning_note_set`, so sounding notes on the
+patch's table move at once. Tests `tests/test_peak_mts.py`; rig check
+`work/mts_check.py`. Not taken: the bank forms (sub-ID `07`), the
+scale/octave forms (`08 08`, `08 09`), the dump request to `7F`.
+
+**Patch randomiser by section:** the guide has no randomise function.
+**Built (v0.26, `rand.c`; on the synth 2026-11-18, series R; v0.27 band-pass and high-pass ranges on the synth 2026-11-18, series S):** Settings >
+RANDOMISE has Section (Osc 1-3, Mixer, Filter, Amp Env, Mod Env1/2, LFO
+1/2, FX, All), Amount (10-100 %, 50 % until changed) and Roll. A roll gives
+each continuous control of the section a fresh value inside a safe range
+and moves it there by Amount; a switch is picked afresh with a chance of
+Amount. Then the section's checks (mixer level and headroom, filter open
+for its shape, an amp envelope that sounds, FX headroom) are enforced: at
+100 % always, below only when the patch passed them before the roll.
+Values go in through stock's setter, as section copy; the roll is one
+undo step. Ranges and checks are in `rand.c`'s header; tests
+`tests/test_peak_rand.py`; rig check of the rules `work/rand_check.py`.
+Not touched: pitch modulation depths, the mod matrix, the arp, the voice
+settings, VCA Gain and Patch Level. On the rig, 150 rolls of the rules:
+none silent or clipped; band-pass rolls about 12 dB quieter than the
+other shapes (hardware log, v0.26). A sweep on the rig showed why: the
+band-pass range sat above the note and resonance lifts band-pass most
+(findings, "Value scales for the randomiser"). v0.27 rolls band-pass
+at cutoff 64-150 with resonance 40-96, and high-pass at most 110:
+band-pass rolls came out about 6 dB louder on the rig (median -31.1 dB
+against low-pass -24.9; hardware log, v0.27).
 
 ## Dropped
 
@@ -368,4 +719,7 @@ have it.
 | Fine-edit modifier | Value +/- step by one |
 | Slew for incoming MIDI automation | 2.2 honours CC-pair LSBs; low value |
 | Sustain and sostenuto changes | Stock pedal modes |
+| Strum (step 20) | The MIDI controller's job, not the synth's (the user, 2026-11-17) |
+| Chord memory | The MIDI controller's job, as strum (the user, 2026-11-18) |
+| Scale quantise | The MIDI controller's job, as strum (the user, 2026-11-18) |
 | Event prioritisation | Not until measured: the soak handled 900 messages/s with no stuck note; measure note latency under load first |

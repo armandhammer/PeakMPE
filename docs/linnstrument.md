@@ -54,7 +54,8 @@ picture shows the labels.
 3. **A standard 5-pin MIDI cable** (round DIN plugs at both ends). The
    LinnStrument plugs straight into the Peak with it; no computer is needed
    in between.
-4. The Peak with the MPE firmware on it (boot screen `MPE1 Ver 108.469`) and
+4. The Peak with the MPE firmware on it (the boot screen reads `MPE` and a
+   letter or digit before `Ver 108.469`, for example `MPEK Ver 108.469`) and
    the patch slot that has VOICE `MPE` On (D002, the one you saved for the
    rig). The rig's LinnStrument sound, below, builds on it.
 
@@ -178,6 +179,45 @@ treats it the same as channel pressure.
 Play for several minutes, densely: chords, fast runs, lots of sliding and
 pressure. Tell me before you start: I can record the Peak's output during
 that time and check afterwards that every note ended.
+
+## 9. Patch morph from the Low Row (firmware v0.18 and later)
+
+The Peak patch's morph (Settings > MORPH > `Morph` = `ModWheel`) follows the
+mod wheel, MIDI CC 1, on the zone's Main channel. The LinnStrument has no
+wheel, but its lowest row of pads can be one. From the manual (Panel
+Settings, Per-Split Settings, "Low Row"), and tried on the Peak with v0.18
+on 2026-11-16 (series K in the [hardware log](hardware-log.md): all of the
+below worked as written):
+
+- **Low Row = X=CC1** turns the lowest row into a control strip that sends
+  CC 1 as you slide left and right. The row no longer plays notes.
+- Its default is **Hold mode**: press anywhere for 0, slide right (up to 7
+  pads) for up to 127, and letting go sends 0 again. For the morph that is
+  "lean on it with the thumb to go towards the stored patch, let go to
+  come back to your edit".
+- The hidden **Fader mode** makes the whole row a fader, 0 at the left end
+  and 127 at the right, and the value stays when you let go. To choose it,
+  hold the **X=CC1** pad on the Per-Split Settings screen; swipe up or down
+  to pick the setting, left or right to change it (the screen shows `HLD`
+  or `FDR`). The same hidden screen can change the CC number, which must
+  stay 1 for the morph.
+- The two modes differ in reach as well: Hold goes from 0 to 127 within 7
+  pads of where you pressed, Fader uses the whole row.
+- The Low Row's CC 1 goes out on the Main channel: the Peak's MIDI MONITOR
+  page showed `B0 01 7F` at the end of a slide (CC 1 on channel 1), which
+  is where the morph listens.
+
+Other ways the manual offers, and why not: **Timbre/Y = CC1** sends CC 1 per
+note on the Per-Note channels, which the morph ignores (and the patch needs
+Y as CC 74 for Slide); **CC FADERS** turns a whole split into eight faders,
+on that split's Main channel.
+
+To set it:
+
+1. Press **Per-Split Settings**. In columns 12 and 13, **Low Row**, press
+   **X=CC1** so it is lit.
+2. Press **Per-Split Settings** again to leave. To undo, choose **NORMAL**
+   in the same columns.
 
 ## What to tell me afterwards
 

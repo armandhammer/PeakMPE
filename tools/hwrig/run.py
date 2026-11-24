@@ -5,7 +5,12 @@ and the full byte listing is written next to the report; nothing is opened
 or sent until `confirm()` says yes. Then:
 
 1. bend ranges: RPN 0 = 48 on member 2 (note range), 2 on the master;
-   member channels reset (bend centre, pressure 0, Slide 0);
+   member channels reset (bend centre, pressure 0, Slide 0); the mod wheel
+   (CC 1) at 0 on the master channels 1 and 16. A controller on the Peak's
+   MIDI IN can leave the wheel up: a LinnStrument's Low Row as a fader keeps
+   its last CC 1, and in the slide recipe (ModWheel -> pitch) a wheel at 127
+   put every note 2 semitones sharp and slide_right_note failed (run
+   2026-11-17_093307);
 2. for each check: `setup` of its recipe when it differs from the last
    one (edit buffer only), then one take while its timeline plays;
 3. report.md / report.json, and the WAV and sent-MIDI log of every take
@@ -32,13 +37,14 @@ from .stimulus import Take, bend, cc, note_off, pressure, rpn
 MEMBERS = range(2, 17)
 PORT_SETTLE_S = 0.3  # after opening the MIDI port, before the first message
 ALL = range(1, 17)
+WHEEL_CHANNELS = (MASTER, 16)   # the Lower and the Upper Zone's master channel
 
 
 def preamble(cfg):
     msgs = rpn(2, 0, 0, NOTE_RANGE) + rpn(MASTER, 0, 0, 2)
     for ch in MEMBERS:
         msgs += [bend(ch, 0), pressure(ch, 0), cc(ch, 74, 0)]
-    return msgs
+    return msgs + [cc(ch, 1, 0) for ch in WHEEL_CHANNELS]
 
 
 def centre(chans=ALL):
@@ -146,7 +152,8 @@ class Plan:
                  f"= the global channel {cfg.channel}; MPE layout to restore: {cfg.zone!r}.",
                  f"  0. bend ranges and a clean start, at the start and again before every check: "
                  f"{describe(self.pre)}\n"
-                 f"      [RPN 0 = {NOTE_RANGE} on ch 2, RPN 0 = 2 on ch 1; bend centre, pressure 0, CC 74 0 on ch 2-16]"]
+                 f"      [RPN 0 = {NOTE_RANGE} on ch 2, RPN 0 = 2 on ch 1; bend centre, pressure 0, CC 74 0 on ch 2-16; "
+                 f"mod wheel CC 1 = 0 on ch {WHEEL_CHANNELS[0]} and {WHEEL_CHANNELS[1]}]"]
         if any(getattr(RECIPES.get(i.check.recipe), "base", "") == "multi" for i in self.items):
             lines.append(f"  Part channels from work/hwrig.toml: Part A = {cfg.part_a_channel}, Part B = "
                          f"{cfg.part_b_channel}. CHECK they match the Summit's Settings > MIDI CHANNEL before "

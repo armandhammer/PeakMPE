@@ -89,6 +89,33 @@ void fpga_write(uint8_t target, uint16_t param, int32_t value);
 /* (target, n, value): fpga_write(target, 0x60 + n, value). n 0 ModWheel,
  * 1 AftTouch, 7 pitch; target 0xA = all voices. observed */
 void voice_mod_write(uint8_t target, uint8_t n, int32_t value);
+void part_mod_write(uint8_t n, int32_t value);
+
+/* Stock's parameter setter behind a received CC (0x0800F6AC; the receive check is in
+ * the caller): the value, then the CC number. Writes the patch, queues the FPGA
+ * update, arms pickup. observed (disassembly), not yet run on hardware. */
+void param_set_by_id(uint32_t value, uint32_t id);
+/* The write inside param_set_by_id (0x0800F658): the same arguments, no range
+ * check, no pickup. Writes the patch byte if it differs, queues the FPGA
+ * update, mark_changed. observed (decompile) */
+void param_write(uint32_t value, uint32_t id);
+/* pickup_state[offset] = 3 for offset < 0xFB (0x08016B04). observed */
+void pickup_arm(uint32_t offset);
+/* (id) -> patch offset (0x08017E68): a CC number (id < 0x100) through the
+ * table at 0x08017EB8; 0x200 above 0xD35. Called by 0x0800F614, the lookup
+ * inside param_write and param_set_by_id. observed (decompile) */
+uint32_t param_offset_of_id(uint32_t id);
+
+/* panel_button_event's read of the next button event (0x0800DDFC): low byte +1 press /
+ * -1 release (0 = none), next byte the button index. observed (disassembly). */
+uint32_t panel_event_read(void);
+
+/* The firmware's byte copy loop (0x0801D736): (dst, src, n), returns nothing (r0 left as dst by
+ * the callers' usage is not relied on here: the patch wrapper returns dst itself). observed. */
+void *fw_memcpy(void *dst, const void *src, uint32_t n);
+/* (addr, buf, len): reads the external DataFlash (command 3). The patches are
+ * 512-byte records from address 0, record (bank - 1) * 128 + number. observed */
+void ext_flash_read(uint32_t addr, uint8_t *buf, uint32_t len);
 /* (): the part's 1 kHz modulation update: smooths the bend into
  * part_bend_smoothed and sends 0x68/0x69, the wheel (broadcast 0x60 at
  * 0x08010972), 0x62/0x63 and one voice's 0x61. mod_tick calls it first,
@@ -158,8 +185,52 @@ extern uint8_t globals[0x200];                /* global settings, ext flash 0x30
  * slot, +0x54+4v smoothed aftertouch, +0x1E6 last allocated voice,
  * +0x1F4+v gate. observed */
 extern volatile uint8_t voice_state[0x200];
+/* The keys held (0x200127D4): +0xD8 a bitmap of 128 notes (all clear = the
+ * next note starts a phrase), +0x1D3 the last note in the mono modes (0xFF
+ * none), +0x1CD sustain. held_note_add 0x0800F364, note_off. observed */
+extern volatile uint8_t note_state[0x200];
+#define HELD_KEYS (&note_state[0xD8])
+#define LAST_NOTE (note_state[0x1D3])
+/* What CC 120 (value 0) runs (0x08011E90): every voice released at once and
+ * the sound chip's part values reset. Not the arp, not the held keys. observed */
+void all_sound_off(void);
+/* The main loop's SysEx state (0x20011214): +0x67C what sysex_rx_poll is
+ * answering (0 = nothing), +0x67F the port (0 = USB, else DIN). observed */
+extern volatile uint8_t sysex_state[0x900];
+/* Request 40's handler (0x08019F58): sysex_rx_poll sends the current patch
+ * (editor answer 00) to port on its next pass. observed, emulated */
+void editor_patch_request(uint8_t port);
+/* (number bank): patch_select +5 and +4, the loaded patch's place
+ * (0x08018C58; only caller patch_select_load 0x0801AF78). observed */
+void patch_select_set(uint8_t number, uint8_t bank);
+/* (bank | number << 8; bank 0x80 and up = the current one): loads a stored
+ * patch, then patch_select_set and mark_changed (0x0801AF78). observed */
+void patch_select_load(uint16_t bank_number);
+/* +4 bank (1-4), +5 number of the loaded or chosen patch (0x20002D14). observed */
+extern volatile uint8_t patch_select[8];
+/* Stock's system-message table in RAM (0x200001E0): per status F0-FF a
+ * handler (word), its data length and flags (4 = called at once with no
+ * data). Start's handler is midi_start_rx; Continue's and Stop's return. observed */
+extern uint8_t midi_sys_handlers[16 * 8];
+void midi_start_rx(void);       /* 0x0800F0C0: MIDI Start, sets a flag (0x08010E30) */
+void midi_clock_rx_0(void);     /* 0x0800FBD0, 0x0800FBE8: a MIDI clock byte on port 0 / 1, */
+void midi_clock_rx_1(void);     /* called from the MIDI input loop 0x0800F084 */
+/* The port the MIDI input loop is reading (0x20012266; set by 0x0800EF54 for
+ * each byte): 0 USB, 1 DIN, 2 the synth's own output read back in. observed */
+extern volatile uint8_t midi_port_current;
+/* Tempo clock state (0x2000461C): +0 bit 0 DIN / bit 1 USB clock seen, +1 the
+ * port the tempo follows: 0 none (Internal), 1 DIN, 2 USB. emulated */
+extern volatile uint8_t clock_state[0x18];
 extern volatile uint8_t voice_env_state[PEAK_VOICES];   /* 3 = release or idle */
 extern volatile uint16_t voice_env_level[PEAK_VOICES];  /* above 0x200 = still sounding */
+
+/* Glide, per voice (findings, "Glide"): the note's pitch in 1/256 semitone
+ * (voice_alloc writes it before its voice_glide call), and voice_glide's
+ * output, the high word of the 16.16 glide pitch at voice_state+0x74+4v. A
+ * new note glides from wherever its voice's glide pitch was left. observed */
+extern volatile uint16_t voice_pitch[PEAK_VOICES];
+extern volatile uint16_t voice_pitch_out[PEAK_VOICES];
+#define VOICE_GLIDE_PITCH(v) (*(volatile int32_t *)&voice_state[0x74 + 4 * (v)])
 
 #define voice_loop_index (voice_state[9])
 #define VOICE_GATE(v) (voice_state[0x1F4 + (v)])
@@ -184,8 +255,19 @@ void lcd_write_cmd(uint32_t cmd);
 void lcd_write_data(uint32_t byte);
 /* (): CGRAM address 0 and the 64 bytes at 0x20000A78: stock's box frame. */
 void lcd_load_cgram(void);
+/* lcd_cgram_glyphs 0x20000A78: stock's custom characters 0-7, 8 bytes each. */
+extern const uint8_t lcd_cgram_glyphs[64];
 /* (code): one character through the escape state machine (9 = cursor). */
 void lcd_putc_esc(uint32_t code);
+/* (code): one character to the display (0xBA space, 0xBB-0xBF -> 0x95-code,
+ * 0-7, 0x10-0x7F, 0x1F as is; 8 = clear). Called only by the escape layer
+ * (0x0800D1FA) and lcd_init. */
+void lcd_putc(uint32_t code);
+/* (): reset, function set, CGRAM, clear (boot; called through 0x0800D200). */
+void lcd_init(void);
+/* (): sets PB1 (GPIOB BSRR = 2), called by lcd_display_on 0x08016924 when the
+ * display was off; the panel's supply enable (inferred). */
+void lcd_power_on(void);
 
 /* patch_param_desc: 12-byte records by patch offset (RAM 0x200017CC). */
 struct param_desc {
@@ -199,5 +281,36 @@ extern const struct param_desc patch_param_desc[0x1A3];
 extern volatile uint8_t pickup_state[0xFB];
 /* 0x20011208: +1 flags, +2 message countdown (nonzero: a message is shown). */
 extern volatile uint8_t ui_msg_state[8];
+/* 0x200111F2: 1 while the Compare button is held. panel_button_event sets it
+ * before its handler 0x080188A8 runs: pressed, that keeps the patch aside
+ * (0x20012570) and loads the stored one through patch_load; let go, it copies
+ * the patch back (0x080130AC, no patch_load). observed */
+extern volatile uint8_t compare_held;
+/* (number, bank): the patch to its record in the patch memory; the Save
+ * button's last press (settings_save_action 0x0801903E). observed */
+void patch_save(uint32_t number, uint32_t bank);
+
+/* The arpeggiator's state (0x20000640 holds its address): +8 pointer to the
+ * rhythm pattern's events (2 bytes each: the step's velocity, 0 = rest;
+ * length in arp clocks), +0x1D4 their number, +0x1D5 the next one's index,
+ * +0x1D8 the Rhythm number the pattern was loaded for. observed */
+extern uint8_t *volatile arp_state_ptr;
+/* Once per tick from 0x0801192C (call at 0x08011956): tempo, the flags, the
+ * patch's Rhythm into the state when it changed, then the steps. observed */
+void arp_tick(void);
+/* Empties the arp's play map (+0x178) and its counts, as a patch load does
+ * (0x08014DB8); not the keys-held map +0x168. observed */
+void arp_clear(void);
+/* Starts the pattern again from its first event and ends the step that is
+ * sounding (0x08014F68); stock calls it after loading a pattern. observed */
+void arp_pattern_reset(void);
+/* Plays the next note of the chord by the arp's Type (0x08015408): reads and
+ * writes state +0x1CC (played-order index), +0x1DB, +0x1DC (last note),
+ * +0x1DD (direction) and +0x1E0 (octave), and the random types and ArpChance
+ * take numbers from arp_random_seed; the step sounds at the velocity in
+ * state +0x1D9. Called by arp_tick at 0x0801574E for every note event while
+ * the arp is on. observed */
+void arp_step_select(void);
+extern volatile uint32_t arp_random_seed;   /* 0x20011178: seed = seed * a + c in 0x08014D98 */
 
 #endif

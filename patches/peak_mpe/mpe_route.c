@@ -115,17 +115,25 @@ void mpe_channel_filter(uint32_t src, midi_handler_fn *handler, const uint8_t *m
 {
     uint8_t status = msg[0];
     if (status >= 0xF0) {
+        if (status == 0xF2)    /* Song Position Pointer: stock ignores it (ptime.c) */
+            ptime_spp(src, msg);
         midi_channel_filter(src, handler, msg);
         return;
     }
-    if (arp_echo_drop(msg))    /* the arp's own note coming back (arp_echo.c) */
-        return;
     uint8_t ch = status & 0x0F, type = status & 0xF0;
     mpe_route_update();
     const struct mpe_zone *z = mpe_zone_of(ch);
+    if (pfilter_drop(src, msg, z))   /* Settings USB IN / DIN IN (pfilter.c): as if never received */
+        return;
+    diag_note(msg);
+    relvel_note(msg);
+    if (arp_echo_drop(msg))    /* the arp's own note coming back (arp_echo.c) */
+        return;
 
     if (type == 0xB0 && mpe_rpn_cc(ch, msg[1], msg[2], z))
         return;
+    if (type == 0xB0 && msg[1] == 1 && ch == (z ? z->master : midi_global_channel))
+        morph_cc(msg[2]);      /* the mod wheel is also the morph position (morph.c); stock still gets it */
     if ((type == 0x80 || (type == 0x90 && msg[2] == 0)) && bound(ch, msg[1])) {
         deliver(ch, src, handler, msg);
         return;
@@ -144,6 +152,8 @@ void mpe_channel_filter(uint32_t src, midi_handler_fn *handler, const uint8_t *m
                 break;
             if (msg[1] == 74)
                 mpe_chan_slide[ch] = msg[2];
+            else if (msg[1] == 11)   /* a controller that sends Z as CC 11: same as pressure (Peak addition) */
+                mpe_chan_pressure[ch] = msg[2];
             mpe_member_message(z, ch, msg);
             return;
         case 0xD0:

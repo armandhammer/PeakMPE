@@ -549,6 +549,11 @@ class Invariants:
                 return part, master
         return None
 
+    def _member(self, ch):
+        """ch (1-16) is a member channel of a zone in use (one note at a time)."""
+        zone = self._zone_of(ch)
+        return bool(zone) and ch != zone[1]
+
     def _stock_part(self, ch):
         g, a, b = self.s.channels
         if not self.s.multi_mode:
@@ -652,7 +657,7 @@ class Invariants:
             held, sus = md.held.get(ch, []), md.sustained.get(ch, set())
             sounding = [n for n in md.order.get(ch, []) if n in held or n in sus]  # in note-on order
             poly = s.patch_byte(MODE, part) >= 3
-            if poly and sounding:  # the channel's newest note-on, held or under the pedal
+            if poly and self._member(ch) and sounding:  # the channel's newest note-on, held or under the pedal
                 ok = notes[v] == sounding[-1]
             else:
                 ok = notes[v] in held or notes[v] in sus
@@ -667,6 +672,11 @@ class Invariants:
             part = 1 if s.multi_mode and voices[0] >= 8 else 0
             u = s.patch_byte(UNISON, part)
             stack = 8 if u == 4 else u + 1
+            if not self._member(ch):  # a master channel plays chords (v1.3): a stack per note
+                per_note = collections.Counter(notes[v] for v in voices)
+                if max(per_note.values()) > stack:
+                    self.fail(f"master channel {ch} holds voices {voices}, more than a stack of {stack} for a note")
+                continue
             if len(voices) > stack:
                 self.fail(f"channel {ch} holds voices {voices}, more than a stack of {stack}")
         for part, n in unbound.items():

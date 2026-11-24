@@ -33,6 +33,36 @@
 #define MPE_G_MEMBERS 0x31       /* member channels 1-15; 0 or > 15 = 15 */
 #define MPE_G_NOTE_RANGE 0x32    /* note bend range, semitones 1-96; 0 or > 96 = 48 */
 #define MPE_G_MASTER_RANGE 0x33  /* master bend range, 1-96; 0 or > 96 = 2 */
+#define MPE_G_CURVE 0x34         /* pressure curve: 0 Squared (stock), 1 Linear */
+#define MPE_G_ENVSYNC 0x35       /* tempo-synced Decay/Release: 0 Off, 1-4 = 1/2 1/4 1/8 1/16 */
+#define MPE_G_SECT 0x39          /* Settings records, not stored in the globals: COPY SECTION choice, "Do it", */
+#define MPE_G_DOIT 0x3A          /* and the three read-only MIDI MONITOR items */
+#define MPE_G_DIAG 0x3B
+#define MPE_G_LOCK_FX 0x36       /* parameter lock: FX, Arp, Voice at +0x36, +0x37, +0x38: 0 Off, 1 On */
+#define MPE_G_GLIDE 0x3E         /* where a poly glide starts: 0 Stock (the voice's last pitch), 1 LastNote, 2 Legato */
+#define MPE_G_MOTION_LEN 0x3F    /* motion recording loop: 0 = 1 bar, 1 = 2 bars, 2 = 4 bars */
+#define MPE_G_MORPH 0x40         /* patch morph: 0 Off, 1 ModWheel (morph.c) */
+#define MPE_G_MOTION_STATE 0x41  /* Settings records, not stored: the recorder's state, */
+#define MPE_G_LATE 0x42          /* the late-tick count (diag.c), */
+#define MPE_G_MORPH_POS 0x43     /* the morph position in effect and the number of controls */
+#define MPE_G_MORPH_N 0x44       /* that differ between the stored and the edited patch */
+#define MPE_G_EUC_PULSES 0x45    /* Euclidean arp rhythm (euclid.c), stored: notes per pattern, 0 or > 32 = Off, */
+#define MPE_G_EUC_STEPS 0x46     /* steps 1-32 (0 or > 32 = 16), */
+#define MPE_G_EUC_ROTATE 0x47    /* and the step the pattern starts at, modulo the steps (> 31 = 0) */
+#define MPE_G_EUC_RATCHET 0x48   /* arp ratchet, stored: 0 Off, 1 = x2, 2 = x3; other = Off */
+#define MPE_G_EUC_EVERY 0x49     /* which notes ratchet: every 1st-8th; 0 or > 8 = 1 */
+#define MPE_G_RELVEL 0x4A        /* release velocity into a source (relvel.c): 0 Off, 1 ExprPED1, 2 BrthPED2; other = Off */
+#define MPE_G_RAND_SECT 0x4B     /* Settings records, not stored: RANDOMISE Section, Amount, Roll (rand.c) */
+#define MPE_G_RAND_AMT 0x4C
+#define MPE_G_RAND_ROLL 0x4D
+#define MPE_G_PTIME 0x4F         /* patch change timed to the clock (ptime.c), stored: 0 Now, 1 Beat, 2 Bar, 3 2 Bars, 4 4 Bars; other = Now */
+#define MPE_G_PDUMP 0x4E         /* patch dump on patch change (pdump.c), stored: 0 Off, 1 USB; other = Off */
+#define MPE_G_PFILTER 0x50       /* per-port receive filters (pfilter.c), stored: USB Notes, CC, Patch at
+                                  * 0x50-0x52, DIN at 0x53-0x55; 0 On (as stock), 1 Off; other = On */
+#define MPE_G_JI 0x56            /* just intonation (ji.c), stored: Mode 0 Off, 1 Fixed, 2 Adapt (other = Off); */
+                                 /* Root at 0x57, 0-11 = C-B (other = C) */
+#define MPE_G_KEEP_LOW 0x58      /* voice stealing keeps the lowest note (steal.c), stored: 1 On; other = Off */
+#define MPE_G_EUC_CHANCE 0x59    /* ratchet chance in tenths, stored: 1-10 = 10-100 %; 0 or > 10 = 100 % */
 
 #define MPE_DEFAULT_MEMBERS 15
 #define MPE_DEFAULT_NOTE_RANGE 48
@@ -110,6 +140,114 @@ void arp_echo_tick(void);
 /* Once per main-loop pass: restores stock's custom characters once the
  * overlay's message time has run out. */
 void disp_poll(void);
+/* lcdcache.c: the display's characters are only sent when they change. */
+void lcd_cache_cursor(uint32_t col, uint32_t row);
+void lcd_cache_lost_ac(void);
+extern uint32_t lcd_cache_spills;
+
+/* --- Tempo-synced envelope times (envsync.c) ---------------------------- */
+void envsync_tick(void);   /* 1 kHz, from mpe_mod_update */
+void envsync_poll(void);   /* main loop, from mpe_ui_poll */
+
+/* --- Quick-assign modulation (qassign.c) -------------------------------- */
+uint32_t qa_panel_read(void);   /* panel_button_event's button read */
+void qa_button(uint32_t ev);
+int qa_held(void);
+int qa_encoder(int32_t delta);  /* 1 = taken (Mod held: chooses the source) */
+void qa_knob(uint32_t id);
+void ui_say(const char *l0, const char *l1, const char *l2, const char *l3);  /* four rows for the message time */
+void ui_say_hold(void);   /* keep that message up for 2 s */
+void ui_hold_poll(void);  /* main loop, from mpe_ui_poll */
+
+/* --- Section copy and undo (section.c), MIDI monitor (diag.c) ---------- */
+uint32_t mpe_ticks(void);        /* envsync.c: modulation ticks since power-up, 1000 per second */
+void undo_capture(void);
+void undo_clear(void);
+void undo_knob(uint32_t id);
+int edit_button(uint32_t ev);    /* Mod held: Page left/right = undo/redo; 1 = taken */
+const char *section_name(uint32_t i);
+uint32_t section_op(void);
+void section_edit(uint32_t index, int32_t delta);
+/* rand.c */
+void rand_edit(uint32_t index, int32_t delta);   /* Settings > RANDOMISE */
+const char *rand_section_name(void);
+uint32_t rand_amount(void);      /* 1-10 = 10-100 % */
+uint32_t rand_roll(uint32_t section, uint32_t amount);  /* the number of controls written */
+uint32_t param_id_of(uint32_t offset);            /* the setter's id for a patch offset, 0 = not settable */
+void param_put(uint32_t offset, uint32_t value);  /* set a patch byte through stock's setter, if it has an id */
+void diag_tick(void);            /* once per modulation tick */
+void diag_latch(void);           /* the page is being drawn: take a new reading */
+void diag_late_text(char *out);  /* that reading as text, at most 8 characters */
+
+/* --- Motion recording (motion.c) --------------------------------------- */
+int motion_button(uint32_t ev, int mod_held);     /* 1 = taken (Mod + Animate 1 and its release) */
+int panic_button(uint32_t ev, int mod_held);      /* 1 = taken (Mod + Audition and its release) */
+void panic(void);                                 /* every note off, arp and MPE state cleared */
+
+/* pdump.c */
+int pdump_on(void);
+void pdump_patch_selected(uint8_t number, uint8_t bank);   /* hook: patch_select_load's patch_select_set */
+void pdump_poll(void);                            /* once per 1 kHz tick */
+void pdump_reply_poll(void);                      /* every main-loop pass, right before sysex_rx_poll */
+
+/* ptime.c */
+uint32_t ptime_unit(void);                        /* MIDI clocks per step; 0 = at once */
+void ptime_select(uint32_t arg);                  /* hook: patch_select_load at program_change and the panel (bits 16-31 not clean) */
+void ptime_clock_0(void);                         /* hooks: the MIDI input loop's clock handlers */
+void ptime_clock_1(void);
+void ptime_spp(uint32_t src, const uint8_t *msg); /* Song Position Pointer, from mpe_channel_filter */
+void ptime_boot(void);
+void ptime_poll(void);                            /* once per 1 kHz tick */
+
+/* sostenuto.c */
+void sostenuto_down(void);                        /* stock 0x08011F6C */
+void sostenuto_up(void);                          /* stock 0x08011F90 */
+void sost_down(void);                             /* hook: sostenuto_pedal's pedal down */
+void sost_up(void);                               /* hook: sostenuto_pedal's pedal up */
+void sost_note_off(uint8_t note, int poly);       /* from mpe_note_release */
+uint8_t pedal_keys_up(void);                      /* gated voices a pedal holds with the key up */
+
+/* steal.c */
+void voice_candidates(uint32_t start, uint32_t mask, uint32_t unison);   /* stock 0x08011B70 */
+extern volatile uint8_t cand_attack;              /* its pick among voices in their attack, 0x0F = none */
+extern volatile uint8_t cand_held;                /* its pick among held voices (state 1, 2), 0x0F = none */
+extern volatile uint8_t cand_release;             /* its pick among voices in release (state 3), 0x0F = none */
+void steal_candidates(uint32_t start, uint32_t mask, uint32_t unison);   /* hook: voice_alloc's call */
+
+/* pfilter.c */
+int pfilter_drop(uint32_t src, const uint8_t *msg, const struct mpe_zone *z);   /* Settings USB IN / DIN IN */
+uint32_t ji_mode(void);                           /* Settings JUST TUNE: 0 Off, 1 Fixed, 2 Adapt */
+int32_t ji_offset(uint32_t v);                    /* voice v's offset, osc units (4,096 per octave) */
+void motion_knob(uint32_t id, uint32_t cur, uint32_t hires);
+void motion_poll(void);          /* main loop, from mpe_ui_poll */
+void motion_clear(void);         /* a patch load */
+const char *motion_state_name(void);
+
+/* euclid.c */
+void euclid_arp_tick(void);      /* hook: the call of arp_tick */
+uint32_t euclid_pulses(void);    /* in effect: 0 = Off */
+uint32_t euclid_steps(void);
+uint32_t euclid_rotate(void);
+void euclid_step_select(void);   /* hook: arp_tick's call of arp_step_select */
+uint32_t euclid_ratchet(void);   /* 1 = no ratchet, 2, 3 */
+uint32_t euclid_every(void);
+uint32_t euclid_chance(void);   /* the ratchet's chance in tenths: 1-10 */
+
+/* relvel.c */
+void relvel_note(const uint8_t *msg);   /* every channel message, before routing */
+void relvel_release(uint8_t note);      /* note_off is about to release note */
+
+/* morph.c */
+void morph_cc(uint32_t value);
+void morph_clear(void);
+void morph_patch_save(uint32_t number, uint32_t bank);   /* hook: the Save button's patch write */
+void morph_poll(void);
+int morph_knob(uint32_t id, uint32_t *prev, uint32_t *cur);
+void morph_applied(int index, uint32_t raw, uint32_t blended);
+uint32_t morph_position(void);
+uint32_t morph_differ(void);
+void diag_note(const uint8_t *msg);
+void diag_text(uint32_t which, char *out);
 
 /* Internal to the core. */
 void mpe_settings_init(void);

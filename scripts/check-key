@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# Prints one SHA-256 for everything a full scripts/check depends on, so a
+# check that passed can be reused while nothing it tested has changed
+# (scripts/check writes work/check-stamp; scripts/build-image.sh reads it).
+#
+#   scripts/check-key        the key for the full check (firmware present)
+#
+# In the key: every file git tracks or would track (untracked, not ignored),
+# by content, except Markdown (no test or build step reads a .md file); the
+# official firmware images in firmware/ (ignored by git, read by the tests);
+# the dev image's ID (scripts/dev --image); the mode. A file being edited
+# changes the key; a commit of the same content doesn't.
+set -euo pipefail
+
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$root"
+
+files=()
+while IFS= read -r -d '' f; do
+    [[ "$f" == *.md ]] && continue
+    [[ -f "$f" ]] && files+=("$f")       # a tracked file deleted in the work tree is left out
+done < <(git ls-files -z --cached --others --exclude-standard | sort -z | uniq -z)
+for f in firmware/*.syx; do
+    [[ -f "$f" ]] && files+=("$f")
+done
+
+image="$(scripts/dev --image)"    # its tag follows the image's inputs; fails (and so does this) without Docker
+{
+    echo "mode full"
+    echo "image $image"
+    printf '%s\0' "${files[@]}" | xargs -0 shasum -a 256
+} | shasum -a 256 | cut -d' ' -f1

@@ -91,7 +91,18 @@ def test_mpe_off_writes_as_stock(mpe_image):
         _send(b, 0x80, 60, 0)
     ws, wm = _writes(s), _writes(m)
     assert set(ws) == set(wm)
-    assert abs(sum(ws.values()) - sum(wm.values())) <= sum(ws.values()) * 0.02
+    # Three broadcast writes are paced by the main loop (712 of each in 100 ms
+    # idle on stock), so they count its passes, not what a note does. The
+    # patch's hooks make a pass longer in the simulator's time model: in this
+    # window 283 on stock, 245 on v0.28, 267 on v0.29 (its polls once per
+    # 1 kHz tick; work/_ablate.py measures each hook). Everything else must
+    # match stock.
+    per_pass = {(24, 0), (24, 3), (24, 13)}
+    rest_s = sum(v for k, v in ws.items() if k not in per_pass)
+    rest_m = sum(v for k, v in wm.items() if k not in per_pass)
+    assert abs(rest_s - rest_m) <= rest_s * 0.005, (rest_s, rest_m)
+    for k in per_pass:
+        assert ws[k] * 0.85 <= wm[k] <= ws[k], (k, ws[k], wm[k])
 
 
 def test_mpe_member_bend_moves_one_voice(mpe_image):
@@ -116,6 +127,7 @@ UI_STATE = 0x20011200
 UI_DRAW_PAGE = 0x08017F14
 UI_DRAW_VALUES = 0x08018070
 LCD_WRITE_CMD = 0x08016840
+LCD_PUTC_ESC = 0x0800D21C
 
 
 @pytest.fixture(scope="module")
@@ -159,24 +171,46 @@ def test_mpe_member_pressure_reaches_only_its_voice(mpe_on):
     b, blob = mpe_on
     v2, v3 = _voice_of(b, blob, 1), _voice_of(b, blob, 2)
     b.fpga.reset()
-    _send(b, 0xD1, 100, ms=80)          # channel 2 pressure; 0x61 is round-robin, 8 ms per voice
+    _send(b, 0xD1, 100, ms=160)          # channel 2 pressure; 0x61 is round-robin, 8 ms per voice
     at = _last(b, 0x61)
     assert at.get(v2, 0) > 0x1000
     assert at.get(v3, 0) == 0
-    _send(b, 0xD1, 0, ms=80)
+    _send(b, 0xD1, 0, ms=160)
+
+
+def test_mpe_member_poly_aftertouch_reaches_only_its_voice(mpe_on):
+    b, blob = mpe_on
+    v2, v3 = _voice_of(b, blob, 1), _voice_of(b, blob, 2)
+    b.fpga.reset()
+    _send(b, 0xA2, 60, 100, ms=160)      # channel 3 poly pressure on note 60
+    at = _last(b, 0x61)
+    assert at.get(v3, 0) > 0x1000
+    assert at.get(v2, 0) == 0
+    _send(b, 0xA2, 60, 0, ms=160)
+
+
+def test_mpe_member_cc11_is_pressure(mpe_on):
+    b, blob = mpe_on
+    v2, v3 = _voice_of(b, blob, 1), _voice_of(b, blob, 2)
+    b.fpga.reset()
+    _send(b, 0xB1, 11, 100, ms=160)      # channel 2 CC 11
+    at = _last(b, 0x61)
+    assert at.get(v2, 0) > 0x1000
+    assert at.get(v3, 0) == 0
+    _send(b, 0xB1, 11, 0, ms=160)
 
 
 def test_mpe_member_slide_reaches_only_its_voice(mpe_on):
     b, blob = mpe_on
     v2, v3 = _voice_of(b, blob, 1), _voice_of(b, blob, 2)
     b.fpga.reset()
-    _send(b, 0xB1, 74, 127, ms=60)      # channel 2 CC 74 full
+    _send(b, 0xB1, 74, 127, ms=120)      # channel 2 CC 74 full
     wheel = _last(b, 0x60)
     assert wheel.get(v2) == 0x7FFF
     assert wheel.get(v3, 0) == 0
     broadcast = [e for e in b.fpga.events if not e.read and e.target == 0x1A and e.param == 0x60]
     assert not broadcast                 # the stock broadcast 0x60 is dropped while MPE is on
-    _send(b, 0xB1, 74, 0, ms=60)
+    _send(b, 0xB1, 74, 0, ms=120)
 
 
 def test_mpe_note_off_releases_only_its_channel(mpe_on):
@@ -206,7 +240,12 @@ def _show(b, mode, page, item):
     b.uc.mem_write(menu, bytes([page]))
     rec = int.from_bytes(b.uc.mem_read(menu + 4 + 4 * page, 4), "little")
     b.uc.mem_write(rec + 5, bytes([item]))
-    _call(b, LCD_WRITE_CMD, 0x01)                 # clear the display, as a page change does
+    # Blank the display as a page change's clear would. Through stock's escape
+    # layer (09 col row, spaces), so the patch's LCD cache sees it; code 8
+    # itself waits 1 ms on a counter that only an interrupt advances.
+    for row in range(4):
+        for c in (9, 0, row) + (0x20,) * 20:
+            _call(b, LCD_PUTC_ESC, c)
     _call(b, UI_DRAW_PAGE)
     _call(b, UI_DRAW_VALUES)
     return b.display.lcd.text()
@@ -294,7 +333,7 @@ def test_two_zones_each_master_bends_only_its_zone(mpe_built):
     two_zones_bend: before the fix both zones moved by the same 100 c)."""
     b = _boot(mpe_built.patched)
     blob = mpe_built.blob
-    b.uc.mem_write(PATCHES + FLAG, b"")
+    b.uc.mem_write(PATCHES + FLAG, b"\x01")
     _rpn(b, 0, 6, 7)
     _rpn(b, 15, 6, 7)
     _send(b, 0x91, 60, 100, 0x9E, 67, 100, ms=40)   # channel 2 (Lower) and channel 15 (Upper)
@@ -423,3 +462,315 @@ def test_stock_never_reads_the_flag_byte_nor_writes_the_mode_byte():
     assert seen["control"] > 0
     assert seen["flag"] == 0 and seen["mode"] == 0
     assert b.u8(0x20011212) == 0
+
+
+# --- Pressure curve (Settings > MPE > PressCurve) ------------------------------
+
+GLOBALS, G_CURVE = 0x20014494, 0x34
+
+
+def _pressure_127(image, linear):
+    """Last 0x61 value written for the sounding voice with channel pressure
+    127, MPE off (the stock path), the curve set through globals +0x34."""
+    b = _boot(image)
+    b.uc.mem_write(GLOBALS + G_CURVE, bytes([1 if linear else 0]))
+    _send(b, 0x90, 60, 100, ms=40)
+    b.fpga.reset()
+    _send(b, 0xD0, 127, ms=600)         # the smoother needs about 0.5 s to settle at the 1 kHz tick
+    at = _last(b, 0x61)
+    assert at, "no AftTouch write"
+    return max(at.values())
+
+
+def test_pressure_curve_squared_is_stock(mpe_image):
+    assert abs(_pressure_127(mpe_image, False) - 0x7E00) < 0x40   # x*x >> 15 of a settled smoother
+
+
+def test_pressure_curve_linear_reaches_full(mpe_image):
+    assert abs(_pressure_127(mpe_image, True) - 0x7F00) < 0x40    # x itself
+
+
+def test_pressure_curve_setting_on_the_mpe_page(mpe_built):
+    b = _boot(mpe_built.patched)
+    rows = _show(b, 8, 6, 0)                      # Settings MPE EXTRAS page, first item
+    assert any("PressCurve" in r and "Squared" in r for r in rows), rows
+    _call(b, mpe_built.blob.address("mpe_ui_value_change"), 1)
+    assert b.u8(GLOBALS + G_CURVE) == 1
+    rows = _show(b, 8, 6, 0)
+    assert any("PressCurve" in r and "Linear" in r for r in rows), rows
+
+
+# --- Tempo-synced envelope times (Settings > MPE > EnvSync) -----------------------
+
+G_ENVSYNC, CLOCK_RATE, AMP_DECAY, AMP_RELEASE = 0x35, 0xED, 0x93, 0x95
+
+
+def _table(name):
+    import re
+    text = (ROOT / "patches" / "peak_mpe" / "disp_tables.h").read_text()
+    body = re.search(name + r"\[\d+\] = \{(.*?)\};", text, re.S).group(1)
+    return [int(x) for x in re.findall(r"\d+", body)]
+
+
+def _times(b):
+    return (_table("disp_decay_ms")[b.u8(PATCHES + AMP_DECAY)],
+            _table("disp_release_ms")[b.u8(PATCHES + AMP_RELEASE)])
+
+
+def test_envsync_follows_the_tempo(mpe_image):
+    b = _boot(mpe_image)
+    b.uc.mem_write(PATCHES + CLOCK_RATE, bytes([60]))            # ClockRate 60 -> 120 BPM
+    b.uc.mem_write(GLOBALS + G_ENVSYNC, bytes([3]))              # 1/8
+    b.run_ms(2500)                                               # the setting holds 1 s first
+    decay, release = _times(b)
+    assert 200 <= decay <= 320 and 200 <= release <= 320, (decay, release)   # 1/8 at 120 BPM = 250 ms
+    b.uc.mem_write(PATCHES + CLOCK_RATE, bytes([120]))           # 240 BPM
+    b.run_ms(3000)
+    decay, release = _times(b)
+    assert 100 <= decay <= 160 and 100 <= release <= 160, (decay, release)   # 125 ms
+
+
+def test_envsync_off_leaves_the_envelope_alone(mpe_image):
+    b = _boot(mpe_image)
+    before = (b.u8(PATCHES + AMP_DECAY), b.u8(PATCHES + AMP_RELEASE))
+    b.uc.mem_write(PATCHES + CLOCK_RATE, bytes([120]))
+    b.run_ms(2000)
+    assert (b.u8(PATCHES + AMP_DECAY), b.u8(PATCHES + AMP_RELEASE)) == before
+
+
+def test_envsync_ignores_a_choice_scrolled_past(mpe_image):
+    b = _boot(mpe_image)
+    before = (b.u8(PATCHES + AMP_DECAY), b.u8(PATCHES + AMP_RELEASE))
+    b.uc.mem_write(PATCHES + CLOCK_RATE, bytes([45]))            # 90 BPM
+    b.run_ms(300)
+    for choice in (3, 2, 0):                                     # 1/8, 1/4, Off, 600 ms apart
+        b.uc.mem_write(GLOBALS + G_ENVSYNC, bytes([choice]))
+        b.run_ms(600)
+    b.run_ms(1500)
+    assert (b.u8(PATCHES + AMP_DECAY), b.u8(PATCHES + AMP_RELEASE)) == before
+
+
+def test_envsync_setting_on_the_mpe_page(mpe_built):
+    b = _boot(mpe_built.patched)
+    rows = _show(b, 8, 6, 1)                      # Settings MPE EXTRAS page, second item
+    assert any("EnvSync" in r and "Off" in r for r in rows), rows
+    _call(b, mpe_built.blob.address("mpe_ui_value_change"), 3)
+    assert b.u8(GLOBALS + G_ENVSYNC) == 3
+    rows = _show(b, 8, 6, 1)
+    assert any("EnvSync" in r and "1/8" in r for r in rows), rows
+
+
+# --- Quick-assign modulation (hold Mod, move a control) ---------------------------
+
+SLOT_BASE = 0xFC
+MOD_PRESS, MOD_RELEASE = (7 << 8) | 0x01, (7 << 8) | 0xFF
+
+
+def _slots(b):
+    return [tuple(b.u8(PATCHES + SLOT_BASE + 4 * s + k) for k in range(4)) for s in range(16)]
+
+
+def test_quick_assign_puts_a_control_in_the_first_free_slot(mpe_built):
+    b = _boot(mpe_built.patched)
+    blob = mpe_built.blob
+    before = _slots(b)
+    free = next(s for s, v in enumerate(before) if v[0] == 0 and v[1] == 0 and v[2] == 64)
+    _call(b, blob.address("qa_knob"), 0x83)                       # Mod not held: nothing
+    assert _slots(b) == before
+    _call(b, blob.address("qa_button"), MOD_PRESS)
+    _call(b, blob.address("qa_knob"), 0x83)                       # FiltFreq -> destination 18
+    got = _slots(b)
+    assert got[free] == (7, 0, 96, 18), got[free]                 # Lfo1+, Direct, +32, FiltFreq
+    assert got[:free] == before[:free] and got[free + 1:] == before[free + 1:]
+    rows = b.display.lcd.text()
+    assert rows[0].startswith("QUICK ASSIGN") and "FiltFreq" in rows[3], rows
+    _call(b, blob.address("qa_knob"), 0x83)                       # the same control again: no second slot,
+    assert _slots(b) == got                                       # and no redraw (it would flicker)
+    _call(b, blob.address("qa_knob"), 0x81)                       # FiltKeyTrack has no destination
+    assert _slots(b) == got
+    _call(b, blob.address("qa_button"), MOD_RELEASE)
+    _call(b, blob.address("qa_knob"), 0x92)
+    assert _slots(b) == got                                       # released: nothing
+
+
+def test_quick_assign_control_only_selects(mpe_built):
+    b = _boot(mpe_built.patched)
+    blob = mpe_built.blob
+    # Mod not held: stock's overlay path runs (it returns 1 = apply the knob value, or 0 under Pickup).
+    _call(b, blob.address("qa_button"), MOD_PRESS)
+    before = _slots(b)
+    applied = _call(b, blob.address("disp_knob_overlay"), 0x83, 100, 120, 100)
+    assert applied == 0                                           # the control's value is not applied
+    assert _slots(b) != before                                    # but it was assigned
+    rows = b.display.lcd.text()
+    assert rows[0].startswith("QUICK ASSIGN"), rows               # stock drew nothing over it
+
+
+def test_quick_assign_encoder_chooses_the_source(mpe_built):
+    b = _boot(mpe_built.patched)
+    blob = mpe_built.blob
+    assert _call(b, blob.address("qa_encoder"), 1) == 0           # Mod not held: the encoder is stock's
+    free = next(s for s, v in enumerate(_slots(b)) if v[0] == 0 and v[1] == 0 and v[2] == 64)
+    _call(b, blob.address("qa_button"), MOD_PRESS)
+    assert _call(b, blob.address("qa_encoder"), 1) == 1           # Lfo1+ (7) -> Lfo1+/- (8)
+    rows = b.display.lcd.text()
+    assert rows[0].startswith("QUICK ASSIGN") and "Source Lfo1+/-" in rows[1], rows
+    _call(b, blob.address("qa_knob"), 0x92)                       # AmpAttack -> destination 22
+    assert _slots(b)[free] == (8, 0, 96, 22), _slots(b)[free]
+    _call(b, blob.address("qa_knob"), 0x9B)                       # ME1Attack -> destination 25
+    assert _slots(b)[free + 1] == (8, 0, 96, 25), _slots(b)[free + 1]
+
+
+# --- Parameter lock (Settings > PARAM LOCK) -----------------------------------
+
+PATCH_LOAD, INIT_PATCH = 0x0801AEB8, 0x08043160
+G_LOCK_FX = 0x36
+
+
+def test_param_lock_keeps_a_group_through_a_patch_load(mpe_image):
+    b = _boot(mpe_image)
+    for off, v in ((0xCC, 99), (0xF1, 5), (0x24, 77), (0x93, 33)):   # FX, Arp, Voice, and an unlocked envelope
+        b.uc.mem_write(PATCHES + off, bytes([v]))
+    b.uc.mem_write(GLOBALS + G_LOCK_FX, bytes([1, 0, 0]))            # lock FX only
+    _call(b, PATCH_LOAD, INIT_PATCH)                                 # the Initialise patch loads
+    assert b.u8(PATCHES + 0xCC) == 99                                # locked: kept
+    assert b.u8(PATCHES + 0xF1) != 5 and b.u8(PATCHES + 0x24) != 77  # not locked: the new patch's
+    assert b.u8(PATCHES + 0x93) != 33
+    b.uc.mem_write(GLOBALS + G_LOCK_FX, bytes([1, 1, 1]))
+    for off, v in ((0xF1, 5), (0x24, 77)):
+        b.uc.mem_write(PATCHES + off, bytes([v]))
+    _call(b, PATCH_LOAD, INIT_PATCH)
+    assert (b.u8(PATCHES + 0xCC), b.u8(PATCHES + 0xF1), b.u8(PATCHES + 0x24)) == (99, 5, 77)
+    assert b.u8(PATCHES + 0x93) != 33
+
+
+def test_param_lock_off_is_stock(mpe_image):
+    b = _boot(mpe_image)
+    b.uc.mem_write(PATCHES + 0xCC, bytes([99]))
+    _call(b, PATCH_LOAD, INIT_PATCH)
+    assert b.u8(PATCHES + 0xCC) != 99
+
+
+def test_param_lock_settings_page(mpe_built):
+    b = _boot(mpe_built.patched)
+    rows = _show(b, 8, 7, 0)                      # Settings PARAM LOCK page
+    assert rows[0].startswith("PARAM LOCK"), rows
+    text = "\n".join(rows)
+    assert "Lock FX" in text and "Lock Arp" in text and "Lock Voice" in text and "Off" in text, rows
+    _call(b, mpe_built.blob.address("mpe_ui_value_change"), 1)
+    assert b.u8(GLOBALS + G_LOCK_FX) == 1
+    rows = _show(b, 8, 7, 0)
+    assert any("Lock FX" in r and "On" in r for r in rows), rows
+
+
+# --- Section copy, undo and the MIDI monitor ------------------------------------
+
+G_SECT, G_DOIT = 0x39, 0x3A
+UNDO_LEFT, UNDO_RIGHT = (34 << 8) | 1, (33 << 8) | 1
+
+
+def _lfo(b, base):
+    return [b.u8(PATCHES + base + k) for k in range(12)]
+
+
+def test_section_copy_undo_and_redo(mpe_built):
+    b = _boot(mpe_built.patched)
+    blob = mpe_built.blob
+    for k, v in enumerate((77, 0, 3, 0, 40, 20, 90, 1, 1, 1, 1, 0)):
+        b.uc.mem_write(PATCHES + 0xAC + k, bytes([v]))
+    old = _lfo(b, 0xBA)
+    assert old != _lfo(b, 0xAC)
+    _call(b, blob.address("section_edit"), G_SECT, 13)            # "LFO1>2"
+    assert b.u8(PATCHES + 0xBA) == old[0]                         # choosing copies nothing
+    _call(b, blob.address("section_edit"), G_DOIT, 1)             # Do it
+    new = _lfo(b, 0xBA)
+    assert new[0] == 77 and new[4] == 40 and new[5] == 20 and new[6] == 90, new   # the settable ones follow
+    _call(b, blob.address("qa_button"), MOD_PRESS)                # Mod held
+    assert _call(b, blob.address("edit_button"), UNDO_LEFT) == 1  # Page left: undo
+    assert _lfo(b, 0xBA) == old
+    assert _call(b, blob.address("edit_button"), UNDO_RIGHT) == 1 # Page right: redo
+    assert _lfo(b, 0xBA) == new
+    assert _call(b, blob.address("edit_button"), UNDO_RIGHT) == 1 # nothing more to redo
+    assert _lfo(b, 0xBA) == new
+    assert "Nothing to redo" in "\n".join(b.display.lcd.text())
+
+
+def test_undo_takes_a_knob_gesture_as_one_step(mpe_built):
+    b = _boot(mpe_built.patched)
+    blob = mpe_built.blob
+    b.uc.mem_write(PATCHES + 0x93, bytes([50]))
+    for v in (60, 70, 80):                                        # one gesture: three events on one control
+        _call(b, blob.address("undo_knob"), 0x93)                 # what disp_knob_overlay does first
+        b.uc.mem_write(PATCHES + 0x93, bytes([v]))                # knob_poll applies the value afterwards
+    _call(b, blob.address("qa_button"), MOD_PRESS)
+    _call(b, blob.address("edit_button"), UNDO_LEFT)
+    assert b.u8(PATCHES + 0x93) == 50                             # all three moves undone together
+
+
+def test_midi_monitor_page(mpe_built):
+    b = _boot(mpe_built.patched)
+    _send(b, 0x90, 60, 100, ms=40)
+    rows = _show(b, 8, 9, 0)                                      # Settings MIDI MONITOR page
+    text = "\n".join(rows)
+    assert rows[0].startswith("MIDI MONITOR") and "Last msg" in text and "90 3C 64" in text, rows
+    assert "Msg count" in text and "DIN ovfl" in text, rows
+
+
+def test_copy_section_page(mpe_built):
+    b = _boot(mpe_built.patched)
+    rows = _show(b, 8, 8, 0)
+    assert rows[0].startswith("COPY SECTION"), rows
+    text = "\n".join(rows)
+    assert "Section" in text and "Do it" in text and "Off" in text, rows
+    _call(b, mpe_built.blob.address("mpe_ui_value_change"), 1)    # Section: first copy
+    rows = _show(b, 8, 8, 0)
+    assert any("Section" in r and "Osc1>2" in r for r in rows), rows
+
+
+def test_do_it_message_is_not_redrawn_over(mpe_built):
+    b = _boot(mpe_built.patched)
+    _call(b, mpe_built.blob.address("section_edit"), G_SECT, 7)   # Amp>E1
+    _show(b, 8, 8, 1)                                             # the Do it row
+    _call(b, mpe_built.blob.address("mpe_ui_value_change"), 1)    # one click on the encoder
+    b.run_ms(1)
+    rows = b.display.lcd.text()
+    assert rows[0].startswith("COPY SECTION") and "Done:" in rows[1], rows
+    b.run_ms(2500)                         # held for 3 s by the patch's own clock; Msg Time 0 alone is 5 counts
+    assert "Done:" in b.display.lcd.text()[1]
+    b.run_ms(1000)
+    assert "Done:" not in "\n".join(b.display.lcd.text())         # and it does go away
+
+
+def test_message_clears_when_the_copy_changed_nothing(mpe_built):
+    """Found on the synth (v0.14, series F4): Osc1>2 on an Init-based patch copies
+    equal values, so no parameter changed, stock's changed flag stayed clear and
+    the Done message (and the undo's) was never redrawn over."""
+    b = _boot(mpe_built.patched)
+    blob = mpe_built.blob
+    b.uc.mem_write(GLOBALS + 0x1A, bytes([64]))                   # Msg Time as on the user's Peak
+    _call(b, blob.address("section_edit"), G_SECT, 1)             # Osc1>2
+    _show(b, 8, 8, 1)
+    _call(b, blob.address("mpe_ui_value_change"), 1)              # Do it
+    b.run_ms(2500)
+    assert "Done:" in b.display.lcd.text()[1]
+    b.run_ms(1500)
+    rows = b.display.lcd.text()
+    assert rows[0].startswith("COPY SECTION") and "Do it" in rows[2], rows
+    _call(b, blob.address("qa_button"), MOD_PRESS)
+    _call(b, blob.address("edit_button"), UNDO_LEFT)
+    b.run_ms(2500)
+    assert b.display.lcd.text()[0].startswith("UNDO")
+    b.run_ms(1500)
+    rows = b.display.lcd.text()
+    assert rows[0].startswith("COPY SECTION") and "Do it" in rows[2], rows
+
+
+def test_msg_time_127_lasts_about_three_seconds(mpe_built):
+    """Stock counts the knob message down once per 11 ms (Msg Time 127: 1.45 s; the
+    user measured about 1.5 s); the patch makes a count 22 ms, the guide's 3 s."""
+    b = _boot(mpe_built.patched)
+    b.uc.mem_write(0x20011208 + 2, bytes([127 + 5]))
+    b.run_ms(2600)
+    assert b.u8(0x20011208 + 2) > 0
+    b.run_ms(600)
+    assert b.u8(0x20011208 + 2) == 0

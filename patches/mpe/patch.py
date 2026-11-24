@@ -16,7 +16,7 @@ steps; they add modules next to these (patches/mpe/mpe.h).
   bl hook:      settings_save_action's settings_save -> live state to globals
   bl hooks x5:  ui_value_change calls -> the VOICE item writes the flag itself
   byte patches: patch_param_desc[0x1A2] (the MPE flag: 0-1, Off/On, "MPE"),
-                VOICE page 1 item 3 = the flag, version labels "MPE3"
+                VOICE page 1 item 3 = the flag, version labels "MPE4"
 
 Step 3, the Settings MPE pages (mpe_ui.c):
   bl hook:      main_loop's first settings_load -> builds the relocated tables
@@ -37,12 +37,14 @@ FLAG_DESC = PATCH_PARAM_DESC + 0x1A2 * 12  # 0x0804FB64: {min, max, nrpn msb, nr
 VOICE_PAGE_1 = 0x0804E43C  # flash initialiser of the VOICE menu's first page (RAM 0x200026BC)
 
 PATCHES = [
-    # Version labels: boot screen "MPE3 Ver 126.778", Settings "MPE3Ver".
+    # Version labels: boot screen "MPE4 Ver 126.778", Settings "MPE4Ver".
     # MPE1 = v1 (hw/2026-11-02-mpe-v1); MPE2 = v1.1 (hw/2026-11-08-mpe-v1.1),
     # the channel-reuse rule that lets idle voices rotate; MPE3 = v1.2, Slide
-    # written per voice directly instead of through a phase-guarded queue.
-    (0x0804C3B7, b" Version ", b"MPE3 Ver ", "boot screen label (.data initialiser of RAM 0x20000637)"),
-    (0x0804B3E4, b"Version\x00", b"MPE3Ver\x00", "Settings 2/33 SYSTEM item name"),
+    # written per voice directly instead of through a phase-guarded queue;
+    # MPE4 = v1.3, notes on a zone's master channel play chords (channel reuse
+    # for member channels only, mpe_voice.c; as Peak v0.36; emulated only).
+    (0x0804C3B7, b" Version ", b"MPE4 Ver ", "boot screen label (.data initialiser of RAM 0x20000637)"),
+    (0x0804B3E4, b"Version\x00", b"MPE4Ver\x00", "Settings 2/33 SYSTEM item name"),
     # The flag's reserved descriptor: max 0 -> 1, display 0 -> 0x0F (Off/On).
     # NRPN stays 255:0 (no MIDI). The name pointer is the hook below.
     (FLAG_DESC + 1, b"\x00", b"\x01", "patch_param_desc[0x1A2].max: MPE flag 0-1"),

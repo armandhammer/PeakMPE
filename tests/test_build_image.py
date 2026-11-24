@@ -17,6 +17,7 @@ REPO = Path(__file__).resolve().parent.parent
 FAKE_DEV = r"""#!/usr/bin/env bash
 # Stand-in for scripts/dev (tests/test_build_image.py).
 root="$(cd "$(dirname "$0")/.." && pwd)"
+[[ "$1" == --image ]] && { echo "fake-dev:${FAKE_IMAGE_TAG:-1}"; exit 0; }
 echo "dev $*" >> "$root/calls.log"
 if [[ "$1 $2 $3" == "python -I tools/patch.py" ]]; then
     [[ "${FAKE_BUILD_RC:-0}" == 0 ]] || { echo "error: fake build failure" >&2; exit "$FAKE_BUILD_RC"; }
@@ -78,7 +79,9 @@ def repo(tmp_path):
     for k, v in [("user.name", "Test"), ("user.email", "test@example.invalid"), ("commit.gpgSign", "false")]:
         r.git("config", k, v)
     (root / "scripts").mkdir()
-    shutil.copy2(REPO / "scripts" / "build-image.sh", root / "scripts" / "build-image.sh")
+    for name in ("build-image.sh", "check-key"):
+        shutil.copy2(REPO / "scripts" / name, root / "scripts" / name)
+        (root / "scripts" / name).chmod(0o755)
     for name, text in (("dev", FAKE_DEV), ("check", FAKE_CHECK)):
         (root / "scripts" / name).write_text(text)
         (root / "scripts" / name).chmod(0o755)
@@ -176,3 +179,55 @@ def test_pre_push_refuses_a_commit_that_adds_firmware(repo, tmp_path):
     repo.git("-c", "core.hooksPath=/dev/null", "commit", "-q", "-m", "bypassed the pre-commit hook")
     r = repo.git("push", "origin", "main", check=False)
     assert r.returncode != 0 and "stray.syx" in r.stderr
+
+
+def _stamp(repo):
+    key = repo.run("scripts/check-key").stdout.strip()
+    assert len(key) == 64
+    (repo.root / "work").mkdir(exist_ok=True)
+    (repo.root / "work" / "check-stamp").write_text(f"key {key}\npassed 2026-11-20 09:00 MST\ncommit abc\n")
+    return key
+
+
+def test_a_check_that_passed_on_the_same_inputs_is_reused(repo):
+    _stamp(repo)
+    r = repo.build()
+    assert r.returncode == 0, r.stderr
+    assert "check " not in repo.calls()
+    assert "scripts/check: reused" in r.stdout and "2026-11-20 09:00" in r.stdout
+
+
+def test_a_docs_only_change_keeps_the_stamp_and_a_code_change_does_not(repo):
+    _stamp(repo)
+    (repo.root / "docs").mkdir()
+    (repo.root / "docs" / "notes.md").write_text("only words\n")
+    (repo.root / "README.md").write_text("more words\n")
+    assert repo.build().returncode == 0
+    assert "check " not in repo.calls()
+    (repo.root / "patches" / "mpe" / "patch.py").write_text("# changed\n")
+    assert repo.build().returncode == 0
+    assert repo.calls().count("check ") == 1
+
+
+@pytest.mark.parametrize("change", ["untracked", "firmware", "image", "recheck"])
+def test_what_makes_the_check_run_again(repo, change):
+    _stamp(repo)
+    args, env = [], {}
+    if change == "untracked":
+        (repo.root / "tools.py").write_text("new\n")                      # not ignored: in the key
+    elif change == "firmware":
+        (repo.root / "firmware" / "summit-firmware-2.2-build2121.syx").write_text("other stock\n")
+    elif change == "image":
+        env["FAKE_IMAGE_TAG"] = "2"
+    else:
+        args.append("--recheck")
+    assert repo.build(*args, **env).returncode == 0
+    assert repo.calls().count("check ") == 1
+
+
+def test_ignored_files_are_not_in_the_key(repo):
+    key = repo.run("scripts/check-key").stdout.strip()
+    (repo.root / "work").mkdir(exist_ok=True)
+    (repo.root / "work" / "scratch.txt").write_text("x\n")
+    (repo.root / "calls.log").write_text("x\n")
+    assert repo.run("scripts/check-key").stdout.strip() == key

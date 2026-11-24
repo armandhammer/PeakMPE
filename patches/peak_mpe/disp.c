@@ -24,11 +24,14 @@
  *    it moves with the knob and goes when the value is reached.
  *
  * The bars use custom characters, which stock loads once at boot (box-frame
- * pieces, codes 0-7). The first overlay loads ours; disp_poll puts stock's
- * set back when the overlay's message time has run out (lcd_load_cgram), so
- * the pages that might use the frame characters are unchanged. All of it is
- * drawn at the end of the knob event that called stock, in the main loop,
- * never from an interrupt or mod_tick.
+ * pieces, codes 0-7). The first overlay starts loading ours, one per
+ * main-loop pass in disp_poll (v0.23: all seven at once held the loop for
+ * about 2.9 ms), and the bar is drawn when the last is in, seven passes
+ * later; disp_poll puts stock's set back when the overlay's message time has
+ * run out (lcd_load_cgram), so the pages that might use the frame characters
+ * are unchanged. Text and bars are drawn at the end of the knob event that
+ * called stock, or in disp_poll, in the main loop, never from an interrupt or
+ * mod_tick; the LCD cache (lcdcache.c) sends only the cells that change.
  *
  * The ms and Hz figures describe the amp envelope (attack: the whole ramp;
  * decay and release: time to -40 dB) and the filter with key tracking 0 at
@@ -37,6 +40,7 @@
  */
 
 #include "mpe.h"
+#define DISP_TABLES_DEFINE              /* the tables live here; envsync.c uses two */
 #include "disp_tables.h"
 
 /* Display floors: settings below these were under the measuring chain's
@@ -62,9 +66,15 @@ static const uint8_t glyph_pattern[GLYPHS] = {
 #define COLS 20
 #define CELL_PX 5
 
-static uint8_t glyphs_loaded;
+/* 0: stock's characters are in the CGRAM; 1-7: ours are being loaded, this is
+ * the next one; GLYPHS: all of ours are in. */
+static uint8_t glyph_next;
 static uint8_t ov_id, ov_hires, ov_drawn;
 static uint32_t ov_cur;
+/* The bottom line still to draw once the characters are in. */
+static uint8_t bar_pending, bar_pick;
+static uint16_t bar_id;
+static uint32_t bar_cur, bar_target;
 
 /* --- Text ---------------------------------------------------------------- */
 
@@ -247,15 +257,39 @@ void disp_fmt_saved(uint32_t type, uint32_t value)
 
 /* --- Custom characters --------------------------------------------------- */
 
-static void load_glyphs(void)
+/* One character per call, so loading the seven (56 writes, about 2.9 ms of
+ * bus time) is spread over seven main-loop passes instead of holding one. */
+static void load_next_glyph(void)
 {
-    if (glyphs_loaded)
-        return;
-    lcd_write_cmd(0x40 + 8);                    /* CGRAM address 8: character 1 */
-    for (uint32_t g = 1; g < GLYPHS; g++)
-        for (uint32_t row = 0; row < 8; row++)
-            lcd_write_data(row == 0 || row == 7 ? 0 : glyph_pattern[g]);
-    glyphs_loaded = 1;
+    uint32_t g = glyph_next;
+    lcd_write_cmd(0x40 + 8 * g);                /* CGRAM address of character g */
+    for (uint32_t row = 0; row < 8; row++)
+        lcd_write_data(row == 0 || row == 7 ? 0 : glyph_pattern[g]);
+    lcd_cache_lost_ac();                        /* the display's address is in the CGRAM now */
+    glyph_next = (uint8_t)(g + 1);
+}
+
+/* 1-7: stock's character to put back next; 0: none to put back. Ours took
+ * codes 1-7 only, so code 0 is still stock's. */
+static uint8_t restore_next;
+
+/* Puts back one of stock's characters per call, as load_next_glyph loads
+ * ours. Up to v0.42 lcd_load_cgram put all eight back at once: 65 writes,
+ * about 3.3 ms in one main-loop pass, each time an overlay's message ran out
+ * (found in a code audit, 2026-11-23; the figure from the 51 us a write
+ * measured in docs/peak-motion-morph.md). */
+static void restore_next_glyph(void)
+{
+    uint32_t g = restore_next;
+    lcd_write_cmd(0x40 + 8 * g);
+    for (uint32_t row = 0; row < 8; row++)
+        lcd_write_data(lcd_cgram_glyphs[8 * g + row]);
+    if (++g >= GLYPHS) {
+        g = 0;
+        lcd_write_cmd(0x80);                    /* back to DDRAM, as lcd_init leaves it */
+    }
+    restore_next = (uint8_t)g;
+    lcd_cache_lost_ac();
 }
 
 /* --- Bars ---------------------------------------------------------------- */
@@ -326,7 +360,7 @@ static void bar_cells(const struct param_desc *d, uint32_t v, uint8_t *row, uint
 
 static void put_row(const uint8_t *row)
 {
-    lcd_cursor(0, 3);
+    lcd_cache_cursor(0, 3);                     /* unchanged cells aren't sent (lcdcache.c) */
     for (uint32_t cell = 0; cell < COLS; cell++)
         lcd_putc_esc(row[cell]);
 }
@@ -352,6 +386,16 @@ static void draw_pickup(const struct param_desc *d, uint32_t knob, uint32_t targ
     put_row(row);
 }
 
+/* The bottom line of the last knob event. */
+static void draw_bar(void)
+{
+    const struct param_desc *d = &patch_param_desc[bar_id];
+    if (bar_pick)
+        draw_pickup(d, bar_cur, bar_target);
+    else
+        draw_value_bar(d, bar_cur);
+}
+
 /* --- The overlay --------------------------------------------------------- */
 
 static uint32_t patch_value(uint32_t id, uint32_t hires)
@@ -365,29 +409,60 @@ static uint32_t patch_value(uint32_t id, uint32_t hires)
 /* Replaces knob_poll's two calls of knob_overlay (0x08016EF2, 0x08016F28). */
 int disp_knob_overlay(uint32_t id, uint32_t prev, uint32_t cur, uint32_t saved, uint32_t hires)
 {
+    if (qa_held()) {    /* quick-assign: the control only selects (qassign.c); stock draws and applies nothing */
+        qa_knob(id);
+        return 0;
+    }
+    undo_knob(id);      /* the first move of a gesture saves the patch (section.c) */
+    motion_knob(id, cur, hires & 0xFF);   /* motion recording takes or follows the control (motion.c) */
+    uint32_t raw = cur;
+    int morphed = morph_knob(id, &prev, &cur);   /* wheel up: prev and cur become the blended values (morph.c) */
     ov_id = (uint8_t)id;
     ov_hires = (uint8_t)(hires & 0xFF);
     ov_drawn = 0;
     ov_cur = cur;
     int applied = knob_overlay(id, prev, cur, saved, hires & 0xFF);
+    if (morphed >= 0 && applied)
+        morph_applied(morphed, raw, cur);    /* the blend goes into the patch here */
     if (ov_drawn && id < 0x1A3) {
-        const struct param_desc *d = &patch_param_desc[id];
-        load_glyphs();
-        if (!applied && globals[GLOBAL_PICKUP])
-            draw_pickup(d, cur, patch_value(id, ov_hires));
-        else
-            draw_value_bar(d, cur);
+        bar_id = (uint16_t)id;
+        bar_cur = cur;
+        bar_pick = (uint8_t)(!applied && globals[GLOBAL_PICKUP]);
+        bar_target = patch_value(id, ov_hires);
+        if (glyph_next >= GLYPHS) {
+            draw_bar();
+        } else {                                /* disp_poll loads the characters, then draws it */
+            if (!glyph_next)
+                glyph_next = 1;
+            bar_pending = 1;
+        }
     }
-    return applied;
+    return morphed >= 0 ? 0 : applied;       /* morphed: stock must not write the control's own position */
 }
 
-/* Once per main-loop pass (from mpe_ui_poll). Puts stock's characters back
- * when no message is on the display any more. */
+/* Once per main-loop pass (from mpe_ui_poll). Loads one of the bar's
+ * characters while they are needed, draws the bar when the last is in, and
+ * puts stock's characters back when no message is on the display any more. */
 void disp_poll(void)
 {
-    if (glyphs_loaded && !ui_msg_state[2]) {
-        glyphs_loaded = 0;
-        lcd_load_cgram();
-        lcd_write_cmd(0x80);                    /* back to DDRAM, as lcd_init leaves it */
+    if (!glyph_next) {
+        if (restore_next)
+            restore_next_glyph();
+        return;
+    }
+    restore_next = 0;                           /* a new overlay: ours go in again from code 1 */
+    if (!ui_msg_state[2]) {
+        glyph_next = 0;
+        bar_pending = 0;
+        restore_next = 1;
+        restore_next_glyph();
+        return;
+    }
+    if (glyph_next < GLYPHS) {
+        load_next_glyph();
+        if (glyph_next >= GLYPHS && bar_pending) {
+            bar_pending = 0;
+            draw_bar();
+        }
     }
 }

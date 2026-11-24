@@ -17,7 +17,12 @@ voices rotate on channel reuse ([Channel reuse, v1.1](#channel-reuse-v11));
 boot label `MPE2`; Slide dead on the synth. **v1.2** (2026-11-08, branch
 `patch/mpe-v1.2`, emulated, not yet on hardware): Slide written per voice
 straight to the FPGA, without the v1.1 tick-phase guard
-([Slide, v1.2](#slide-v12)); boot label `MPE3`.
+([Slide, v1.2](#slide-v12)); boot label `MPE3`. **v1.3** (2026-11-22,
+emulated only, not on hardware): channel reuse only on member channels, so
+a chord on a zone's master channel plays in full (before, its notes took
+each other's voice; found on the Peak, fixed there in Peak v0.36;
+[findings](findings/summit-2.2-build2121.md#notes-on-a-zones-master-channel-mpe-v13-2026-11-22));
+boot label `MPE4`.
 
 ## User decisions
 
@@ -181,12 +186,15 @@ gets it.
 - Note-on on member channel c: `voice_trigger` with the part's voice range;
   the allocated voice(s) store c (`voice_channel[v]`, CCM). The
   per-voice bend offset, pressure and slide are read through that map.
-- A new note on a channel whose voice still sounds or releases (MPE: one
-  note per channel): the new note **takes over that voice** (forced voice),
+- A new note on a member channel whose voice still sounds or releases
+  (MPE: one note per member channel): the new note **takes over that
+  voice** (forced voice),
   instead of releasing it and allocating another, so the channel never
   sounds twice. If the channel's voices are all **idle**, they are unbound
   and the note goes to the stock allocator, so it rotates as with MPE off
   (v1.1, [below](#channel-reuse-v11); v1 took idle voices over too).
+  A zone's master channel plays chords: its notes always go to the stock
+  allocator (v1.3; before, reuse caught the master channel too).
 - Unison: every voice of the stack gets the same channel.
 - Mono/legato: MPE for one note at a time. The part's one voice is bound
   to the sounding note's channel and takes that channel's bend, pressure
@@ -282,7 +290,8 @@ expression.
   per-note expression); in Multi an MPE part's own Part channel and the
   global channel's split/layer still work outside the zones.
 - **Master channel notes** play, bound to the master channel (they get the
-  master's controls only).
+  master's controls only). Chords there sound in full: no channel reuse on
+  the master (v1.3).
 - **Member channels:** notes, RPN, CC 120 and 123–127 (all sound/notes off,
   mode messages, part-wide) reach the part. Bend, pressure and CC 74 are
   stored per channel; everything else (other CCs including sustain and the
@@ -317,7 +326,8 @@ expression.
   `voice_alloc`'s forced-voice argument, one per unison voice; the allocator
   picks any more. A sender reusing a channel early so never doubles it.
   **Changed in v1.1:** idle voices are no longer taken over
-  ([Channel reuse, v1.1](#channel-reuse-v11)).
+  ([Channel reuse, v1.1](#channel-reuse-v11)). **Changed in v1.3:** member
+  channels only; a zone's master channel goes to the stock allocator.
 - **Release by channel:** in an MPE part's poly modes, `note_off`'s
   `voice_release(note, part)` sees only the voices bound to the message's
   channel; the others playing that note number are hidden for the call (their

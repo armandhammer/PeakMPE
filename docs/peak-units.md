@@ -336,6 +336,13 @@ envelopes (inferred identical because they share the parameter layout).
   10–20 ms, not instantaneous (inferred: the frame limits the estimate). The 40-step ramp
   (one CC every 10 ms) was recorded (`zipper-cutoff.wav`) but not analysed
   further for steps.
+- **Cutoff closing under a held saw** (Peak v0.40, series AI, 2026-11-23;
+  observed): FiltFreq 255 -> 40 (note 48) loses the upper harmonics within
+  40 ms and reaches the floor in about 0.3 s; 255 -> 100 settles within
+  1 dB 60 ms after the response; the response comes 80-100 ms after the
+  message (MIDI, the 16 ms parameter slot and the rig's timing together).
+  The same close through the morph answers about 60 ms later (its ramp) and
+  is as clean. J2's slow fall (v0.18) is not reproduced.
 
 Budget implication for steps 21–22 (motion recording, morph): one CC per
 millisecond is not needed; 5–10 ms per update is smooth for level and cutoff

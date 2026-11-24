@@ -27,10 +27,14 @@ static inline int mpe_zone_kind(const struct mpe_zone *z) { return z->master == 
  * at note-on from voice_alloc (note_on = 1), before the osc_pitch calls. */
 void mpe_bend_voice(uint32_t v, int role, const struct mpe_zone *z, int note_on);
 void mpe_pressure_voice(uint32_t v, int role, int note_on);
+void mpe_pressure_write_voice(uint8_t v, uint8_t n, int32_t value);
+void mpe_pressure_write_part(uint8_t n, int32_t value);
 void mpe_slide_voice(uint32_t v, int role, int note_on);
 
 int mpe_bend_stock(uint32_t v);
 void mpe_bend_add(uint8_t *osc, uint32_t v);
+void ji_voice(uint32_t v, int note_on);   /* ji.c: just intonation, every voice, MPE or not */
+void ji_add(uint8_t *osc, uint32_t v);
 extern int16_t mpe_bend_in;      /* osc_pitch's part-bend literal (0x08010C24) points here */
 
 /* osc_pitch stores voice v's result as s32 at osc + 0x2C + 4v (Peak; observed
@@ -39,5 +43,7 @@ extern int16_t mpe_bend_in;      /* osc_pitch's part-bend literal (0x08010C24) p
 
 #define AFTERTOUCH_N 1           /* voice_mod_write n: param 0x61 */
 #define MODWHEEL_N 0             /* voice_mod_write n: param 0x60 */
+#define RELVEL_EXPR_N 2          /* param 0x62: ExprPED1 (relvel.c) */
+#define RELVEL_BREATH_N 3        /* param 0x63: BrthPED2 */
 
 #endif

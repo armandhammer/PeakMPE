@@ -4,7 +4,8 @@ The patch moves the Settings menu to patch RAM and inserts its pages after
 MIDI CHANNEL (stock page p > 4 becomes p + 2), and gives the stock code
 that acts on page numbers the stock number (mpe_settings_page_index). These
 tests compare the patched screens with the stock image's, the page counter
-cut off. The version label differs on purpose (MPE3Ver; MPE1Ver in v1, MPE2Ver in v1.1).
+cut off. The version label differs on purpose (MPE4Ver; MPE1Ver in v1,
+MPE2Ver in v1.1, MPE3Ver in v1.2).
 """
 
 import pytest
@@ -29,7 +30,7 @@ def stock():
 
 
 def normalise(lines):
-    return [line.replace("MPE3Ver", "Version") for line in without_counter(lines)]
+    return [line.replace("MPE4Ver", "Version") for line in without_counter(lines)]
 
 
 def walk(s, pages):

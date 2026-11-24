@@ -3,11 +3,11 @@
  "formatVersion": 1,
  "name": "mpe",
  "title": "MPE for Peak",
- "version": "0.3",
- "label": "MPE3 Ver 108.469",
- "summary": "Per-note pitch bend, pressure (channel or poly aftertouch) and slide (MPE) on the Peak's 8 voices, a per-patch MPE switch (VOICE page) and Settings MPE pages; one or two zones. v0.2: the arpeggiator ignores its own notes when a DAW sends them back (MIDI loop). v0.3: turning a knob shows envelope times in ms and the filter cutoff in Hz, with a value bar, and Pickup shows an arrow and a distance bar. Tested on one Peak with the automated hardware test rig and played from a LinnStrument.",
+ "version": "0.44",
+ "label": "MPEi Ver 108.469",
+ "summary": "Per-note pitch bend, pressure (channel or poly aftertouch) and slide (MPE) on the Peak's 8 voices, a per-patch MPE switch (VOICE page) and Settings MPE pages; one or two zones. v0.2: the arpeggiator ignores its own notes when a DAW sends them back (MIDI loop). v0.3: turning a knob shows envelope times in ms and the filter cutoff in Hz, with a value bar, and Pickup shows an arrow and a distance bar. v0.4: Settings > MPE > PressCurve chooses stock's squared pressure or a linear curve. v0.5: CC 11 on a member channel works as pressure. v0.6: Settings > MPE EXTRAS > EnvSync sets the amp Decay and Release to a note length (1/2 to 1/16) at the current tempo (v0.7: a changed setting applies after 1 s). v0.8: hold Mod and move a slider or knob to put its modulation destination in the first free matrix slot; the encoder chooses the source. v0.11: Settings > PARAM LOCK keeps the FX, Arp or Voice settings through a patch change. v0.12: Settings > COPY SECTION copies an oscillator, envelope or LFO to another; Mod + Page left/right undoes and redoes the last change; Settings > MIDI MONITOR shows the last message and the DIN overflow count. v0.13: the copy and undo messages stay on screen about 2 s. v0.14: Settings > MPE EXTRAS > Glide starts a poly glide from the previous note (LastNote), or only while another note is held (Legato), instead of from the voice's own last pitch; EnvSync and undo timings corrected. v0.15: the patch's messages always clear and stay 3 s; Msg Time 127 now lasts about 3 s (stock: 1.5 s). v0.16: motion recording: hold Mod and press Animate 1, move a slider or knob, and its movement over one bar loops in time with the tempo (Settings > MOTION sets 1, 2 or 4 bars). v0.17: the recorded movement plays back as a ramp from step to step instead of jumps, also where the loop starts again. v0.18: patch morph: with Settings > MORPH > Morph set to ModWheel, the mod wheel blends the patch as you have edited it (wheel down) towards the patch as it is stored (wheel up); levels, amounts, times, the filter, FX amounts and mod matrix depths move, switches stay. v0.19: morph: holding Compare with the mod wheel up no longer loses the edit when the button is let go; after Save the saved sound is the patch, so the wheel has nothing left to blend until the next edit. v0.20: holding Compare no longer clears the undo step or stops a motion lane: both wait while the button is held and go on when it is let go. Euclidean arp rhythms: Settings > ARP EUCLID sets Pulses, Steps and Rotate, and the arpeggiator plays that many notes spread evenly over the steps in place of the patch's Rhythm. With Arp>MIDI on and no MIDI loop, a key let go just after the arpeggiator's own note off is no longer ignored (before, the arpeggiator could go on playing a released key). v0.21: arp ratchets: Settings > ARP RATCHET makes every note, or every second to eighth one, sound two or three times within its step. v0.22: Osc 1/2/3 Fine sent over MIDI (CC 15, 18, 21) now reaches -100; stock ignored -100 to -73. v0.23: the screen only sends the characters that change, about a tenth of stock's display traffic while a knob turns, which leaves more time for the per-note modulation (pitch bend, pressure, slide). v0.24: release velocity: Settings > RELEASE VEL > Source puts each note-off's velocity into the ExprPED1 or BrthPED2 mod source of the notes it releases; route that source to AmpEnv R in the mod matrix and how fast a note is let go sets its release. v0.25: MIDI Tuning Standard: the single-note tuning change is also taken with device ID 7F (all devices) and with several notes in one message, and the bulk tuning dump with device ID 7F, so tuning software reaches the tuning tables. v0.26: Settings > RANDOMISE rolls new values for one section of the patch (an oscillator, the mixer, the filter, an envelope, an LFO, the FX, or all of them) inside ranges that keep it sounding, by an Amount from a nudge to a fresh roll; nothing is saved, and Mod + Page left takes a roll back. PARAM LOCK now keeps the chorus Mode with the FX instead of the arp. v0.27: band-pass and high-pass rolls keep the cutoff where the note still comes through, and band-pass rolls bring some resonance, so they are no longer much quieter than the rest. v0.28: hold Mod and press Audition for a panic: every note stops at once, and held or latched arp notes, stuck keys and per-note bend, pressure and slide are cleared. v0.29: the patch's checks of the screen, the settings and the arp rhythm run once a millisecond instead of on every pass of the main loop, which gives the synth's own work more time. v0.30: Settings > PATCH DUMP > Send = USB sends each newly loaded patch (by program change or the patch buttons) over USB in the editor's own format, so an editor or DAW can follow along. A rare full RANDOMISE roll could leave every oscillator quieter than the mixer rule allows; fixed. v0.31: Settings > PATCH TIMING > Change at = Beat, Bar, 2 Bars or 4 Bars: while a DAW's MIDI clock plays, a patch change by program change or the patch buttons waits for the next beat or bar line and lands on it. v0.32: a program change that arrives right on the bar line (just after its clock) now loads at once instead of a bar later; Continue without a song position goes on from where Stop left off. v0.33: the PATCH TIMING message shows the right patch number (it showed D 55 for D003 after a program change). v0.34: Settings > USB IN and DIN IN turn Notes, CC and Patch (program change and bank select) on or off for each input, for example notes only from a controller on DIN and patch changes only from a DAW on USB. Patch timing counts the clock only from the port the Clock Source setting follows, so a clock on both inputs no longer counts twice. v0.35: Settings > JUST TUNE tunes chords in just intonation: Mode Fixed tunes every note to the Root you choose; Mode Adapt follows the chord you play, keeps held notes where they are and plays a note alone at its normal pitch. It works with or without MPE and with the arp. v0.36: with MPE on, a chord on a zone's master channel plays in full (before, its notes took each other's voice). v0.37: after the Peak is switched on, PATCH TIMING waits for a Start or a song position before it times changes, instead of guessing the bar from a bare Continue; a patch dump is no longer lost when an editor asks for something at the same moment. v0.38: a key held down while you let go of the sostenuto pedal keeps sounding (the Peak's own firmware stopped it); with Glide on, the first notes after the Peak is switched on no longer glide up or down from middle C. v0.39: when every voice is still in its attack (a slow pad), a new note takes the oldest note, not the one played just before it. v0.40: when every voice is held, a new note takes a note the sustain or sostenuto pedal is holding before a key you are still holding down, and otherwise the oldest note. v0.41: Settings VOICE STEAL > Keep Low: when voices run out, a new note never takes the lowest note that sounds, so a bass note under a chord keeps playing. v0.42: Settings ARP RATCHET > Chance (10-100 %): each ratcheted note plays its repeats by chance, as ArpChance does for steps. v0.43: fixes from a code audit: the arpeggiator echo filter no longer drops a real note about once a minute after the arp has played; the MIDI monitor counts can no longer overrun their field; stock's display characters go back without a 3 ms pause in the per-note modulation; editing a Settings item outside the MPE page no longer clears the MPE page's unsaved mark. v0.44: EnvSync waits while Compare is held, so a tempo change during Compare reaches the edited patch afterwards. Tested on one Peak with the automated hardware test rig and played from a LinnStrument.",
  "built": {
-  "commit": "c1d82f78b9a6",
+  "commit": "ccf305a45690",
   "definition": "patches/peak_mpe/patch.py"
  },
  "input": {
@@ -19,11 +19,11 @@
  },
  "output": {
   "fileName": "peak-firmware-2.2-build2108+mpe.syx",
-  "sha256": "515359bd47185fda540b438c6649e73b6c61f7e5c97f07e14ad53f5984040351",
-  "bytes": 352499,
-  "imageSha256": "a21a1871d61c692463385321f13237b9962873279c488a230632f72ab9349c5b",
-  "imageLength": 256352,
-  "messages": 8012
+  "sha256": "2da224661a054639212c26d7597c6bf99fa6e2ac77e6215cef73dbffa8331a51",
+  "bytes": 374807,
+  "imageSha256": "132c9ccdbe0f098f0d2570f38affef62ec1860787832c4f227611a82d54aa1f9",
+  "imageLength": 272576,
+  "messages": 8519
  },
  "header": null,
  "fill": 255,
@@ -35,7 +35,7 @@
   },
   {
    "address": "0x0800D134",
-   "data": "xfo=",
+   "data": "z/w=",
    "why": "bl hook -> mpe_ui_boot: main_loop: first settings_load, before the main loop runs"
   },
   {
@@ -55,37 +55,107 @@
   },
   {
    "address": "0x0800D1C6",
-   "data": "TPs=",
+   "data": "Av4=",
    "why": "bl hook -> mpe_ui_poll: main_loop: per-pass call, redraw the MPE values"
   },
   {
+   "address": "0x0800D1FA",
+   "data": "Pw==",
+   "why": "bl hook -> lcd_cache_putc: escape layer: the only call of lcd_putc for text"
+  },
+  {
+   "address": "0x0800D1FC",
+   "data": "A/g=",
+   "why": "bl hook -> lcd_cache_putc: escape layer: the only call of lcd_putc for text"
+  },
+  {
+   "address": "0x0800D202",
+   "data": "Pw==",
+   "why": "bl hook -> lcd_cache_init: boot: lcd_init (ends with a clear)"
+  },
+  {
+   "address": "0x0800D204",
+   "data": "ifg=",
+   "why": "bl hook -> lcd_cache_init: boot: lcd_init (ends with a clear)"
+  },
+  {
+   "address": "0x0800D216",
+   "data": "Pw==",
+   "why": "bl hook -> lcd_cache_cursor: escape layer: the only call of lcd_cursor"
+  },
+  {
+   "address": "0x0800D218",
+   "data": "Zfg=",
+   "why": "bl hook -> lcd_cache_cursor: escape layer: the only call of lcd_cursor"
+  },
+  {
    "address": "0x0800F014",
-   "data": "OvBA+A==",
+   "data": "OvBG+A==",
    "why": "bl hook -> mpe_channel_filter: midi_parse_byte: channel message"
   },
   {
    "address": "0x0800F074",
-   "data": "OvAQ+A==",
+   "data": "OvAW+A==",
    "why": "bl hook -> mpe_channel_filter: midi_parse_byte: channel message, other path"
   },
   {
+   "address": "0x0800F0A0",
+   "data": "PQ==",
+   "why": "bl hook -> ptime_clock_1: MIDI input loop: a clock byte on port 1"
+  },
+  {
+   "address": "0x0800F0A2",
+   "data": "cv8=",
+   "why": "bl hook -> ptime_clock_1: MIDI input loop: a clock byte on port 1"
+  },
+  {
+   "address": "0x0800F0A8",
+   "data": "PQ==",
+   "why": "bl hook -> ptime_clock_0: MIDI input loop: a clock byte on port 0"
+  },
+  {
+   "address": "0x0800F0AA",
+   "data": "dv8=",
+   "why": "bl hook -> ptime_clock_0: MIDI input loop: a clock byte on port 0"
+  },
+  {
+   "address": "0x0800F112",
+   "data": "PQ==",
+   "why": "bl hook -> ptime_select: program_change: the patch load (timed to the clock)"
+  },
+  {
+   "address": "0x0800F114",
+   "data": "zf4=",
+   "why": "bl hook -> ptime_select: program_change: the patch load (timed to the clock)"
+  },
+  {
+   "address": "0x0800F318",
+   "data": "PA==",
+   "why": "bl hook -> ccpair_param_set: cc: a plain CC to the setter (Osc Fine's coarse byte, ccpair.c)"
+  },
+  {
+   "address": "0x0800F31A",
+   "data": "Av8=",
+   "why": "bl hook -> ccpair_param_set: cc: a plain CC to the setter (Osc Fine's coarse byte, ccpair.c)"
+  },
+  {
    "address": "0x0800F4E0",
-   "data": "OQ==",
+   "data": "Og==",
    "why": "bl hook -> mpe_note_release: note_off: poly modes"
   },
   {
    "address": "0x0800F4E2",
-   "data": "rP8=",
+   "data": "Uvg=",
    "why": "bl hook -> mpe_note_release: note_off: poly modes"
   },
   {
    "address": "0x0800F4F8",
-   "data": "OQ==",
+   "data": "Og==",
    "why": "bl hook -> mpe_note_release: note_off: mono, no last note"
   },
   {
    "address": "0x0800F4FA",
-   "data": "oP8=",
+   "data": "Rvg=",
    "why": "bl hook -> mpe_note_release: note_off: mono, no last note"
   },
   {
@@ -95,17 +165,17 @@
   },
   {
    "address": "0x0800F51C",
-   "data": "S/8=",
+   "data": "f/8=",
    "why": "bl hook -> mpe_trigger_held: note_off: mono fallback to a held note"
   },
   {
    "address": "0x0800F52C",
-   "data": "OQ==",
+   "data": "Og==",
    "why": "bl hook -> mpe_note_release: note_off: mono, no held note left"
   },
   {
    "address": "0x0800F52E",
-   "data": "hv8=",
+   "data": "LPg=",
    "why": "bl hook -> mpe_note_release: note_off: mono, no held note left"
   },
   {
@@ -115,87 +185,142 @@
   },
   {
    "address": "0x0800F572",
-   "data": "EP8=",
+   "data": "RP8=",
    "why": "bl hook -> mpe_trigger_note_on: note_on -> voice_dispatch"
   },
   {
    "address": "0x08010972",
-   "data": "OfCt+Q==",
+   "data": "OfBL/Q==",
    "why": "bl hook -> mpe_wheel_write: mod_update: broadcast 0x60 to all voices"
   },
   {
+   "address": "0x080109C0",
+   "data": "O/AI/Q==",
+   "why": "bl hook -> relvel_pedal_write: mod_update: broadcast ExprPED1 (0x62) to all voices"
+  },
+  {
+   "address": "0x08010A0E",
+   "data": "O/Dh/A==",
+   "why": "bl hook -> relvel_pedal_write: mod_update: broadcast BrthPED2 (0x63) to all voices"
+  },
+  {
+   "address": "0x08010A7C",
+   "data": "OfAC/A==",
+   "why": "bl hook -> mpe_pressure_write_voice: mod_update: voice pressure (AftTouch) write, Linear curve"
+  },
+  {
+   "address": "0x08010A84",
+   "data": "OfAW/A==",
+   "why": "bl hook -> mpe_pressure_write_part: mod_update: part pressure write, same value"
+  },
+  {
    "address": "0x08010C24",
-   "data": "fAEAEA==",
+   "data": "kAEAEA==",
    "why": "pointer hook -> mpe_bend_in: osc_pitch: literal for the part bend"
   },
   {
    "address": "0x08010E70",
-   "data": "OPBE/w==",
+   "data": "OfDi+g==",
    "why": "bl hook -> mpe_mod_update: mod_tick -> mod_update(), before the voice loop"
   },
   {
    "address": "0x08010EB8",
-   "data": "OPDq/Q==",
+   "data": "OfBa+Q==",
    "why": "bl hook -> mpe_osc_pitch_tick: mod_tick: osc_pitch(osc1)"
   },
   {
    "address": "0x08010EC2",
-   "data": "OPDl/Q==",
+   "data": "OfBV+Q==",
    "why": "bl hook -> mpe_osc_pitch_tick: mod_tick: osc_pitch(osc2)"
   },
   {
    "address": "0x08010ECC",
-   "data": "OPDg/Q==",
+   "data": "OfBQ+Q==",
    "why": "bl hook -> mpe_osc_pitch_tick: mod_tick: osc_pitch(osc3)"
   },
   {
+   "address": "0x08011956",
+   "data": "Og==",
+   "why": "bl hook -> euclid_arp_tick: tick work 0x0801192C: the call of arp_tick (Euclidean rhythm)"
+  },
+  {
+   "address": "0x08011958",
+   "data": "Kfo=",
+   "why": "bl hook -> euclid_arp_tick: tick work 0x0801192C: the call of arp_tick (Euclidean rhythm)"
+  },
+  {
    "address": "0x08011B8E",
-   "data": "N/A1/A==",
+   "data": "N/CX/A==",
    "why": "bl hook -> mpe_env_read: voice_candidates: FPGA envelope read"
   },
   {
+   "address": "0x08012010",
+   "data": "O/Aa+g==",
+   "why": "bl hook -> sost_down: sostenuto_pedal: pedal down marks the gated voices"
+  },
+  {
+   "address": "0x08012016",
+   "data": "O/Ax+g==",
+   "why": "bl hook -> sost_up: sostenuto_pedal: pedal up releases the marked voices"
+  },
+  {
+   "address": "0x08012392",
+   "data": "O/Bd+Q==",
+   "why": "bl hook -> steal_candidates: voice_alloc: rank the voices to take"
+  },
+  {
    "address": "0x08012640",
-   "data": "NvDm/g==",
+   "data": "NvBI/w==",
    "why": "bl hook -> mpe_alloc_glide: voice_alloc: voice chosen, before osc_pitch"
   },
   {
    "address": "0x0801264A",
-   "data": "N/Ak",
+   "data": "N/CU/Q==",
    "why": "bl hook -> mpe_osc_pitch_alloc: voice_alloc: osc_pitch(osc1)"
   },
   {
    "address": "0x08012654",
-   "data": "N/Af",
+   "data": "N/CP/Q==",
    "why": "bl hook -> mpe_osc_pitch_alloc: voice_alloc: osc_pitch(osc2)"
   },
   {
    "address": "0x0801265E",
-   "data": "N/Aa",
+   "data": "N/CK/Q==",
    "why": "bl hook -> mpe_osc_pitch_alloc: voice_alloc: osc_pitch(osc3)"
   },
   {
    "address": "0x08012942",
-   "data": "NvBB/Q==",
+   "data": "NvB1/Q==",
    "why": "bl hook -> mpe_voice_alloc: voice_trigger's unison loop -> voice_alloc"
   },
   {
    "address": "0x08014EE2",
-   "data": "NPCw",
+   "data": "NfBq+w==",
    "why": "bl hook -> arp_echo_note_off: arp_step_release: arp step note off to MIDI"
   },
   {
    "address": "0x08015202",
-   "data": "NPAT",
+   "data": "NfDN+Q==",
    "why": "bl hook -> arp_echo_note_on: arp_step: arp step note on to MIDI"
   },
   {
    "address": "0x08015216",
-   "data": "NPDN+A==",
+   "data": "NPAB+Q==",
    "why": "bl hook -> mpe_trigger_held: arpeggiator -> voice_dispatch"
   },
   {
+   "address": "0x0801574E",
+   "data": "NvBh/A==",
+   "why": "bl hook -> euclid_step_select: arp_tick: the choice of the next note (ratchet repeats)"
+  },
+  {
+   "address": "0x08016932",
+   "data": "NfD4/A==",
+   "why": "bl hook -> lcd_cache_power_on: lcd_display_on: the panel's power-up after the screen saver"
+  },
+  {
    "address": "0x08016C2A",
-   "data": "M/AQ",
+   "data": "M/Aq/w==",
    "why": "bl hook -> disp_skip_puts: knob_overlay: the pickup label on row 3"
   },
   {
@@ -205,12 +330,12 @@
   },
   {
    "address": "0x08016C3E",
-   "data": "Bvs=",
+   "data": "IP8=",
    "why": "bl hook -> disp_fmt_pick: knob_overlay: the knob's value on the pickup row"
   },
   {
    "address": "0x08016C48",
-   "data": "M/AB",
+   "data": "M/Ab/w==",
    "why": "bl hook -> disp_skip_puts: knob_overlay: the row-3 clear after a pickup"
   },
   {
@@ -220,7 +345,7 @@
   },
   {
    "address": "0x08016C74",
-   "data": "7/o=",
+   "data": "Cf8=",
    "why": "bl hook -> disp_fmt_cur: knob_overlay: the 'current' value"
   },
   {
@@ -230,17 +355,17 @@
   },
   {
    "address": "0x08016C92",
-   "data": "+Po=",
+   "data": "Ev8=",
    "why": "bl hook -> disp_fmt_saved: knob_overlay: the 'saved val' value"
   },
   {
    "address": "0x08016EF2",
-   "data": "M/DJ+Q==",
+   "data": "M/Dj/Q==",
    "why": "bl hook -> disp_knob_overlay: knob_poll: 7-bit knob"
   },
   {
    "address": "0x08016F28",
-   "data": "M/Cu+Q==",
+   "data": "M/DI",
    "why": "bl hook -> disp_knob_overlay: knob_poll: 9-bit knob"
   },
   {
@@ -250,8 +375,13 @@
   },
   {
    "address": "0x08016FC4",
-   "data": "l/w=",
+   "data": "af8=",
    "why": "bl hook -> mpe_ui_value_change: ui_encoder_event: encoder"
+  },
+  {
+   "address": "0x08016FF4",
+   "data": "M/Dm/g==",
+   "why": "bl hook -> qa_panel_read: panel_button_event: the button event read (Mod held)"
   },
   {
    "address": "0x080170F2",
@@ -260,7 +390,7 @@
   },
   {
    "address": "0x080170F4",
-   "data": "//s=",
+   "data": "0f4=",
    "why": "bl hook -> mpe_ui_value_change: panel_button_event: value reset"
   },
   {
@@ -270,12 +400,12 @@
   },
   {
    "address": "0x080170FC",
-   "data": "+/s=",
+   "data": "zf4=",
    "why": "bl hook -> mpe_ui_value_change: panel_button_event: value inc/dec"
   },
   {
    "address": "0x0801806C",
-   "data": "dAI=",
+   "data": "FAk=",
    "why": "pointer hook -> mpe_global_desc: ui_draw_page: kind 3 item name"
   },
   {
@@ -285,12 +415,12 @@
   },
   {
    "address": "0x080181D8",
-   "data": "MfAq+w==",
+   "data": "MfDa/Q==",
    "why": "bl hook -> mpe_ui_format: ui_draw_values: kind 3 (global) value"
   },
   {
    "address": "0x080182B8",
-   "data": "dAI=",
+   "data": "FAk=",
    "why": "pointer hook -> mpe_global_desc: ui_draw_values: kind 3 display type"
   },
   {
@@ -300,17 +430,17 @@
   },
   {
    "address": "0x0801838C",
-   "data": "MfA8+g==",
+   "data": "MfDs/A==",
    "why": "bl hook -> mpe_settings_page_index: item action: Settings page 1 (Calibrate)"
   },
   {
    "address": "0x080183A4",
-   "data": "MfAw+g==",
+   "data": "MfDg/A==",
    "why": "bl hook -> mpe_settings_page_index: item action: Settings page 9 (BACKUP)"
   },
   {
    "address": "0x080186E4",
-   "data": "dAI=",
+   "data": "FAk=",
    "why": "pointer hook -> mpe_global_desc: ui_value_change: kind 3 min/max"
   },
   {
@@ -320,18 +450,58 @@
   },
   {
    "address": "0x08018708",
-   "data": "MfD0+A==",
+   "data": "MfDG+w==",
    "why": "bl hook -> mpe_ui_value_change: ui_page_step: value change"
   },
   {
+   "address": "0x08018AEA",
+   "data": "FQ==",
+   "why": "ui_msg_countdown: one count per 22 ms instead of 11 (cmp r3, #21)"
+  },
+  {
+   "address": "0x08018C9A",
+   "data": "NA==",
+   "why": "bl hook -> ptime_select: panel_patch_apply: the patch load (timed to the clock)"
+  },
+  {
+   "address": "0x08018C9C",
+   "data": "CQ==",
+   "why": "bl hook -> ptime_select: panel_patch_apply: the patch load (timed to the clock)"
+  },
+  {
    "address": "0x08018FD6",
-   "data": "MPAX/A==",
+   "data": "MPDH/g==",
    "why": "bl hook -> mpe_settings_page_index: settings_save_action: tuning page > 8"
   },
   {
    "address": "0x08018FFA",
-   "data": "L/Bh",
+   "data": "L/Bn",
    "why": "bl hook -> mpe_settings_save: settings_save_action: Settings Save"
+  },
+  {
+   "address": "0x0801903E",
+   "data": "MvDN/A==",
+   "why": "bl hook -> morph_patch_save: settings_save_action: the Save button's write of the patch (morph)"
+  },
+  {
+   "address": "0x0801AE42",
+   "data": "MfDZ+g==",
+   "why": "bl hook -> mts_rx: sysex_rx_byte: the single-note tuning parser, then the patch's"
+  },
+  {
+   "address": "0x0801AECC",
+   "data": "MA==",
+   "why": "bl hook -> plock_copy: patch load: the copy into the patch (parameter lock)"
+  },
+  {
+   "address": "0x0801AECE",
+   "data": "GPk=",
+   "why": "bl hook -> plock_copy: patch load: the copy into the patch (parameter lock)"
+  },
+  {
+   "address": "0x0801AFC2",
+   "data": "MfCF",
+   "why": "bl hook -> pdump_patch_selected: patch_select_load: after the stored patch loaded (patch dump)"
   },
   {
    "address": "0x0801D6FA",
@@ -340,12 +510,12 @@
   },
   {
    "address": "0x080445E8",
-   "data": "TVBFMlZlcg==",
+   "data": "TVBFaVZlcg==",
    "why": "Settings 2/28 SYSTEM item name"
   },
   {
    "address": "0x080452FB",
-   "data": "TVBFMyBWZXI=",
+   "data": "TVBFaSBWZXI=",
    "why": "boot screen label (.data initialiser of RAM 0x200000EB)"
   },
   {
@@ -360,7 +530,7 @@
   },
   {
    "address": "0x08047D7C",
-   "data": "uqMECA==",
+   "data": "ZtcECA==",
    "why": "pointer hook -> mpe_flag_name: patch_param_desc[0x1A2].name"
   },
   {
@@ -380,7 +550,7 @@
   },
   {
    "address": "0x08048CE0",
-   "data": "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",
+   "data": "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79Hf+ISAmPgAMA8r3LIE0ClGMEb/927/BEYZTzt4DyvYsgPQKUYwRv/3QP/NsQ8sF9EPKBXRE0sbeA8rEdGY+AAwDyvcsgTQACEwRv/3Uv8ERjt4DyvYsgPQACEwRv/3Jf+I+ABAOHC96PCBACXI55REASBAIwEgUEYAIJQnASCsJwEgwCcBIJQiASACRANGk0IA0XBHA/gBG/nnELVDHgpEkUIA0RC9EfgBSwP4AU/3501QRQBMb3dlcgBMbytVcABPZmYAVXBwZXIATGluZWFyAFNxdWFyZWQAT24ATW9kV2hlZWwAVVNCAEMjAEQARCMARgBGIwBHIwBBAEEjAEZpeGVkAEFkYXB0AE5vdwBCZWF0AEJhcgAyIEJhcnMANCBCYXJzAEV4cHJQRUQxAEJydGhQRUQyAFN0b2NrAExhc3ROb3RlAExlZ2F0bwB4MgB4MwAxIGJhcgAyIGJhcnMANCBiYXJzADEvMgAxLzQAMS84ADEvMTYAWm9uZQBNZW1iZXJzAE5vdGUgQmVuZABNYXN0ZXJCZW5kAFByZXNzQ3VydmUARW52U3luYwBMb2NrIEZYAExvY2sgQXJwAExvY2sgVm9pY2UAU2VjdGlvbgBEbyBpdABMYXN0IG1zZwBNc2cgY291bnQARElOIG92ZmwAR2xpZGUATGVuZ3RoAE1vcnBoAE1vdGlvbgBMYXRlVGlja3MAUG9zaXRpb24ARGlmZmVyAFB1bHNlcwBTdGVwcwBSb3RhdGUAUmF0Y2hldABFdmVyeQBTb3VyY2UAQW1vdW50AFJvbGwAU2VuZABDaGFuZ2UgYXQATm90ZXMAQ0MAUGF0Y2gATW9kZQBSb290AEtlZXAgTG93AENoYW5jZQBRVUlDSyBBU1NJR04AU291cmNlIABzbGlkZXIgb3Iga25vYgBIb2xkIE1vZCBhbmQgbW92ZSBhAGZvciB0aGlzIGNvbnRyb2wATm8gbW9kIGRlc3RpbmF0aW9uAE5vIGZyZWUgc2xvdABVTkRPAFJFRE8ATm90aGluZyB0byB1bmRvAE5vdGhpbmcgdG8gcmVkbwBCYWNrIG9uZSBjaGFuZ2UAQ2hhbmdlIHJlc3RvcmVkAE5vdCBkdXJpbmcgQ29tcGFyZQBNb2QrUGFnZSByaWdodDogcmVkbwBNb2QrUGFnZSBsZWZ0OiB1bmRv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",
    "why": "patch blob mpe (compiled C)"
   }
  ]

@@ -24,6 +24,7 @@ PATCHES, GLOBALS = 0x20012340, 0x20014494
 PICKUP_STATE, MSG_STATE = 0x20014054, 0x20011208
 OVERLAY_STATE = 0x200111E4
 KNOB_OVERLAY, LCD_WRITE_CMD, LCD_WRITE_DATA, LCD_CURSOR = 0x08016B14, 0x08016840, 0x08016868, 0x080168B4
+LCD_PUTC_ESC = 0x0800D21C
 G_PICKUP = 0x0C
 AMP_ATTACK, AMP_DECAY, AMP_RELEASE, HOLD, FILT_FREQ, RESONANCE, PAN = 146, 147, 149, 152, 131, 130, 142
 FULL, L1, L2, ARROW_R, ARROW_L = 5, 1, 2, ord(">"), ord("<")
@@ -86,10 +87,14 @@ def _overlay(b, addr, pid, prev, cur, saved, hires=0, pickup=None, patch_value=N
     # clear waits for a timer tick that doesn't run inside a called function).
     b.uc.mem_write(MSG_STATE + 2, bytes([5, 2]))
     b.uc.mem_write(OVERLAY_STATE + 4, pid.to_bytes(2, "little"))
+    # Blank the rows through stock's escape layer (09 col row, then spaces), as
+    # the firmware writes, so the patch's LCD cache (lcdcache.c) sees it too.
     for row in range(4):
-        _call(b, LCD_CURSOR, 0, row)
+        for c in (9, 0, row):
+            _call(b, LCD_PUTC_ESC, c)
         for _ in range(20):
-            _call(b, LCD_WRITE_DATA, 0x20)
+            _call(b, LCD_PUTC_ESC, 0x20)
+    b.display.lcd.writes = 0
     applied = _call(b, addr, pid, prev, cur, saved, hires)
     return applied, [list(r) for r in b.display.lcd.codes()]
 
@@ -98,8 +103,21 @@ def _s(row):
     return "".join(chr(c) if 0x20 <= c < 0x7F else "." for c in row)
 
 
+def _poll(b, built, passes=8):
+    """Main-loop passes of disp_poll (one bar character loaded per pass, the
+    bar drawn after the last); returns the LCD writes of each pass."""
+    out = []
+    for _ in range(passes):
+        b.display.lcd.writes = b.display.lcd.commands = 0
+        _call(b, built.blob.address("disp_poll"))
+        out.append(b.display.lcd.writes + b.display.lcd.commands)
+    return out
+
+
 def _patched(b, built, *a, **k):
-    return _overlay(b, built.blob.address("disp_knob_overlay"), *a, **k)
+    applied, _ = _overlay(b, built.blob.address("disp_knob_overlay"), *a, **k)
+    _poll(b, built)
+    return applied, [list(r) for r in b.display.lcd.codes()]
 
 
 def test_stock_overlay_layout(stock):
@@ -246,19 +264,46 @@ def test_custom_characters_are_restored(built, board, stock):
     assert _glyphs(board) == stock_set
 
 
+def test_stock_characters_go_back_one_per_pass(built, board, stock):
+    """Up to v0.42 the message running out put all eight back in one pass
+    (lcd_load_cgram: 65 writes, about 3.3 ms). Now one character per pass,
+    as ours are loaded: 8 data and 1 command, plus the DDRAM command last."""
+    stock_set = _glyphs(stock)
+    _a, _r = _patched(board, built, AMP_ATTACK, 63, 64, 0)
+    assert _glyphs(board) != stock_set
+    board.uc.mem_write(MSG_STATE + 2, b"\x00")           # the message time has run out
+    passes = _poll(board, built, passes=9)
+    assert max(passes) <= 10, passes
+    assert passes[7:] == [0, 0], passes                    # done after seven passes
+    assert _glyphs(board) == stock_set
+
+
+def _event_writes(b, addr, pid, prev, cur, saved):
+    """LCD data and command writes of one knob event redrawn in place, the
+    screen holding the previous event's text (no blanking in between)."""
+    lcd = b.display.lcd
+    b.uc.mem_write(MSG_STATE + 2, bytes([5, 2]))
+    lcd.writes, lcd.commands = 0, 0
+    _call(b, addr, pid, prev, cur, saved, 0)
+    return lcd.writes, lcd.commands
+
+
 def test_overlay_cost(built, board, stock):
-    """LCD data writes of one event (each is 3 SPI frames, about 50 us): stock
-    vs patched. _overlay blanks the screen first with 80 writes, not counted."""
-    blank = 80
-    stock.display.lcd.writes = 0
-    _overlay(stock, KNOB_OVERLAY, AMP_ATTACK, 63, 64, 80)
-    base = stock.display.lcd.writes - blank
-    board.display.lcd.writes = 0
-    _patched(board, built, AMP_ATTACK, 63, 64, 80)
-    first = board.display.lcd.writes - blank
-    board.display.lcd.writes = 0
-    _patched(board, built, AMP_ATTACK, 64, 65, 80)       # glyphs loaded: only the text and the bar
-    second = board.display.lcd.writes - blank
-    print(f"LCD data writes per event: stock {base}, patched first {first}, then {second}")
-    assert second <= base + 40
-    assert first <= second + 7 * 8
+    """LCD writes of one event (each is 3 SPI frames, about 50 us): stock vs
+    patched. Stock rewrites the three text rows on every event; with the LCD
+    cache only the changed characters go out."""
+    _overlay(stock, KNOB_OVERLAY, AMP_ATTACK, 62, 63, 80)
+    base = _event_writes(stock, KNOB_OVERLAY, AMP_ATTACK, 63, 64, 80)
+    addr = built.blob.address("disp_knob_overlay")
+    board.uc.mem_write(MSG_STATE + 2, b"\x00")               # stock's characters back: a fresh start
+    _call(board, built.blob.address("disp_poll"))
+    _overlay(board, addr, AMP_ATTACK, 62, 63, 80)            # first event: the text on a blank screen
+    first = board.display.lcd.writes
+    passes = _poll(board, built)                             # then one bar character per pass, the bar last
+    second = _event_writes(board, addr, AMP_ATTACK, 63, 64, 80)
+    print(f"LCD writes: stock (data, commands) per event {base}; patched first event {first} data,"
+          f" then per pass {passes}, then per event {second}")
+    assert base[0] >= 30                                     # stock: the whole name and both value rows
+    assert first <= 50                                       # no character loading in the event itself
+    assert max(passes[:6]) <= 9 and passes[6] <= 9 + 21      # 8 data and 1 command; the last pass also draws the bar
+    assert second[0] <= 8 and second[1] <= 4                 # 63 -> 64: a few digits of the ms text

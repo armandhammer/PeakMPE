@@ -44,7 +44,7 @@ def test_boots_with_mpe_off_and_the_default_ranges(m):
     assert m.zones() == {}
     assert m.live() == {"members": (0, 0), "note_range": (48, 48), "master_range": (2, 2)}
     assert m.voice_channel() == [None] * 16
-    assert m.s.boot_screen()[3].strip().startswith("MPE3 Ver")
+    assert m.s.boot_screen()[3].strip().startswith("MPE4 Ver")
 
 
 def test_the_voice_page_edits_the_flag(m):
@@ -460,8 +460,8 @@ def test_a_long_mpe_sequence_keeps_every_invariant(m):
         ch = 2 + (i * 7) % 15  # channels 2-16
         m.on(n, ch, ms=3)
         if i % 3 == 2:
-            old = next(iter(m.held.items()))
-            m.off(old[1], old[0], ms=3)
+            ch_old, held = next(iter(m.held.items()))
+            m.off(held[0], ch_old, ms=3)
     m.all_off()
     assert set(releases(m.s)) <= set(starts(m.s))
 

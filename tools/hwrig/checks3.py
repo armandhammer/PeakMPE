@@ -247,6 +247,13 @@ class B1ZoneChange(Check):
                ("lower", 7), ("upper", 14)]
     HOLD_S, GAP_S, WIN_START_S, WIN_LEN_S = 0.35, 0.2, 0.07, 0.25
     PER_TAKE = 30
+    #: An extra partial counts only within this many dB of the chord's quietest
+    #: note. A note still sounding from an earlier trial is as loud as the chord's
+    #: (sustain); a 6-note chord's intermodulation on the Peak rig reaches -29 dB
+    #: (trial 0, 50.6 Hz = 698.5 - 415.3 - 233.1 and others, -29 to -39 dB;
+    #: runs 2026-11-14_144233, 2026-11-17_093307, 2026-11-19_072602), right at
+    #: the peak finder's -30 dB, which failed 3 runs in about 30.
+    EXTRA_DB = 20.0
     SEED = 1_2026_11_07
 
     def __init__(self, trials_per_delay=60):
@@ -317,7 +324,9 @@ class B1ZoneChange(Check):
         exp = [an.note_hz(n) for _, n in tr["chord"]]
         got = an.match_voices(found, exp, FIND_C)
         missing = [ch for (ch, _), g in zip(tr["chord"], got) if g is None]
-        extra = [p for p in found if all(abs(an.cents(p.hz, e)) > FIND_C for e in exp)]
+        notes = [g.db for g in got if g is not None]
+        floor = (min(notes) if notes else found[0].db if found else 0.0) - self.EXTRA_DB
+        extra = [p for p in found if all(abs(an.cents(p.hz, e)) > FIND_C for e in exp) and p.db >= floor]
         tr.update(found=len(found) - len(extra), missing=missing, extra=[round(p.hz, 1) for p in extra])
         return not missing and not extra
 

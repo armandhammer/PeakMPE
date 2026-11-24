@@ -49,6 +49,7 @@ The tool:
 Run with `scripts/dev python -I tools/patch.py ...`.
 """
 import argparse
+import bisect
 import hashlib
 import importlib.util
 import os
@@ -384,8 +385,64 @@ _BRANCH = re.compile(r"^(blx?|b(?:eq|ne|cs|hs|cc|lo|mi|pl|vs|vc|hi|ls|ge|lt|gt|l
                      r"|cbn?z\s+r\d+,)\s+0x([0-9a-f]+)")
 
 
+_LABEL = re.compile(r"^([0-9a-f]+) <([^>]+)>:\s*$")
+_VFP = re.compile(r"^v[a-z]")                     # every VFP/FPU mnemonic; no integer Thumb one starts with v
+_INDIRECT = re.compile(r"^(blx\s+r\d+|bx\s+r\d+)$")   # bx lr returns, so isn't matched
+
+
 def _objdump(elf, start, stop, adjust=0):
     """[(address, instruction text)] disassembled by llvm-objdump from *start* to *stop*."""
+    return [x for x in _objdump_lines(elf, start, stop, adjust) if x[0] is not None]
+
+
+def _functions(elf, start, stop):
+    """The blob's functions as {entry: (name, [(address, instruction text)])},
+    split at the ELF's symbol labels."""
+    funcs, current = {}, None
+    for addr, text in _objdump_lines(elf, start, stop, labels=True):
+        if addr is None:
+            entry, name = text
+            current = funcs.setdefault(entry, (name, []))
+        elif current is not None:
+            current[1].append((addr, text))
+    return funcs
+
+
+def init_reach(funcs, roots, text):
+    """Walk the direct calls and branches from *roots* (entry addresses) through
+    the blob's functions *funcs* (as from _functions) inside *text* (start,
+    stop). Returns (reached entries, VFP instructions, indirect branches), the
+    last two as [(address, function name, instruction text)]. Firmware
+    functions are not followed."""
+    entries = sorted(funcs)
+
+    def owner(addr):
+        i = bisect.bisect_right(entries, addr) - 1
+        return entries[i] if i >= 0 else None
+
+    seen, todo, vfp, indirect = set(), [r for r in roots if r in funcs], [], []
+    while todo:
+        e = todo.pop()
+        if e in seen:
+            continue
+        seen.add(e)
+        name, insns = funcs[e]
+        for addr, insn in insns:
+            if _VFP.match(insn):
+                vfp.append((addr, name, insn))
+            elif _INDIRECT.match(insn):
+                indirect.append((addr, name, insn))
+            mnemonic, target = _target(insn)
+            if mnemonic and text[0] <= target < text[1]:
+                o = owner(target)
+                if o is not None and o not in seen:
+                    todo.append(o)
+    return seen, vfp, indirect
+
+
+def _objdump_lines(elf, start, stop, adjust=0, labels=False):
+    """llvm-objdump's lines from *start* to *stop* as (address, instruction
+    text), and with *labels* symbol labels as (None, (address, name))."""
     tool = LLVM_BIN / "llvm-objdump"
     if not tool.exists():
         raise PatchError(f"{tool} not found (run it in the dev image: scripts/dev; or set LLVM_BIN)")
@@ -398,6 +455,11 @@ def _objdump(elf, start, stop, adjust=0):
         raise PatchError(f"llvm-objdump failed: {r.stderr.strip()}")
     out = []
     for line in r.stdout.splitlines():
+        if labels:
+            lm = _LABEL.match(line)
+            if lm:
+                out.append((None, (int(lm.group(1), 16), lm.group(2))))
+                continue
         m = _INSN.match(line)
         if m:
             insn = re.sub(r"<[^>]*>", "", m.group(2).split("@")[0])
@@ -422,7 +484,10 @@ def verify(patched, hooks, blob, base=IMAGE_BASE, out=print):
       * every direct branch in the blob (disassembled from the ELF, whose
         mapping symbols keep literal pools out) lands inside the blob or on
         a firmware function entry from the symbols CSV, and none is a BLX
-        (which would switch to ARM state).
+        (which would switch to ARM state);
+      * the blob code reached from __patch_start and patch_init through
+        direct calls and branches (before main's init turns the FPU on) has
+        no VFP instruction and no indirect call.
     Raises PatchError listing every failure.
     """
     problems = []
@@ -487,6 +552,18 @@ def verify(patched, hooks, blob, base=IMAGE_BASE, out=print):
     names = {a & ~1: n for n, a in blob.firmware.items() if a & ~1 in blob.fw_functions}
     out(f"verify  blob branches: internal or to {len(external)} firmware function(s): "
         + ", ".join(names[t] for t in sorted(external)))
+
+    # __patch_start and patch_init run before main's init turns the FPU on
+    # (CPACR; findings, "Float ABI and FPU"): a VFP instruction there faults.
+    roots = [blob.address(n) & ~1 for n in ("__patch_start", "patch_init") if blob.is_function(n)]
+    reached, vfp, indirect = init_reach(_functions(blob.elf, text[0], text[1]), roots, text)
+    for addr, name, insn in vfp:
+        problems.append(f"{addr:#010x}: {insn!r} in {name}, run before the FPU is on")
+    for addr, name, insn in indirect:
+        problems.append(f"{addr:#010x}: {insn!r} in {name}, run before the FPU is on: "
+                        "an indirect call can't be checked for FPU use")
+    out(f"verify  before the FPU is on: {len(reached)} function(s), "
+        f"{len(vfp)} FPU instruction(s), {len(indirect)} indirect call(s)")
     if problems:
         raise PatchError("verify failed:\n  " + "\n  ".join(problems))
     out("verify  ok")

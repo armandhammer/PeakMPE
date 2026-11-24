@@ -14,10 +14,13 @@
  *   note_off       0x0800F51A  mono/legato's fallback to a held note
  *   arpeggiator    0x08015216  the channel the arpeggiated note came on
  *
- * Channel reuse (as Summit v1.1): in the poly modes a note on a channel takes
- * over the voices still bound to it only while they sound or release, through
- * voice_alloc's forced-voice argument; idle bound voices are unbound and the
- * note goes to the stock allocator, so voices rotate as with MPE off. "Live"
+ * Channel reuse (as Summit v1.1): in the poly modes a note on a member
+ * channel takes over the voices still bound to it only while they sound or
+ * release, through voice_alloc's forced-voice argument; idle bound voices are
+ * unbound and the note goes to the stock allocator, so voices rotate as with
+ * MPE off. Notes on a zone's master channel always go to the stock allocator,
+ * so a chord there plays in full (before v0.36 they took each other's voice,
+ * one note at a time). "Live"
  * is what voice_candidates reads: the gate (voice_state+0x1F4+v), and
  * voice_env_state / voice_env_level from the FPGA (state != 3 or level >
  * 0x200).
@@ -26,6 +29,20 @@
  * only the voices bound to the message's channel; the other voices with that
  * note are hidden from voice_release for the call. Mono modes release as
  * stock.
+ *
+ * Glide start (Settings > MPE EXTRAS > Glide, docs/peak-features.md step 19):
+ * stock starts a poly glide from the pitch the chosen voice last had (its
+ * glide pitch is never reset), which with rotating voices is a note from
+ * several notes ago. LastNote starts it from where the previous note's pitch
+ * is now, on whichever voice that was; Legato does the same while another
+ * note is held and starts a detached note on pitch (as MonoLG does with its
+ * one voice). The start is written into the voice's glide pitch just before
+ * voice_alloc's voice_glide call. Poly modes only, with or without MPE; the
+ * patch's Glide switch and time still decide whether and how fast it glides,
+ * and PreGlide, when set, still starts the note from its own offset (stock
+ * applies it inside voice_glide). A voice's first note after power-on starts
+ * on pitch in every mode, mono included: power-on leaves every voice's glide
+ * pitch at note 60, and stock glided that note from middle C (v0.38).
  */
 
 #include "mpe.h"
@@ -40,6 +57,17 @@ static uint8_t env_stale;              /* voices allocated since their last read
 static uint8_t idle_at_read;           /* voices the last read saw idle */
 
 #define MPE_LIVE_LEVEL 0x200
+
+#define PATCH_GLIDE_ON 0x29            /* the panel's Glide switch: 0 = no glide */
+enum { GLIDE_STOCK, GLIDE_LAST_NOTE, GLIDE_LEGATO };
+
+static uint8_t glide_first;            /* the next allocation is a note's first voice */
+static uint8_t glide_have;             /* a note has been played since power-up */
+static uint8_t glide_prev;             /* the (first) voice of the last note */
+static uint8_t glide_from_ok;          /* this note: there was a note before it */
+static uint8_t glide_played;           /* a bit per voice: it has had a note since power-on */
+static uint8_t glide_legato;           /* this note: another note was held when it started */
+static uint16_t glide_from;            /* this note: the last note's pitch when it started */
 
 void mpe_voice_init(void)
 {
@@ -65,6 +93,15 @@ void patch_init(void)
 static int poly(void)
 {
     return mpe_patch()[0x22] >= 3;  /* Mode: 0 Mono, 1 MonoLG, 2 Mono2, 3 Poly, 4 Poly2 */
+}
+
+/* ch is a member channel of a zone in use (MPE: one note per channel). A
+ * zone's master channel plays as the Peak's normal channel (mpe_route.c),
+ * so its notes don't take each other's voices (v0.36; found in series AC). */
+static int member(uint8_t ch)
+{
+    const struct mpe_zone *z = mpe_zone_of(ch);
+    return z && ch != z->master;
 }
 
 static uint8_t gates(void)
@@ -98,7 +135,7 @@ static void trigger(uint8_t note, uint8_t velocity, uint8_t ch)
     if (!mpe_part_on(0))
         ch = MPE_NONE;
     reuse = 0;
-    if (ch != MPE_NONE && poly()) {
+    if (ch != MPE_NONE && member(ch) && poly()) {
         uint8_t bound = 0;
         for (uint32_t v = 0; v < MPE_VOICES; v++)
             if (voice_channel[v] == ch)
@@ -142,10 +179,41 @@ void mpe_trigger_held(uint8_t note, uint8_t velocity, uint8_t part)
     trigger(note, velocity, note_channel[note & 0x7F]);
 }
 
+/* A note's voice has been chosen (v), its pitch written: where its glide starts. */
+static void glide_start(uint32_t v)
+{
+    if (glide_first) {
+        glide_first = 0;
+        glide_prev = (uint8_t)v;
+        glide_have = 1;
+    }
+    /* Power-on leaves every voice's glide pitch at note 60, so stock glided a
+     * voice's first note from middle C, in every mode (v0.38: on pitch). */
+    if (!(glide_played & (1u << v))) {
+        glide_played |= (uint8_t)(1u << v);
+        VOICE_GLIDE_PITCH(v) = (int32_t)voice_pitch[v] << 16;
+    }
+    uint8_t mode = globals[MPE_G_GLIDE];
+    if ((mode != GLIDE_LAST_NOTE && mode != GLIDE_LEGATO) || !poly() || !mpe_patch()[PATCH_GLIDE_ON])
+        return;
+    if (mode == GLIDE_LEGATO && !glide_legato)
+        VOICE_GLIDE_PITCH(v) = (int32_t)voice_pitch[v] << 16;
+    else if (glide_from_ok)
+        VOICE_GLIDE_PITCH(v) = (int32_t)glide_from << 16;
+}
+
 /* Replaces voice_trigger's voice_alloc call (0x08012942): forces the next
  * voice to take over, if any. */
 void mpe_voice_alloc(uint8_t note, uint8_t velocity, uint8_t part, int32_t voice, int8_t unison)
 {
+    /* voice_trigger counts parts+0x13's low nibble down from the unison count
+     * before each call, so on a note's first voice it equals the argument. */
+    if ((parts[0x13] & 0x0F) == (uint8_t)unison) {
+        glide_first = 1;
+        glide_from_ok = glide_have;
+        glide_from = voice_pitch_out[glide_prev & (MPE_VOICES - 1)];
+        glide_legato = gates() != 0;
+    }
     if (voice < 0 && reuse) {
         uint32_t v = (uint32_t)__builtin_ctz(reuse);
         reuse &= (uint8_t)~(1u << v);
@@ -172,6 +240,7 @@ void mpe_alloc_glide(uint32_t part)
     uint32_t v = voice_loop_index & (MPE_VOICES - 1);
     env_stale |= (uint8_t)(1u << v);
     voice_channel[v] = mpe_alloc_channel;
+    glide_start(v);
     voice_glide(part);
 }
 
@@ -188,7 +257,9 @@ void mpe_note_release(uint8_t note, uint8_t part)
                 hidden |= (uint8_t)(1u << v);
             }
     }
+    relvel_release(note);
     voice_release(note, part);
+    sost_note_off(note, poly());      /* keys let go under the sostenuto pedal (v0.38) */
     for (uint32_t v = 0; v < MPE_VOICES; v++)
         if (hidden & (1u << v) && voice_note[v] == 0xFF)
             voice_note[v] = note;

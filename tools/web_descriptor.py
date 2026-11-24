@@ -65,20 +65,61 @@ MIN_SHARED = 16
 META = {
     ("summit", "mpe"): {
         "title": "MPE for Summit",
-        "version": "1.2",
-        "label": "MPE3 Ver 126.778",
+        "version": "1.3",
+        "label": "MPE4 Ver 126.778",
         "summary": "Per-note pitch bend, pressure and slide (MPE), a per-patch MPE switch "
-                   "(VOICE page), Settings MPE pages, Single and Multi mode; v1.1 rotates idle voices; v1.2 fixes Slide on hardware.",
+                   "(VOICE page), Settings MPE pages, Single and Multi mode; v1.1 rotates idle voices; v1.2 fixes Slide on hardware; "
+                   "v1.3 lets a chord on a zone's master channel play in full (checked in the simulator only).",
     },
     ("peak", "mpe"): {
         "title": "MPE for Peak",
-        "version": "0.3",
-        "label": "MPE3 Ver 108.469",
+        "version": "0.44",
+        "label": "MPEi Ver 108.469",
         "summary": "Per-note pitch bend, pressure (channel or poly aftertouch) and slide (MPE) on the Peak's "
                    "8 voices, a per-patch MPE switch (VOICE page) and Settings MPE pages; one or two zones. "
                    "v0.2: the arpeggiator ignores its own notes when a DAW sends them back (MIDI loop). "
                    "v0.3: turning a knob shows envelope times in ms and the filter cutoff in Hz, with a value bar, "
                    "and Pickup shows an arrow and a distance bar. "
+                   "v0.4: Settings > MPE > PressCurve chooses stock's squared pressure or a linear curve. "
+                   "v0.5: CC 11 on a member channel works as pressure. "
+                   "v0.6: Settings > MPE EXTRAS > EnvSync sets the amp Decay and Release to a note length (1/2 to 1/16) at the current tempo (v0.7: a changed setting applies after 1 s). "
+                   "v0.8: hold Mod and move a slider or knob to put its modulation destination in the first free matrix slot; the encoder chooses the source. "
+                   "v0.11: Settings > PARAM LOCK keeps the FX, Arp or Voice settings through a patch change. "
+                   "v0.12: Settings > COPY SECTION copies an oscillator, envelope or LFO to another; Mod + Page left/right undoes and redoes the last change; Settings > MIDI MONITOR shows the last message and the DIN overflow count. "
+                   "v0.13: the copy and undo messages stay on screen about 2 s. "
+                   "v0.14: Settings > MPE EXTRAS > Glide starts a poly glide from the previous note (LastNote), or only while another note is held (Legato), instead of from the voice's own last pitch; EnvSync and undo timings corrected. "
+                   "v0.15: the patch's messages always clear and stay 3 s; Msg Time 127 now lasts about 3 s (stock: 1.5 s). "
+                   "v0.16: motion recording: hold Mod and press Animate 1, move a slider or knob, and its movement over one bar loops in time with the tempo (Settings > MOTION sets 1, 2 or 4 bars). "
+                   "v0.17: the recorded movement plays back as a ramp from step to step instead of jumps, also where the loop starts again. "
+                   "v0.18: patch morph: with Settings > MORPH > Morph set to ModWheel, the mod wheel blends the patch as you have edited it (wheel down) towards the patch as it is stored (wheel up); levels, amounts, times, the filter, FX amounts and mod matrix depths move, switches stay. "
+                   "v0.19: morph: holding Compare with the mod wheel up no longer loses the edit when the button is let go; after Save the saved sound is the patch, so the wheel has nothing left to blend until the next edit. "
+                   "v0.20: holding Compare no longer clears the undo step or stops a motion lane: both wait while the button is held and go on when it is let go. Euclidean arp rhythms: Settings > ARP EUCLID sets Pulses, Steps and Rotate, and the arpeggiator plays that many notes spread evenly over the steps in place of the patch's Rhythm. With Arp>MIDI on and no MIDI loop, a key let go just after the arpeggiator's own note off is no longer ignored (before, the arpeggiator could go on playing a released key). "
+                   "v0.21: arp ratchets: Settings > ARP RATCHET makes every note, or every second to eighth one, sound two or three times within its step. "
+                   "v0.22: Osc 1/2/3 Fine sent over MIDI (CC 15, 18, 21) now reaches -100; stock ignored -100 to -73. "
+                   "v0.23: the screen only sends the characters that change, about a tenth of stock's display traffic while a knob turns, which leaves more time for the per-note modulation (pitch bend, pressure, slide). "
+                   "v0.24: release velocity: Settings > RELEASE VEL > Source puts each note-off's velocity into the ExprPED1 or BrthPED2 mod source of the notes it releases; route that source to AmpEnv R in the mod matrix and how fast a note is let go sets its release. "
+                   "v0.25: MIDI Tuning Standard: the single-note tuning change is also taken with device ID 7F (all devices) and with several notes in one message, and the bulk tuning dump with device ID 7F, so tuning software reaches the tuning tables. "
+                   "v0.26: Settings > RANDOMISE rolls new values for one section of the patch (an oscillator, the mixer, the filter, an envelope, an LFO, the FX, or all of them) inside ranges that keep it sounding, by an Amount from a nudge to a fresh roll; nothing is saved, and Mod + Page left takes a roll back. PARAM LOCK now keeps the chorus Mode with the FX instead of the arp. "
+                   "v0.27: band-pass and high-pass rolls keep the cutoff where the note still comes through, and band-pass rolls bring some resonance, so they are no longer much quieter than the rest. "
+                   "v0.28: hold Mod and press Audition for a panic: every note stops at once, and held or latched arp notes, stuck keys and per-note bend, pressure and slide are cleared. "
+                   "v0.29: the patch's checks of the screen, the settings and the arp rhythm run once a millisecond instead of on every pass of the main loop, which gives the synth's own work more time. "
+                   "v0.30: Settings > PATCH DUMP > Send = USB sends each newly loaded patch (by program change or the patch buttons) over USB in the editor's own format, so an editor or DAW can follow along. A rare full RANDOMISE roll could leave every oscillator quieter than the mixer rule allows; fixed. "
+                   "v0.31: Settings > PATCH TIMING > Change at = Beat, Bar, 2 Bars or 4 Bars: while a DAW's MIDI clock plays, a patch change by program change or the patch buttons waits for the next beat or bar line and lands on it. "
+                   "v0.32: a program change that arrives right on the bar line (just after its clock) now loads at once instead of a bar later; Continue without a song position goes on from where Stop left off. "
+                   "v0.33: the PATCH TIMING message shows the right patch number (it showed D 55 for D003 after a program change). "
+                   "v0.34: Settings > USB IN and DIN IN turn Notes, CC and Patch (program change and bank select) on or off for each input, for example notes only from a controller on DIN and patch changes only from a DAW on USB. Patch timing counts the clock only from the port the Clock Source setting follows, so a clock on both inputs no longer counts twice. "
+                   "v0.35: Settings > JUST TUNE tunes chords in just intonation: Mode Fixed tunes every note to the Root you choose; Mode Adapt follows the chord you play, keeps held notes where they are and plays a note alone at its normal pitch. It works with or without MPE and with the arp. "
+                   "v0.36: with MPE on, a chord on a zone's master channel plays in full (before, its notes took each other's voice). "
+                   "v0.37: after the Peak is switched on, PATCH TIMING waits for a Start or a song position before it times changes, instead of guessing the bar from a bare Continue; a patch dump is no longer lost when an editor asks for something at the same moment. "
+                   "v0.38: a key held down while you let go of the sostenuto pedal keeps sounding (the Peak's own firmware stopped it); with Glide on, the first notes after the Peak is switched on no longer glide up or down from middle C. "
+                   "v0.39: when every voice is still in its attack (a slow pad), a new note takes the oldest note, not the one played just before it. "
+                   "v0.40: when every voice is held, a new note takes a note the sustain or sostenuto pedal is holding before a key you are still holding down, and otherwise the oldest note. "
+                   "v0.41: Settings VOICE STEAL > Keep Low: when voices run out, a new note never takes the lowest note that sounds, so a bass note under a chord keeps playing. "
+                   "v0.42: Settings ARP RATCHET > Chance (10-100 %): each ratcheted note plays its repeats by chance, as ArpChance does for steps. "
+                   "v0.43: fixes from a code audit: the arpeggiator echo filter no longer drops a real note about once a minute after the arp has played; "
+                   "the MIDI monitor counts can no longer overrun their field; stock's display characters go back without a 3 ms pause in the per-note modulation; "
+                   "editing a Settings item outside the MPE page no longer clears the MPE page's unsaved mark. "
+                   "v0.44: EnvSync waits while Compare is held, so a tempo change during Compare reaches the edited patch afterwards. "
                    "Tested on one Peak with the automated hardware test rig and played from a LinnStrument.",
     },
 }

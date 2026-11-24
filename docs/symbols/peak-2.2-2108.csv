@@ -40,7 +40,7 @@ address,name,kind,confidence,notes
 0x0801a47c,sysex_rx_poll,function,inferred,main-loop SysEx state machine (state at 0x20011214+0x67c); void(void); main_loop site 0x0800d1c4
 0x08018800,ui_mode_switch,function,observed,(mode): ui_state[0] = mode; callers only in the panel UI (no NRPN mode request on the Peak)
 0x08018448,ui_value_change,function,observed,(delta); callers 0x08016fc2 (encoder) 0x080170f2 0x080170fa (buttons) 0x08018708 (ui_page_step)
-0x08017604,format_value,function,observed,(display value); kind 3 site in ui_draw_values 0x080181d8
+0x08017604,format_value,function,observed,(display value); kind 3 site in ui_draw_values 0x080181d8; prints at the LCD cursor (emulated: display 0x17 Coarse semitones, 0x33 WaveMore with 64-73 = *User 1-10, 0x34 LFO wave, 0x22 chorus Mode)
 0x08017eec,ui_current_page_index,function,observed,menu->cur of menus[ui_state[0]]
 0x08018070,ui_draw_values,function,observed,kind 3 reads global_param_desc through the literal 0x080182b8
 0x08017f14,ui_draw_page,function,observed,kind 3 item name through the literal 0x0801806c
@@ -54,7 +54,7 @@ address,name,kind,confidence,notes
 0x20002e90,menus,data,observed,11 menu pointers by UI mode; [6] VOICE [8] Settings
 0x20002ee8,settings_menu,data,observed,26 pages: SYSTEM SYSTEM SYNTH MIDI CONTROL MIDI ENABLE PEDAL SW SENSE PEDAL SW MODE MISC MISC BACKUP TUNINGTABLE 1-16; init 0x080480f8
 0x20003438,voice_page_1,data,observed,VOICE page 1: Unison (0x23) UniDetune (0x24) + 2 free items; init 0x08048648
-0x20004650,voice_state,data,observed,SoA: +9 voice loop index; +0x30 bend acc; +0x34 wheel acc (s16 at +0x36); +0x40 AT round robin; +0x44+2v aftertouch slot; +0x54+4v smoothed AT; +0xac tick request; +0x1e6 last alloc; +0x1f4+v gate
+0x20004650,voice_state,data,observed,SoA: +9 voice loop index; +0x30 bend acc; +0x34 wheel acc (s16 at +0x36); +0x40 AT round robin; +0x44+2v aftertouch slot; +0x54+4v smoothed AT; +0x74+4v glide pitch (16.16); +0xac tick request; +0x1e6 last alloc; +0x1e8 timer value at the last envelope read; +0x1f4+v gate; +0x1fc+3v+env envelope command counters; +0x214 note counter; +0x218+4v start stamp (u32); +0x23c+v held by the sustain pedal with the key up; +0x244+v held by the sostenuto pedal; +0x24e phrase-start flag; +0x250+v unison group
 0x20011200,ui_state,data,observed,[0] UI mode (8 Settings 5/7/9 other modes)
 0x20011210,midi_global_channel,data,observed,read by midi_channel_filter
 0x20011212,voice_part_mode,data,observed,0 one part 1 split 2 layer; read by voice_dispatch voice_alloc voice_release mod_tick; no direct store found (inferred: stays 0)
@@ -64,7 +64,7 @@ address,name,kind,confidence,notes
 0x20012340,patches,data,observed,current patch; +0x22 voice mode +0x23 unison +0xf5 arp on
 0x20012544,voice_pitch_out,data,observed,u16 per voice; sent as 0x67 - 0x3c00
 0x20012794,voice_note,data,observed,8 x u8
-0x200127c4,voice_pitch,data,inferred,matcher pair of Summit 0x200149a8
+0x200127c4,voice_pitch,data,observed,"8 x u16: the note pitch of each voice in 1/256 semitone from the tuning table 0x20012cf4 (voice_alloc); the glide target"
 0x2001228c,voice_env_state,data,observed,8 x u8 from voice_env_read
 0x20012774,voice_env_level,data,observed,8 x u16 from voice_env_read
 0x20014494,globals,data,observed,512 B = ext flash 0x300000; +0x30-0x40 unused by stock code (static scan)
@@ -111,3 +111,93 @@ address,name,kind,confidence,notes
 0x08016aec,pickup_arm_all,function,inferred,"sets pickup_state[0..0xfa] = 3; no direct caller (indirect)"
 0x08016b04,pickup_arm,function,observed,"(id) pickup_state[id] = 3 if id < 0xfb; caller 0x0800f6ac"
 0x08016cc0,pickup_arm_group,function,inferred,"(button) arms the knob group of one of five buttons (0x3a 0x4f 0x64 0x88 0x9a) from tables at 0x08016d40-0x08016d54; caller panel_button_event"
+0x0800f6ac,param_set_by_id,function,observed,"(value id): the setter behind a received CC (id = CC number): range check against the descriptor, FUN_0800f658 writes the patch and sets the FPGA-update bits, mark_changed, pickup_arm; the CC receive check (globals+0x14) is in the caller cc 0x0800f124"
+0x20000264,tempo_word,data,observed,"effective tempo, 1717984 per BPM: internal (ClockRate*2 + (patch+0xee>>6)) * 0x1a36e0 written by FUN_0800f9f8 (arp_tick); the BPM display (FUN_0800f914) reads it with external clock too"
+0x2000461c,clock_state,data,observed,"+0 bit0 DIN / bit1 USB clock running, +1 source shown, +0x15 tick counter, +0x16/+0x17 clock-present countdowns (0x10 per 0xF8, FUN_0800fbe8 DIN / FUN_0800fbd0 USB); globals+8 = clock source (0 auto, 1 internal)"
+0x0800ddfc,panel_event_read,function,observed,"() next panel button event: low byte +1 press / -1 release (0 none), next byte the button_table index; called once at the top of panel_button_event 0x08016ff4"
+0x0801d736,fw_memcpy,function,observed,"(dst src n) byte copy loop; patch load calls it at 0x0801aecc with n = 0x201 into the patch (0x20012340) or, when 0x20011213 is nonzero, into 0x200129c4"
+0x0801aeb8,patch_load,function,observed,"(src) memcpy 0x201 bytes into the patch (or 0x200129c4 when 0x20011213 is nonzero), then arp reset 0x08014db8, 0x08018b44, 0x08011d34, 0x08011ea0, 0x0800e00c, 0x080117f8(1); callers: Initialise 0x08013104, 0x08015948, patch select 0x0801a80c, 0x08019520 area"
+0x080119d8,env_command_stamp,function,observed,"(voice env cmd): env_command; voice 10 = all 8; on (env 0, cmd 0) stores the note counter voice_state+0x214 in the voice's start stamp +0x218+4v and counts it up; callers voice_alloc voice_release_part and the pedal releases"
+0x08011964,voice_gate_set,function,observed,"(voice): voice_state+0x1f4+v = 1, then FUN_0800dcd8(v + 0x10) (the voice's LED, inferred); caller voice_alloc"
+0x08011a20,voices_all_release,function,observed,"(flags): release command to all 8 voices' three envelopes; clears gate, pedal-held and sostenuto-held flags; callers 0x08011e54 0x08011e90 0x08011ea0 (patch load)"
+0x08011f2c,sustain_pedal,function,observed,"(value): 0x200127d4+0x1cd = 4 when value >= 0x40; on pedal up sustain_release 0x08011ed0 releases the voices with the pedal-held flag; callers cc 0x0800f124 and the pedal inputs"
+0x08011fec,sostenuto_pedal,function,observed,"(value): pedal down marks every gated voice sostenuto-held (0x08011f6c); pedal up (0x08011f90) clears the marks and releases those voices whose pedal-held flag is 0"
+0x08012024,phrase_start,function,observed,"sets voice_state+0x24e = 1 (cleared at the end of voice_trigger): the note starts a phrase (no other key held), so MonoLG does not glide and every envelope restarts; callers held_note_add path 0x0800f338 arp_step panel_button_event"
+0x200127c0,cand_release,data,observed,"voice_candidates: the quietest voice in envelope state 3 (release or idle), 0x0f = none; voice_alloc's first choice"
+0x20012294,cand_held,data,observed,"voice_candidates: the quietest voice in envelope state 1 or 2, 0x0f = none; second choice"
+0x200127ac,cand_attack,data,observed,"voice_candidates: the state-0 voice with the largest start stamp (the newest), 0x0f = none; third choice"
+0x20012cf0,cand_same,data,observed,"voice_candidates: among the voices in the caller's mask the loudest above level 0x200 (Poly2 same note; mono modes), 0x0f = none"
+0x20012334,cand_sorted_voice,data,observed,"8 x u8: the state-3 voices in scan order then sorted by level (levels 8 x u16 at 0x2001279c); used for unison and to avoid the voice taken last"
+0x200002f4,alloc_state,data,observed,"+0x2e0+part the part's last pick (scan starts one after it); +0x2e4+v the note each voice was given (Poly2 compares it); +0x2ec the voice taken last; +0xc8+3v+osc Diverge table"
+0x200127b0,voice_glide_rate,data,observed,"8 x u16: the glide rate voice_alloc gave each voice (patch rate 0x2001256c or the zero-time rate 0x20012564 for MonoLG at a phrase start)"
+0x2001255c,voice_preglide,data,observed,"8 x s8: PreGlide offset in semitones (patch +0x28 - 64), applied once by voice_glide and cleared"
+0x08012d80,voice_params_changed,function,observed,"recomputes the voice-section values from the patch: Diverge, Drift, noise filters and the glide rates (FUN_08011240 of GlideTime +0x27, or of 0 when the Glide switch +0x29 is off)"
+0x0800e414,tim6_init,function,observed,"TIM6: PSC 59 ARR 99 update interrupt on: 10 kHz at the inferred 60 MHz timer clock"
+0x0800e470,tim6_isr,function,observed,"vector 70: every 10th interrupt requests a modulation tick (0x08010e40), counts the ms counter 0x20003ad0+0x1c0 (low 16 bits +0xd2), scans the panel and steps the tempo clock 0x0800fb80"
+0x0800fb80,tempo_clock_step,function,observed,"adds tempo_word to a 32-bit accumulator at 0x2000461c+0x2c each ms; an overflow is one MIDI clock (1717984 per BPM = 24 per quarter note at 1 kHz)"
+0x08018adc,ui_msg_countdown,function,observed,"main loop: one count off ui_msg_state+2 when the ms counter has advanced by more than 10; redraws the page when it reaches 0"
+0x0800edd8,usart6_isr,function,observed,"DIN MIDI: transmit from the ring at 0x20003eac+4 and receive into +0x104 (256 B each); +0x204 is a one-byte overflow count (ldrb/strb at 0x0800ee2c/0x0800ee32)"
+0x08013014,param_groups_poll,function,observed,"main loop: every 16 ms (ms counter) applies the dirty parameter groups through param_groups_apply 0x08012f68"
+0x08012f68,param_groups_apply,function,observed,"clears the dirty word 0x200043e8 and calls one handler per set bit: 0x0001 0x08016ac8 waves; 0x0002 0x08010348 mod matrix; 0x0004 0x080103ec fixed mod amounts; 0x0008 0x0800fe88 envelopes; 0x0010 voice_params_changed; 0x0020 0x08012104 mixer; 0x0040 0x08012a58 FX; 0x0080 0x080112d0 LFOs; 0x0100 0x0800ffd8 filter; 0x0200 0x080100ac DenseDet; 0x0400 0x08012a20 pan/VCA; 0x1000 0x08012f60 tuning table; 0x0800 0x0801203c FX matrix"
+0x200043e8,param_dirty_groups,data,observed,"u16: update groups with a changed parameter (FUN_0800f658 ORs the parameter's mask in); +2 a changed flag"
+0x08020484,param_group_masks,data,observed,"u16 per patch offset (0x1a3 entries): the update group(s) a parameter belongs to; 0 = none (read at note start)"
+0x20012268,tempo_clock_position,data,observed,"u32 written by tempo_clock_step: MIDI clock count << 16 | fraction (accumulator >> 16)"
+0x20000ab8,button_table,data,observed,"u32 per panel button: byte 0 type (1 and 2 knob groups; 3 opens a menu; 4 an action), byte 1 the action or menu, bytes 2-3 an s16 argument. Entry 7 Mod (menu 5); 12 Animate Hold, 14 Animate 1, 15 Animate 2 (action 6, arguments 2, 0, 1); 33 and 34 Page right and left (action 1); 31 and 32 Value up and down (action 5); 18 the audition note (action 0)"
+0x20003c90,ms_counter,data,observed,"u32 counted up by tim6_isr every 10th interrupt: milliseconds since start-up (0x20003ad0+0x1c0; its low 16 bits are copied to +0xd2)"
+0x0800ed0c,lcd_spi_init,function,observed,"(): RCC_APB1ENR |= SPI2EN; SPI2 CR1 = 0x3af (master, LSB first, PCLK1/64), CR2 = 4, enable; only caller lcd_init"
+0x0800ed64,lcd_spi_tx,function,observed,"(byte): waits for TXE (SPI2_SR 0x40003808 bit 1), writes SPI2_DR 0x4000380c; callers lcd_write_cmd, lcd_write_data"
+0x0800ed7c,lcd_spi_wait,function,observed,"(): waits for TXE, then for BSY clear (SPI2_SR bit 7)"
+0x0800e978,ext_flash_read,function,observed,"(addr buf len): DataFlash command 3 (continuous read), 3 address bytes, one dummy transfer, then len bytes into buf; callers ext_flash_read_page 0x0800ea64 and five others"
+0x0800ea64,ext_flash_read_page,function,observed,"(addr len): ext_flash_read of at most 0x200 bytes into the shared buffer 0x20003ca4, which it returns; patch load reads record << 9 with it"
+0x080190f8,saved_value_read,function,observed,"(id): ext_flash_read_page(id + record * 0x200, 2) with record = (patch_select+4 - 1) * 0x80 + patch_select+5: the stored value behind the overlay's saved val row; caller 0x08016df4"
+0x20002d14,patch_select,data,observed,"+4 bank (1-based), +5 number of the loaded patch as saved_value_read uses them; the rest not traced"
+0x0800f658,param_write,function,observed,"(value id): the write inside param_set_by_id, no range check: looks the patch offset up from the id (0x0800f614), writes the byte if it differs, ORs the offset's group mask into param_dirty_groups, mark_changed; callers param_set_by_id and 0x08017488"
+0x200111f2,compare_held,data,observed,"1 while the Compare button is held (knob_overlay_state +0xe): panel_button_event 0x08016ff0 case 8 sets it from the event before calling compare_action"
+0x080188a8,compare_action,function,observed,"(pressed) the Compare button: not in Save mode (ui mode 9) unless on its page 2 (index 1) where it plays the destination; calls patch_compare(pressed, save mode) then redraws; caller panel_button_event"
+0x080130ac,patch_compare,function,observed,"(pressed, destination): pressed copies the patch 0x20012340 (0x201 bytes) to compare_stash and loads the stored record (0x0801af10: ext_flash_read_page + patch_load; 0x0801af44 for the Save destination); released copies compare_stash back into the patch and pushes it (0x08013044), no patch_load"
+0x20012570,compare_stash,data,observed,"0x201 bytes: the patch as it stood when Compare was pressed"
+0x08018f10,patch_save,function,observed,"(number bank): ext flash write 0x0800e9b4 of the patch 0x20012340 (0x200 bytes) at record (number + (bank - 1) * 0x80) << 9; only caller the Save button's last press, settings_save_action 0x0801903e, which then sets patch_select +4/+5 to the destination; no patch_load"
+0x20003b58,button_queue,data,observed,"64 panel button events at 0x20003ad0+0x88 (button_table index, bit 7 = pressed); write index +0x84, read index +0xda; read by panel_event_read"
+0x08014f68,arp_pattern_reset,function,observed,"zeroes the pattern position (+0x54 +0x1c8 +0x1d5 +0x1d6 and four timing words) and ends the sounding step (0x08014f30); callers arp_reset, the SyncRate change 0x08015098 and arp_tick after loading a rhythm pattern"
+0x0801192c,tick_work,function,observed,"one of 12 functions from the table at 0x080426e0 in turn (index voice_state+0x1f0), then arp_tick (bl at 0x08011956); callers main init 0x0800d11c and 0x08016738"
+0x08012ccc,tuning_note_set,function,observed,"(table key xx yy zz): tuning table word at 0x20012cf4 + (key + table * 128) * 2 = xx << 8 | yy << 1 | zz >> 6; 7f 7f 7f = no change; when table is the patch's (patch+0x162) the sounding voices with that key are retuned; callers the two MIDI Tuning parsers 0x08019548 0x08019b40"
+0x08019548,mts_single_note_rx,function,observed,"SysEx parser: F0 7F 00 08 02 tt ll kk xx yy zz F7 (11 bytes, device 00, table < 17) -> tuning_note_set; emulated on stock"
+0x08019b40,mts_bulk_rx,function,observed,"SysEx parser, header 7E 00 08: sub-ID 00 + table -> sends the table's dump (0x08019a6c); sub-ID 01 -> takes a whole table through tuning_note_set"
+0x0801ae0c,sysex_rx_byte,function,observed,"(byte port): gives each received SysEx byte to eight parsers in turn: fpga_update_rx, sysex_factory_rx, identity_rx, editor_rx, patch_dump_rx, patch_old_rx, mts_single_note_rx, mts_bulk_rx (headers in the table at 0x08042e98); caller 0x0800efc0"
+0x20011178,arp_random_seed,data,observed,"u32 seed of the arp's random numbers: 0x08014d98 does seed = seed * [0x08014db4] + [0x08014db0] and returns the high word; used by the random types and ArpChance"
+0x08017e68,param_offset_of_id,function,observed,"(id) -> patch offset: CC numbers (id < 0x100) through the u16 table at 0x08017eb8, NRPN ids by formula, 0x200 above 0xd35; caller 0x0800f614 (the lookup in param_write and param_set_by_id). Hooked caller of param_set_by_id for a plain CC: 0x0800f318 (cc), v0.22"
+0x08016804,lcd_power_on,function,observed,"(): GPIOB BSRR (literal 0x40020418) = 2, sets PB1; only caller lcd_display_on 0x08016932; the panel supply enable (inferred)"
+0x08016810,lcd_power_off,function,observed,"(): GPIOB BSRR = 0x20000, clears PB1; only caller lcd_display_off 0x0801695e"
+0x08016924,lcd_display_on,function,observed,"(): if the display is off (flag at literal 0x0801694c +4): lcd_power_on, 1 ms delay, cmd 0x0C, flag = 1; stores the ms counter at the literal either way; callers include lcd_init and the panel event paths"
+0x08016950,lcd_display_off,function,observed,"(): cmd 0x08, 1 ms delay, lcd_power_off, flag = 0; only caller the screen-saver timeout 0x08016988"
+0x08011d68,modwheel_store,function,observed,"(value) -> parts+6; cc case 1"
+0x08011d74,expression_store,function,observed,"(value) -> parts+8 (ExprPED1, inferred); callers cc case 0xb (CC 11), the pedal input code 0x080171c4 (which also sends CC 11), 0x08018ba8"
+0x08011d80,breath_store,function,observed,"(value) -> parts+9 (BrthPED2, inferred); callers cc case 2 (CC 2), 0x080171c4, 0x08018ba8"
+0x08011e90,all_sound_off,function,observed,"CC 120 with value 0 in cc 0x0800f124: voices_all_release(1) (FPGA 10:0x17 = 10, voice_state+0x238 = 1, release command to all voices, gates and pedal flags cleared) then 0x08011e00 (FPGA 8:0x12 and 8:0x13 = 0, part params 7 4 9 = 0 and 10 = 0xc800). CC 123-127 (value 0, or 126 any value) call 0x08011e54 = voices_all_release(0) instead; neither touches the arp or the held-key list"
+0x08014db8,arp_clear,function,observed,"zeroes the arp play map (arp state +0x178, 16 bytes) and +0x1ca +0x1cb +0x1cc; not the keys-held map +0x168; callers arp_reset 0x08014fa8, 0x08015554, patch_load"
+0x200127d4,note_state,data,observed,"held_note_add 0x0800f364: +0x58+note velocity, +0xd8 held-key bitmap (16 bytes; all clear = the next note starts a phrase, 0x0800f338), +0x1d3 the last note (0xff none; note_off reads it in the mono modes), +0x1cd sustain"
+0x08019118,sysex_factory_rx,function,observed,"SysEx parser, header 00 20 29 30 01 (5 bytes, then a command): command 7F takes 0x280 bytes and writes them to DataFlash at (n + 0x200) * 0x200; others go to 0x0800d040 (factory test). Never sent by our tools"
+0x08019314,patch_old_rx,function,observed,"SysEx parser, header 00 20 29 63 65 (12 bytes, then 0x200 data): a patch in the old format (strings OLD FORMAT); honours Protect"
+0x08019e68,identity_rx,function,observed,"SysEx parser, 7E 7F 06 01 F7 (any device): sysex_rx_poll state 1 answers F0 7E 7F 06 02 00 20 29 7E 00 00 00 02 01 00 08 F7 on the port asked (emulated)"
+0x08019fc0,editor_rx,function,observed,"SysEx parser, header 00 20 29 01 10 00 7E, command at +7, +8 +9 zero (13 bytes): requests 40 41 44 46 47 49 4A (others ignored); writes 00 01 04 (0x200 data) 06 (0x204) 07 (8). Findings, The editor protocol"
+0x0801a5b4,patch_dump_rx,function,observed,"SysEx parser, header 00 20 29 01 11 01 33 (13 bytes, then 0x200 data): a patch in the backup format (strings rec'd S...); honours Protect"
+0x0801a880,fpga_update_rx,function,observed,"SysEx parser, first in sysex_rx_byte: headers 00 20 29 00 7C 00 7E (FPGA blocks of 0x280 bytes, strings Fpga Block) and 00 20 29 00 71 00 7E (the updater). Never sent by our tools"
+0x08019ce0,editor_wave_send,function,observed,"(block < 11, part < 5, port): answer 06, header F0 00 20 29 01 10 00 7E 06, five zeros, block, part, 0x202 bytes from 0x08013720"
+0x08019d68,editor_wave_name_send,function,observed,"(n < 0x4a, port): answer 07 with the 7-character name of wavetable n (0x080137bc: < 0x40 factory, else user slot n - 0x40)"
+0x080137d4,wave_name_set,function,observed,"write 07: data[0] = user slot (0-9), data[1..7] the name (a 0 ends it, padded with spaces); emulated: written as slot 9, read back by request 47 0x49"
+0x20011214,sysex_state,data,observed,"the SysEx parsers' buffers and states; +0x67c what sysex_rx_poll answers (1 identity, 2 current patch, 3 stored patch, 4 settings, 5 a bank; 0 none), +0x67d-+0x67f its arguments, +0x67f the port (0 = USB via 0x0801d484, else DIN via 0x0800ee48)"
+0x08019f58,editor_patch_request,function,observed,"(port): sysex_state+0x67c = 2, +0x67f = port; editor request 40; sysex_rx_poll then sends the current patch as answer 00 (emulated)"
+0x0801af78,patch_select_load,function,observed,"(bank | number << 8; bit 7 of the low byte = keep the bank): bank 1-4 checked, then loads the stored patch (0x0801af10), patch_select_set, mark_changed; callers 0x0800f0ec (program change), 0x08018c74, settings_load (power-up)"
+0x08018c58,patch_select_set,function,observed,"(number bank): patch_select+5 = number, +4 = bank; only caller patch_select_load (0x0801afc2)"
+0x200001e0,midi_sys_handlers,data,observed,"system-message table (RAM, from .data): 16 entries of 8 bytes for F0-FF: handler, data length, flags (4: called at once by midi_parse_byte with no data; else parsed and passed to midi_channel_filter). F2 (SPP), FB, FC: handlers that return; FA: midi_start_rx"
+0x0800f0c0,midi_start_rx,function,observed,"MIDI Start (FA): calls 0x08010e30, which sets a flag (+0xe0 of the struct at its literal); the tempo clock position 0x20012268 is not reset (inferred: no other write found)"
+0x0800fbd0,midi_clock_rx_0,function,observed,"a MIDI clock byte (F8) on port 0, from the MIDI input loop 0x0800f084 (call 0x0800f0a8): 0x0800f764(2, 2, +0x17)"
+0x0800fbe8,midi_clock_rx_1,function,observed,"a MIDI clock byte (F8) on port 1, from the MIDI input loop 0x0800f084 (call 0x0800f0a0): 0x0800f764(1, 1, +0x16)"
+0x08018c74,panel_patch_apply,function,observed,"the panel's patch choice: with no cue pending, patch_select_load(patch_select+4) (call 0x08018c9a), then CC 32 and program change out when Bank/Patch transmit (globals+0x15 bit 1); with a cue pending only mark_changed; callers ui_mode_switch, 0x08018cd0 (patch number), 0x08018d5c (bank)"
+0x20012266,midi_port_current,data,observed,"the MIDI input port being read or written: 0 USB, 1 DIN, 2 the synth's own output read back in; set by 0x0800ef54 for each byte"
+0x0800ef54,midi_port_select,function,observed,"(port): midi_port_current = port; the parser state pointer (0x200040b4+0x330) = 0x200040b4 + port * 0x110 (ring: +0 write index, +1 read index, +2 256 bytes; parser at +0x104..+0x10b)"
+0x0800f5b0,midi_rx_put,function,observed,"(byte, port): into that port's receive ring; USB 0x0801d2f0 with port 0, the synth's own output (midi_out_byte) with port 2; DIN bytes land in port 1 (emulated)"
+0x0800f084,midi_input_port,function,observed,"(port): reads the port's ring, clock bytes to midi_clock_rx_0/1, the rest to midi_parse_byte 0x0800efc0; called for ports 0, 1, 2 by 0x0800f5f0, for port 2 alone by 0x0800f608"
+0x08017340,midi_out_byte,function,inferred,"(byte, dest 0-4): USB 0x0801d484 and DIN 0x0800ee48; with the flag at 0x20012340+0xf5 and globals+0x13 (Arp>MIDI) set, into port 2 instead"
+0x08011f6c,sostenuto_down,function,observed,"(): marks every gated voice sostenuto-held (voice_state+0x244+v = 1); called by sostenuto_pedal 0x08012010 on pedal down"
+0x08011f90,sostenuto_up,function,observed,"(): for each gated sostenuto-held voice clears the mark and, unless pedal-held (+0x23c+v), sends the three release commands and voice_clear_at; no check of the key; called by sostenuto_pedal 0x08012016 on pedal up"

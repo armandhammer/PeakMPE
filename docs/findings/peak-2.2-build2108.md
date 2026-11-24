@@ -8,12 +8,84 @@ llvm-objdump disassembly (`scripts/disasm.sh`), not a decompiler.
 | Landmark | Address | Confidence | Notes |
 |---|---|---|---|
 | Reset handler | `0x0801D6C4` | observed | `.bss` zero loop, then `.data` copy |
-| 8-voice "oldest voice" search | fn `0x08011B70`, loop `0x08011C0A–0x08011C90` | inferred | Iterates `r2 = 0..7`, keeps the voice with the largest 16-bit age counter: voice-stealing candidate |
+| 8-voice candidate search (`voice_candidates`) | fn `0x08011B70`, loop `0x08011C0A–0x08011C90` | observed | Ranks the 8 voices by the sound chip's envelope state and level, not by age: see [Voice allocation and stealing](#voice-allocation-and-stealing-2026-11-15) |
 | MIDI byte stream → USB-MIDI packets | `0x0801D484` | observed | `status >> 4 − 8` indexes a data-length table; builds 4-byte `[CIN, status, d1, d2]` packets; handles running status and SysEx |
 | USB-MIDI packet → TX FIFO | `0x0801D440` | inferred | Writes 4 bytes to an endpoint FIFO: MIDI **out** / thru path, not input |
 | SysEx receive state machine | `0x08019114` | observed | Matches the Novation header, `0x7F` command byte |
 | SysEx command switch | `0x0800D040` | observed | 9-way `tbb`; some cases loop over `0x4F` entries (patch/parameter dumps?) |
 | Front-panel pot scanning | `0x0800E054`, dead-zone helper `0x0800E024` | inferred | ADC values with a centre-detent dead zone (`±0x1F0`); not MIDI |
+
+## Voice note and gate at note-on (2026-11-21)
+
+- **v0.35 (just intonation, `ji.c`), emulated:** at voice_alloc's
+  osc_pitch calls (`0x0801264A` on) `voice_note` already holds the new note
+  but the voice's gate (`voice_state+0x1F4+v`) is not set yet; `ji.c` counts
+  the starting voice as sounding for that reason (`tests/test_peak_ji.py`).
+
+## The stray 50 Hz partial in the rig's B1 check (2026-11-21)
+
+Three rig runs failed one `b1_zone_change` trial of 300 with an "extra
+partial" (`2026-11-14_144233` 50.6 Hz, `2026-11-17_093307` 50.4 and
+187.6 Hz, `2026-11-19_072602` 50.8 Hz); re-runs never repeated it. Read from
+the saved clips (`work/_hum50.py`):
+
+- **Always trial 0**, which is the same chord in every run (the trials are
+  seeded): six notes, 58 61 68 77 81 88 (233.1 to 1318.5 Hz), all within
+  0.3 dB of each other (observed).
+- **Not hum or a stuck note:** the pre-roll is clean (about -80 dBFS, no
+  50 or 60 Hz line), and the low partials sound only while the chord plays
+  (observed). The chord's window holds the same set of partials in all
+  three runs at the same levels: 50.6 Hz -29.0 to -29.6 dB re the notes,
+  95.3 Hz -32.7, 161.3 Hz -38.7, 188 Hz -30.0 to -31.7, and some thirty
+  more between -30 and -39 dB up to 2.9 kHz (observed).
+- **They are intermodulation products of the chord:** 95.0 = 233.1 + 277.2
+  - 415.3, 161.3 = 1318.5 - 880 - 277.2, 188.2 = 698.5 - 277.2 - 233.1, 50.1
+  = 698.5 - 415.3 - 233.1 (or 50.9 = 2 x 233.1 - 415.3), each within the
+  check's 30 cents (frequencies observed; the attribution **inferred** from
+  the match). Some stage after the voices are summed is slightly
+  non-linear, the Peak's analogue output path or the audio interface's
+  input; which one is not known.
+- **Why only sometimes:** the strongest product, about -29 dB, sits on the
+  peak finder's -30 dB limit, so it crosses it in a few runs out of thirty.
+  Not a firmware fault, and not changed by any patch version.
+- **Fix (the check, not the firmware):** `B1ZoneChange.judge` counts an
+  extra partial only within 20 dB (`EXTRA_DB`) of the chord's quietest
+  note. A note left sounding from an earlier trial plays at sustain, as
+  loud as the chord. The three saved clips now pass with the chord complete;
+  `tests/test_hwrig_run3.py` checks a -29 dB product passes and a -3 dB
+  partial fails, and the stuck-note fault still fails.
+
+## Notes on the master channel play one at a time with MPE on (2026-11-21)
+
+- **Observed on the synth** (v0.35, series AC3): with D002 (MPE on, no zone
+  configured, so the Lower Zone with 15 members) a C major chord on
+  channel 1, the master channel, sounded as one note, the last one played
+  (`work/hw-runs/ji-fixed-2026-11-21_202535`: one partial per chord, at the
+  level of a single note; in the fourth take the held E went silent when A
+  and C came). The same chords with each note on its own member channel
+  (2-7) sounded in full (`ji-fixed-2026-11-21_203633`).
+- **Emulated:** the stored D002 (editor check `editor-2026-11-21_202345`,
+  the dump's bytes 14-525 as the patch) with a C major chord on channel 1:
+  with the MPE flag (`+0x1A2`) on, one gated voice (`voice_note` 67);
+  with it off, three. Just intonation Off or Fixed makes no difference.
+- **Cause** (source, observed): `mpe_voice.c` `trigger()` applies channel
+  reuse (a new note takes over a voice still sounding on its channel) to
+  every zone channel, the master channel too. The design means it for the
+  member channels (docs/mpe-design.md, "Voice binding": one note per member
+  channel), and `mpe_route.c` says the master channel works as the Peak's
+  normal channel, so this is unintended (inferred). Older than v0.35; the
+  Summit patch's `trigger()` has the same condition (`patches/mpe/
+  mpe_voice.c`, not run). The rig never plays chords on the master channel
+  of an MPE patch, so its checks didn't show it.
+- **Fixed in v0.36** (`MPEa`): channel reuse only for a zone's member
+  channels; notes on the master channel go to the stock allocator, as with
+  MPE off. Emulated (`tests/test_peak_master_notes.py`: a chord on the
+  Lower and the Upper Zone's master sounds in full, a master note-off ends
+  only its note, a member channel still plays one note at a time). On the
+  synth (series AD3, 2026-11-22, observed): a C major chord on channel 1
+  sounds all three notes at equal level, a note-off there ends only its
+  note, and two notes on one member channel still sound one
+  (`work/hw-runs/master-2026-11-22_100358`).
 
 ## Arpeggiator and the MIDI loop (2026-11-13)
 
@@ -91,9 +163,10 @@ how the code uses them.
 - **Simulator notes:** the seeded DataFlash has CC/NRPN = 0 (Disabled), so
   CCs sent to the simulator change nothing until `globals+0x14` is set to 3;
   writing patch bytes in RAM doesn't reach the oscillators (they are
-  recomputed only on a parameter change); and the simulator runs the Peak's
-  timers at twice its own milliseconds (arp step 62.5 sim-ms vs 125 ms on
-  hardware).
+  recomputed only on a parameter change). Until 2026-11-15 the simulator ran
+  the Peak's timers at twice its own milliseconds (arp step 62.5 sim-ms vs
+  125 ms on hardware); fixed, see
+  [Timers and the 1 kHz tick](#timers-and-the-1-khz-tick-2026-11-15).
 
 ## The knob overlay, pickup and the LCD (2026-11-13)
 
@@ -112,9 +185,21 @@ strings read from the image (`.data` is copied from flash `0x08045210` to RAM
   only caller. The encoder and the value buttons don't use it (they redraw the page
   through `ui_value_change`).
 - **Arguments:** `(id, prev, cur, saved, hires)`; the fifth is a stack word
-  (0 or 1). `saved` is the compare-buffer value (`FUN_080190F8(id)`), the
-  patch as stored, which is what the "saved val" row shows. Returns 1 = the
-  knob value is applied, 0 = pickup pending (nothing applied).
+  (0 or 1). `saved` is the stored patch's value (`saved_value_read`
+  `0x080190F8(id)`), which is what the "saved val" row shows. Returns 1 = the
+  knob value is applied, 0 = pickup pending (nothing applied); **the caller
+  writes the knob's value into the patch when it returns 1** (emulated,
+  2026-11-16: a hook that changes `cur` changes only what is drawn).
+- **Where the stored value comes from (2026-11-16, observed).** Not from a
+  buffer in RAM: `saved_value_read` reads the patch memory on every knob
+  move. The record number is (bank - 1) × 128 + number, from `patch_select`
+  `0x20002D14` +4 (bank, 1-based) and +5; a record is 512 bytes at
+  `record << 9` in the external DataFlash, and byte k of it is patch offset
+  k (the function reads at `id + record * 0x200`; a patch load reads the
+  whole record with `ext_flash_read_page` `0x0800EA64` into the shared
+  buffer `0x20003CA4` and copies it into the patch). `ext_flash_read`
+  `0x0800E978(addr, buf, len)` is the read underneath (DataFlash command
+  3). The patch's morph (`morph.c`) reads a record with it.
 - **Pickup** (`globals+0x0C` = `Pickup`, nonzero = on): a byte per patch offset
   at `0x20014054` (`pickup_state`). Armed to 3 by `pickup_arm` `0x08016B04`
   (called from `0x0800F6AC`, so the patch/MIDI side) and the knob-group
@@ -165,10 +250,1117 @@ strings read from the image (`.data` is copied from flash `0x08045210` to RAM
   `09`), so the display module takes them only while it draws and restores the
   stock set afterwards with `lcd_load_cgram()` (design choice; the restore
   is checked in the simulator).
+- **LCD bus speed (2026-11-16).** The display is on **SPI2**
+  (`0x40003800`): `lcd_spi_init` `0x0800ED0C` (only caller `lcd_init`)
+  enables the SPI2 clock (`RCC_APB1ENR` bit 14) and stores `CR1 = 0x3AF`:
+  master, LSB first, software NSS, clock **PCLK1/64** (observed). With PCLK1
+  at 30 MHz (inferred, the Summit's clock tree) that is 469 kHz. One
+  character is three SPI bytes (`lcd_spi_tx` `0x0800ED64` waits for TXE and
+  writes `SPI2_DR`; `lcd_spi_wait` `0x0800ED7C` then waits for not busy), all
+  busy-waited in the main loop: about 51 µs of bus time per character, so
+  **a full redraw of the four rows (80 characters and the cursor commands)
+  keeps the main loop for about 4.5 ms plus the formatting** (inferred from
+  the bit rate). The modulation tick is not caught up (`mod_tick`), so each
+  full redraw costs about four of the 1 kHz ticks. **On the synth (v0.17,
+  2026-11-16, observed):** the patch's late-tick counter (`diag.c`, Settings
+  > MOTION) read a longest gap between two modulation ticks of 6 ms over an
+  interval holding two page draws and nothing else, twice, and 9 lost ticks
+  in each such 10 s interval; with a motion lane writing Filter Frequency
+  about 60 times a second the same 9. So a page draw holds the main loop
+  for about 5 ms, an otherwise idle main loop keeps its 1 kHz tick, and
+  parameter writes at that rate cost no ticks.
 - **Simulator.** The LCD model decodes this driver, so tests read the DDRAM
   codes and `lcd.glyph(code)` bitmaps; the pots are not modelled, so a
   test calls `knob_overlay` directly with the arguments above, as `knob_poll`
   does.
+- **Who writes to the LCD (2026-11-17, observed in the disassembly).** All
+  text goes through two calls in the escape layer: `0x0800D1FA` (the
+  wrapper `0x0800D1F8` → `lcd_putc`; wrapper callers `lcd_putc_esc`
+  `0x0800D23C` and three in `0x0800D5FE`-`0x0800D620`) and `0x0800D216`
+  (the wrapper `0x0800D214` → `lcd_cursor`, about 70 callers, the cursor
+  escape among them). `lcd_putc` has one other caller, `lcd_init`'s clear
+  (`0x08016A28`); `lcd_cursor` none. The direct callers of `lcd_write_cmd`
+  are `lcd_load_cgram`, `lcd_cursor`, `lcd_putc`'s clear, `lcd_init`, and two
+  small functions: `lcd_display_on` `0x08016924` (if the display is off:
+  `lcd_power_on` `0x08016804`, which sets PB1, a 1 ms wait, command `0x0C`)
+  and `lcd_display_off` `0x08016950` (command `0x08`, `lcd_power_off`, called
+  by the screen-saver timeout `0x08016970` when more than 599,999 counts of
+  the ms counter, literal `0x08016994`, have passed since the last
+  `lcd_display_on`: about 10 minutes). PB1 is likely the panel's supply
+  (inferred); whether the display keeps its RAM while it is off was not
+  checked. `lcd_write_data` is called only by `lcd_load_cgram`, `lcd_putc` and
+  `lcd_init`. `lcd_init` (through `0x0800D200`) has one caller, `0x0800E7E2`.
+  The 1 ms waits poll a u16 that only the timer interrupt advances
+  (`0x20003BA2`, delay `0x0800E50C`).
+- **Stock redraws unchanged text (2026-11-17, emulated,
+  `work/_overlay_writes.py`).** A knob event with the overlay already up
+  rewrites the parameter name and both value rows: 34 data writes and 3
+  cursor commands on Filter Frequency, of which 33 data writes put back the
+  character the cell already held. v0.22's bar row made it 68. A Settings
+  page drawn over itself: 56 writes, all unchanged. At about 51 µs a write
+  (above), that is about 1.9 ms of a stock knob event and 3.5 ms of v0.22's,
+  in the main loop, against the 1 ms modulation tick; series M7 measured
+  about half the ticks lost while a knob turned on v0.21 (observed).
+- **The patch's LCD cache (v0.23, `lcdcache.c`; emulated).** Hooks on the
+  two escape-layer calls keep a copy of the 128 DDRAM cells: a cursor
+  escape only records the position, a character equal to the copy is not
+  sent, a different one is sent after an address command when the
+  display's own address isn't there. Unknown cells (`0xFF`, a code
+  `lcd_putc` never sends) are always written; the copy is blank after
+  `lcd_init`'s clear (hook `0x0800D202`), forgotten when the panel is powered
+  up after the screen saver (hook `0x08016932`), and a character past column
+  19, where the controller's next address isn't known, is written at its
+  address and the copy forgotten (none at boot). Fed the same random stream
+  of characters, cursor escapes, clears and ignored codes, stock and the
+  patch end with the same 128 cells after every chunk
+  (`tests/test_peak_lcdcache.py`). A knob turn of 40 events on Filter
+  Frequency: stock 37 writes per event, the patch 2 to 7 (average 3.8),
+  about 0.2 ms; a page drawn over itself: 0. The bar's seven characters
+  (56 writes) now load one per main-loop pass, so no pass holds more than a
+  stock knob event (`work/_turn_cost.py`, `tests/test_peak_disp.py`).
+  **On the synth (v0.23, 2026-11-17, observed):** the M7 measurement again,
+  `LateTicks` read before and after about 5 s of turning Filter Frequency:
+  17 ticks lost (`253 5` → `270 4`), the idle rate, against 2,645 on v0.21,
+  and the longest gap 4 ms against 9. No leftover characters on the
+  overlay or the Settings pages, and the overlay complete after the screen
+  saver (user, series O). So the lost ticks were the screen writes
+  (inferred: the cache is the only change between the two images that
+  touches the main loop's knob path).
+
+## Voice allocation and stealing (2026-11-15)
+
+From the Ghidra decompile, the literal pools read from the image, and the
+simulator (`tests/test_peak_voice_steal.py`, `work/_a1_alloc.py`). The code is
+the Summit's allocator with one engine
+([Summit findings, "Voice allocation reads the FPGA"](summit-2.2-build2121.md#the-fpga-bus-spi1)).
+Code structure is **observed**. What the sound chip (FPGA) replies was
+inferred when this was written (the simulator models the replies, it does
+not emulate the chip); the three predictions that follow from it were then
+**observed on the synth** the same day (below).
+
+**Stock is already tail-aware.** A new note takes the quietest voice that is
+in its release before it touches a held one. Plan step 18 as written
+("prefer an idle voice, then one in release") is what stock does.
+
+- **Call chain.** `note_on` `0x0800F53C` → `voice_dispatch` `0x08012984` →
+  `voice_trigger` `0x080128C0` (one `voice_alloc` per unison voice; patch
+  `+0x23` 0–3 = 1–4 voices, 4 = 8) → `voice_alloc` `0x080122B0`
+  `(note, vel, part, voice, unison)` → `voice_candidates` `0x08011B70`
+  `(start, mask, unison)` → `voice_env_read` `0x0801162C`.
+- **Voice mode** is patch `+0x22`: 0 Mono, 1 MonoLG, 2 Mono2, 3 Poly, 4 Poly2
+  (the names stand in this order from `0x0804396C`, 8 bytes each; the code agrees: 0/1 keep
+  one voice and 1 skips the envelope restart when legato, 2 is a strict
+  round robin `(last + 1) & 7` that reads nothing, 4 looks for the voice
+  already playing the note).
+- **What is read from the sound chip, on every allocation** (not in mode 2,
+  not with a forced voice): `voice_env_read` waits until the timer
+  `FUN_0800E6F4` has advanced by 2 since the last read (`voice_state+0x1E8`;
+  at most 10,000 passes), then makes three reads `fpga_write(8, 0x10, n)`,
+  n = 1, 2, 0. The nine reply words give a 16-bit **level** per voice
+  (`voice_env_level` `0x20012774`) and 2 bits of **envelope state** per
+  voice (`voice_env_state` `0x2001228C`).
+- **The ranking** (`voice_candidates`, voices scanned in the order
+  `(start + i) & 7`, `start` = the part's last pick `0x200002F4+0x2E0` + 1):
+
+  | State | Kept | Candidate byte (`0x0F` = none) |
+  |---|---|---|
+  | 3 (release; idle is 3 at level 0) | lowest level, first in scan order on a tie | `0x200127C0` |
+  | 1 or 2 (held: decay, sustain) | lowest level, first in scan order on a tie | `0x20012294` |
+  | 0 (attack) | **largest** start stamp, so the newest note | `0x200127AC` |
+  | any, voice in `mask` | highest level above `0x200` (Poly2's same note; the mono modes) | `0x20012CF0` |
+
+  For unison the state-3 voices are also listed and sorted by level
+  (voices `0x20012334`, levels `0x2001279C`).
+- **The choice** (`voice_alloc`, Poly, unison 1): the state-3 candidate; if
+  that is the voice taken last (`0x200002F4+0x2EC`), the second quietest of
+  the sorted list; with no state-3 voice the state-1/2 candidate; then the
+  state-0 candidate; then voice 0.
+- **A steal sends no release.** The taken voice gets only the three
+  envelope start commands (`0x3F`, `0x42`, `0x45`, state 0) and its new
+  pitch and velocity (emulated: the FPGA writes of a stealing note-on are
+  those of any note-on). Whether the chip restarts the envelope from zero
+  or from its current level is inside the chip (unknown).
+- **Per-voice state on the MCU** (`voice_state` `0x20004650`, observed):
+
+  | Field | Address | Meaning |
+  |---|---|---|
+  | gate | `+0x1F4+v` | 1 from the note start (`FUN_08011964`) until the release command (`voice_clear_at` `0x08011980`); stays 1 while a pedal holds the note |
+  | pedal-held | `+0x23C+v` | 1 = key is up, the sustain pedal holds the note (`voice_release_part` sets it when `0x200127D4+0x1CD` is nonzero; `FUN_08011ED0` releases those voices at pedal up) |
+  | sostenuto-held | `+0x244+v` | 1 = held by the sostenuto pedal (`FUN_08011F6C` marks the gated voices at pedal down, `FUN_08011F90` clears at pedal up) |
+  | start stamp | `+0x218+4v` (u32) | a note counter (`+0x214`), stored at each envelope start by `FUN_080119D8(voice, 0, 0)`. Larger = newer. Stock uses it only for state-0 voices |
+  | envelope command counters | `+0x1FC+3v+env` | 6 bits, sent with each command (`env_command` `0x080119A4`: `fpga_write(voice, {0x3F, 0x42, 0x45}[env], cmd + counter × 4)`, cmd 0 = start, 3 = release) |
+  | unison group | `+0x250+v` | which note-on the voice belongs to (`parts+0x13`) |
+  | note | `voice_note` `0x20012794+v`; `0x200002F4+0x2E4+v` | the note; the second copy is what Poly2 compares |
+
+  The MCU keeps **no release time and no level**. The only "how loud is this
+  voice" it ever has is the chip's reply at the moment of an allocation.
+- **Emulated results** (stock image, replies modelled: a held voice reads
+  state 2 at a fixed level, a released one state 3 falling to 0 over 1 s):
+  - 8 held, one let go, then a 9th note: the 9th takes the released voice.
+    No held note is cut.
+  - Two voices releasing: the one released earlier (quieter) goes first.
+  - 8 held at one level, 9th note: the voice after the last pick is cut.
+    After eight notes taken in turn that is the first note played (the
+    user's A6 observation on the synth, 2026-11-14). It is rotation order,
+    not age: with a pick in the middle (a released voice taken), the next
+    steal cuts the voice after it although older notes are held.
+  - Sustain pedal down, 8 notes played and let go, 9th note: as "8 held"
+    (the chip isn't told about the pedal; the MCU's pedal-held flag is not
+    used in the ranking).
+  - 8 voices still in state 0 (attack), 9th and 10th note: each takes the
+    **newest** voice, so the 10th cuts the 9th.
+- **On the synth (observed, 2026-11-15, image v0.14, `work/steal_check.py`,
+  recordings in `work/hw-runs/steal-2026-11-15_192047/`):** sine notes 48,
+  53, 58, 63, 68, 73, 78, 83 played in that order, MPE off, release about
+  -10 dB/s; each pitch's level measured against its held level.
+  - **Release first.** 58 let go, a 9th note 0.25 s later: 58 is at -56 dB
+    (cut; its release alone would have it at about -6 dB), all seven held
+    notes at +0 dB. The 9th note took the releasing voice.
+  - **Rotation, not age.** A 10th note then cut 63, the note on the voice
+    after the last pick, while the older 48 and 53 kept sounding. So held
+    voices at full sustain do tie on the real chip.
+  - **All held:** a 9th note cut 48 and a 10th cut 53, the first and
+    second notes played.
+  - **Attack: the newest goes.** With a slow attack (Amp Attack 110) and
+    all eight still rising, a 9th note 0.4 s later cut 83, the note just
+    played; the other eight and the 9th all reached the same level.
+  So states 3 (release), 1/2 (held) and 0 (attack) mean on the chip what
+  the code's ranking implies.
+- **Where a patch could do better than stock** (ideas, nothing built): a
+  tie between held voices could go to the oldest by start stamp instead of
+  rotation order; a note the pedal holds with its key up could go before a
+  note whose key is down; the lowest held note could be protected. All
+  three use MCU state only. Held voices do tie on a real Peak at full
+  sustain (observed above), so the rotation tie-break is what decides in
+  practice. The slow-attack case is the one a player may notice: a pad's
+  newest note is the one that disappears.
+- **v0.39: of the voices in their attack, the oldest goes** (`steal.c`;
+  emulated, then observed on the synth 2026-11-23). A hook on `voice_alloc`'s `voice_candidates` call
+  (`0x08012392`) runs stock's ranking, then sets `cand_attack`
+  (`0x200127AC`) to the state-0 voice with the smallest start stamp, first
+  in stock's scan order on a tie. The release and held candidates and the
+  mask candidate (mono modes, Poly2) stay stock's, so a voice in release
+  and then a held one still go first. The user guide says of Unison that
+  when voices run out the first note played is cancelled; stock did that
+  for held voices only by rotation and never in the attack.
+  `tests/test_peak_steal.py` (3 tests; the two with all voices in attack
+  failed on v0.38: the 9th note cut the 8th, the 10th the 9th); rig check
+  `work/attack_steal_check.py` (A4's take 3 with a 10th note): on the
+  synth (v0.39, run `attack-2026-11-23_095321`) the 9th and 10th notes cut
+  48 and 53, the first two played (-96 and -105 dBFS late in the attack,
+  the other eight at -35 to -36) (observed).
+- **v0.40: of the quietest held voices, a pedal-held one, then the oldest**
+  (`steal.c`; emulated, then observed on the synth 2026-11-23). The same
+  hook then sets `cand_held` (`0x20012294`):
+  among the voices in state 1 or 2 at the level of stock's pick (the
+  quietest), first one a pedal holds with its key up (sustain: pedal-held
+  +0x23C+v; sostenuto: marked +0x244+v and `sostenuto.c`'s key-up bit),
+  then the smallest start stamp, then stock's scan order. A quieter held
+  voice still goes before a louder one; only the tie, which stock gave to
+  its rotation order, changes. `tests/test_peak_steal.py` (3 more tests,
+  all failed on v0.39: after a pick in the middle the 10th note cut 63
+  instead of 60; with the sustain or the sostenuto pedal holding six
+  notes, the 9th cut 60, a key still down, instead of 62); rig check
+  `work/held_steal_check.py`: on the synth (v0.40, run
+  `held-2026-11-23_123015`, every held note at -28.3 dBFS) after a pick in
+  the middle the 10th note cut 48, the oldest (stock: 63), and with 48 and
+  53 held down and the sustain pedal holding six more the 9th cut 58, the
+  oldest the pedal holds (stock: 48) (observed).
+- **v0.41: Settings VOICE STEAL > Keep Low** (`steal.c`, `mpe_ui.c`; global
+  record 0x58, 1 = On; emulated, then observed on the synth 2026-11-23).
+  With it on and the voice mode Poly or
+  Poly2 (patch `+0x22` 3 or 4), neither `cand_held` nor `cand_attack` is a
+  voice playing the lowest `voice_note` among the gated voices (gate
+  `voice_state+0x1F4+v`: a key down or a note a pedal holds). A voice in
+  release is not kept, and `cand_release` (`0x200127C0`) still goes
+  first. When keeping it would leave all three candidates `0x0F`,
+  `voice_alloc` would take voice 0, so the picks are then made without
+  it (Unison 8: one note on all eight voices). `tests/test_peak_steal.py`
+  (8 more tests: held keys, a bass the sustain pedal holds, in the attack,
+  a released bass, a lower new note, Unison 8, the page); rig check
+  `work/keep_low_check.py`: on the synth (v0.41, run
+  `keeplow-2026-11-23_151730`) with eight keys held, and again with 48
+  held by the sustain pedal and seven more it holds, the 9th note cut 53
+  and 48 kept sounding (Keep Low Off: 48) (observed).
+- **Stock quirk: sostenuto pedal up releases keys still held down**
+  (code observed, behaviour emulated; first noted from the code
+  2026-11-15; the fix observed on the synth 2026-11-23). `sostenuto_pedal` `0x08011FEC` calls `sostenuto_down`
+  `0x08011F6C` (marks every gated voice, +0x244+v) and `sostenuto_up`
+  `0x08011F90`, which releases every marked, gated voice whose pedal-held
+  flag (+0x23C+v) is 0. A note-off under the pedal does nothing to a marked
+  voice (`voice_release_part` `0x08011A80` skips it, and sets pedal-held
+  only under the sustain pedal), so the MCU keeps no record of which held
+  keys are up; `voice_alloc` clears both flags on the voice it starts a
+  note on. **Fixed in v0.38** (`sostenuto.c`): the patch keeps a bit per
+  voice for "key up": at pedal down it copies pedal-held, the note-off
+  hook (`mpe_note_release`) sets it for the marked voices it releases (poly
+  modes: by note; mono modes: all, since they release only with no key
+  held), and at pedal up the marked voices whose key is still down lose the
+  mark before stock's `sostenuto_up` runs; their own note-off releases them
+  later. `tests/test_peak_sostenuto.py` (5 tests; the three with a key down
+  at pedal up failed on v0.37); rig check `work/pedal_check.py` part 2:
+  on the synth (v0.38, run `pedal-2026-11-23_074510`) a key held through
+  pedal up kept sounding and keys let go under the pedal ended at pedal up
+  (observed).
+
+## Glide (2026-11-15)
+
+From the decompile and the simulator (`work/_b1_glide.py`; stock image).
+Code **observed**, behaviour **emulated**.
+
+- **Parameters** (patch offsets, names from `patch_param_desc`): `+0x27`
+  `GlideTime` 0–127, `+0x28` `PreGlide` 52–76 (64 = 0, in semitones), `+0x29`
+  an unnamed 0/1 switch (the panel's Glide On; the code treats 0 as glide
+  off).
+- **State per voice:** target pitch `voice_pitch` `0x200127C4+2v` (u16,
+  1/256 semitone, from the tuning table `0x20012CF4`), glide pitch
+  `voice_state+0x74+4v` (s32, 16.16), rate `0x200127B0+2v` (u16), PreGlide
+  offset `0x2001255C+v` (s8, semitones, used once), output
+  `voice_pitch_out` `0x20012544+2v` (the glide pitch's high word).
+- **`voice_glide`** `0x08010A9C`, once per voice per tick and once in
+  `voice_alloc`: if the PreGlide offset is nonzero, the glide pitch jumps to
+  target + offset and the offset is cleared; then the glide pitch moves
+  toward the target by `rate × difference` plus a constant `0x4000` step;
+  with the switch `+0x29` at 0 it is set to the target.
+- **Rates:** `FUN_08012D80` (voice parameters changed) computes the patch's
+  rate from `GlideTime` into `0x2001256C` (the zero-time rate if the switch
+  is off) and the zero-time rate into `0x20012564` (`FUN_08011240`).
+  `voice_alloc` gives the voice the patch's rate and the PreGlide offset;
+  only MonoLG at the start of a phrase (`voice_state+0x24E`, set by
+  `phrase_start` `0x08012024` when no other key is held) gets the zero-time
+  rate and no PreGlide.
+- **Where a glide starts (emulated):**
+  - **Poly:** from the pitch **that voice** last had. Nothing moves the
+    glide pitch between notes, and `voice_alloc` does not reset it. With
+    notes rotating through eight voices the start is the note played eight
+    notes ago on that voice (the guide's "unpredictable with chords").
+  - After power-on every voice's glide pitch is note 60, so the first eight
+    notes glide from middle C. **v0.38** starts a voice's first note since
+    power-on on pitch, in every mode and every Glide setting
+    (`mpe_voice.c` `glide_start`; emulated,
+    `tests/test_peak_glide.py::test_a_voices_first_note_after_power_on_starts_on_pitch`,
+    which failed on v0.37 for Stock and LastNote); rig check
+    `work/pedal_check.py` part 1: on the synth, right after power-on with
+    a slow glide, 48 and then 72 over it each started on its own pitch
+    (observed, run `pedal-2026-11-23_074510`).
+  - **Mono:** one voice, so always from the last note, legato or not.
+  - **MonoLG:** from the last note when legato; a detached note starts on
+    pitch.
+  - **PreGlide** nonzero overrides all of these: the note starts at its own
+    pitch plus the offset.
+- **On the synth (observed, 2026-11-15, v0.14, `work/glide_check.py`,
+  recordings in `work/hw-runs/glide-2026-11-15_19*`):** sine, MPE off, Glide
+  on, Glide Time 110 (slow); every voice first left at note 72; then 48, 60
+  and 55 detached and 67 over the held 55. Pitch 40 to 140 ms after each
+  note-on:
+
+  | Glide setting | 48 | 60 | 55 | 67 over a held 55 |
+  |---|---|---|---|---|
+  | Stock | 71.3 | 71.7 | 71.6 | 71.9, then down to 67.7 after 1 s |
+  | LastNote | 71.4 | 50.2 | 59.4 | 55.5, then 59.2, 62.3, 64.7 at 0.3, 0.6, 1.0 s |
+  | Legato | 47.9 | 60.0 | 55.0 | 55.0, then 59.0, 62.2, 64.6 |
+
+  Stock: each note from its voice's last pitch (72), as the code reads.
+  LastNote: from where the previous note's pitch is at that moment (48 had
+  reached about 50 and 60 about 59.4 when the next note came). Legato:
+  detached notes on pitch, the legato note from the held one. The held 55
+  stays at 55.0 while the new voice glides.
+- **MPE.** The patch binds a member channel to a voice in a hook on
+  `voice_alloc`'s `voice_glide` call (`0x08012640`) and leaves glide alone.
+  So with MPE on, a note glides from its voice's last pitch as in Poly;
+  when a channel takes over its own still-sounding voice (channel reuse),
+  that is the channel's previous note. The per-note bend is added in
+  `osc_pitch`, after the glide, and does not enter the glide pitch.
+
+## Timers and the 1 kHz tick (2026-11-15)
+
+Why the simulator ran the Peak twice as fast as the synth, and what the
+real rates are. Register values **observed** in the image; the 60 MHz timer
+clock **inferred** as on the Summit; the result agrees with a time measured
+on the synth.
+
+- **Clock tree:** the same values as the Summit's `clock_init`:
+  `RCC_PLLCFGR = 0x05401E03`, `RCC_CFGR = 0x00409402` (literals at
+  `0x0800DAA4`, `0x0800DAAC`): SYSCLK 120 MHz, TIM6 clock 60 MHz (inferred,
+  [Summit findings](summit-2.2-build2121.md#modulation-tick-mod_update-call-rate)).
+- **TIM6** (`FUN_0800E414`): PSC 59, **ARR 99** (the Summit: ARR 49). So
+  60 MHz / 6000 = **10 kHz**, half the Summit's 20 kHz.
+- **TIM6 interrupt** (`0x0800E470`, vector 70): every 10th interrupt (the
+  Summit: every 20th) it requests a modulation tick (`FUN_08010E40`,
+  `voice_state+0xAC`), counts the millisecond counter `0x20003AD0+0x1C0`
+  (low 16 bits at `+0xD2`, read by `FUN_0800E4FC`), scans the panel
+  and steps the tempo clock (`FUN_0800FB80`). So the **modulation tick
+  (`mod_tick`, and the patch's `mpe_mod_update`) is 1 kHz** and the counter
+  counts milliseconds.
+- **The tempo clock confirms 1 kHz:** `FUN_0800FB80` adds the tempo word
+  (`0x20000264`, 1,717,984 per BPM) to a 32-bit accumulator on each of those
+  ticks, and each overflow is one MIDI clock. 2³² × 24 / 60 / 1000 =
+  1,717,987: the constant is 24 clocks per quarter note at a 1 kHz tick
+  (observed in the code). On the synth an arp step at 120 BPM measured
+  125 ms (observed, 2026-11-13), so the tick there is 1 kHz.
+- **The simulator's error:** it raised TIM6 in every 50 µs slot, the
+  Summit's rate, whatever the firmware programmed. On the Peak that made
+  every firmware timer run twice as fast as simulated time: 2000
+  modulation ticks per simulated second, an arp step in 62.5 ms. Fixed
+  2026-11-15: `emu/board.py` takes the period from TIM6's PSC and ARR
+  (`Board.tim6_period_us`). Summit timing is unchanged.
+- **Message time** (`ui_msg_countdown` `0x08018ADC`, main loop): the
+  countdown `ui_msg_state+2` loses one count on a main-loop pass that finds
+  the millisecond counter advanced by more than 10 since the last count
+  (`cmp r3, #10` at `0x08018AEA`), so **one count is 11 ms** (observed in
+  the code; emulated; and on the synth `Msg Time` 127 lasted about 1.5 s by
+  the user's stopwatch, 2026-11-15, against 132 × 11 ms = 1.45 s). A knob
+  message starts at `Msg Time` + 5 counts (`FUN_08018A98`); `Msg Time` is
+  0–127, initial value 64, which is also what the user's Peak has. The
+  guide's "127 is equivalent to approx. 3 seconds" is twice what build 2108
+  does. From v0.15 the patch changes the compare to 21, so a count is 22 ms
+  and 127 lasts 2.9 s (the user asked for about 3 s).
+- **When the page comes back.** At the end of the countdown the page is
+  redrawn only if the changed flag `ui_msg_state+1` is nonzero (the same
+  function; `mark_changed` `0x08018A88` sets bit 0, every parameter write
+  calls it). A message drawn without any parameter change is therefore
+  never cleared by stock. Stock's own messages always follow a change; the
+  patch's did not: on v0.14 the `Done:` message of a section copy onto equal
+  values, and the `UNDO` message after it, stayed on the screen for good
+  (observed on the synth, series F4, more than 45 s; reproduced in the
+  simulator: flag 0 after an Osc1>2 copy on the Init patch, 1 after
+  Amp>E1). Fixed in v0.15: `ui_say` calls `mark_changed`.
+  The earlier note "about 60 ms per count" came from a `Done:` message seen
+  for about 0.3 s on v0.12 and assumed `Msg Time` 0; with the real 64 that
+  message had at least 0.76 s of countdown, so its 0.3 s was the page
+  redraw that v0.13 removed.
+- **Consequences for the patch as flashed in v0.13** (constants written for
+  the simulator's 2 kHz): EnvSync applied a changed choice after about 2 s
+  (meant 1 s) and a tempo change after about 1 s (meant 0.5 s); the undo
+  gesture window was about 4 s (meant 2 s); and the "hold" of the Do it and
+  undo messages, 35 counts, was 0.4 to 0.8 s (meant 2 s). Corrected in v0.14
+  (the hold is timed by the patch's own 1 kHz tick, not by stock's
+  countdown); on the synth the undo window behaved as intended (series F5,
+  user).
+- **DIN receive ring and its overflow counter** (`0x20003EAC`, USART6
+  interrupt `0x0800EDD8`, observed): `+0` receive write index, `+1` receive
+  read index, `+2`/`+3` transmit read/write index (all u8), `+4` transmit
+  ring (256 bytes), `+0x104` receive ring (256 bytes), **`+0x204` overflow
+  counter: one byte** (`ldrb.w r2, [r3, #0x204]` at `0x0800EE2C`, `adds`,
+  `strb.w` at `0x0800EE32`), counted up when the write index catches the
+  read index. It wraps after 255; no other code reads or writes it (the
+  diagnostics page of the patch shows it).
+
+## Value scales for the randomiser (2026-11-18)
+
+- **`format_value` `0x08017604` `(display, value)` prints at the LCD
+  cursor** (`lcd_cursor`/`lcd_putc_esc`); it returns nothing useful.
+  Called in the simulator with the cursor set and the display read back
+  (emulated, `work/_rand_fmt.py`):
+  - display `0x17` (Osc Coarse, 9-bit value): `0` = -12.0, `128` = +0.0,
+    `255` = +12.0, about 10.6 per semitone; whole semitones at 0, 10,
+    19/20, 30/31, 41/42, 52/53 (-7), 62/63, 73/74 (-5), 84/85, 94/95,
+    105/106, 116/117, 127/128 (0), 138/139, 149/150, 160/161, 170/171,
+    181/182 (+5), 192/193, 202/203 (+7), 213/214, 224/225, 235/236,
+    245, 255 (+12).
+  - display `0x04` (Fine, LFO-to-pitch, 9-bit): value - 128 (Fine's
+    28-228 is -100 to +100 cents).
+  - display `0x33` (`WaveMore`): 4 `BS sine` to 63 `Yeah` are the 60
+    factory tables; **64-73 are `*User 1` to `*User 10`**.
+  - display `0x34` (LFO 1/2 wave, `0xAF`/`0xBD`): `Triangle`, `Sawtooth`,
+    `Square`, `Rand S/H`.
+  - display `0x15` (Osc Range 63-66): 16', 8', 4', 2'.
+  - display `0x07` (envelope Repeats): 0 `Off`, 127 `On`; `0x06` (LFO
+    Repeats): 0 `Off`, 127 is 127.
+  - display `0x22` (patch offset **`0xEC`**): `Chorus`, `Flanger`,
+    `Phlanger`: `0xEC` is the **chorus Mode**, not an arp setting.
+    PARAM LOCK v0.11-v0.25 had it in the Arp group (`0xEC-0xFA`) and its
+    save buffer was 64 bytes for the 66 of all three groups (two bytes
+    past it on the stack; harmless in the simulator, inferred harmless on
+    the synth: series E and later passed with all locks used). v0.26
+    moves `0xEC` to FX and sizes the buffer for 66.
+- **Filter Shape 0/1/2 = low/band/high-pass and Slope 0/1 = 12/24 dB**
+  (inferred from the string order `LOW`, `BAND`, `HIGH`, `12dB`, `24dB`
+  at `0x0804440C`-`0x0804442C`; Slope 1 = 24 dB agrees with the units
+  measurements, docs/peak-units.md).
+- **On the synth (observed, 2026-11-18, v0.26, run `rand-2026-11-18_160152`):** 150 rolls of
+  the rules and 50 free rolls of the same controls, C4 held 1.5 s on D002: none silent (loudest
+  50 ms under -60 dBFS or within 6 dB of the pre-roll) and none clipped in either group. The
+  rules hold the level down (peaks above -6 dBFS: 2 of 150 against 17 of 50 free). With the
+  rules, band-pass (shape 1, cutoff 100-220) is about 12 dB quieter than low- or high-pass
+  (median -37.1 against -25.1 and -26.3 dB); free band-pass rolls were louder (median
+  -20.2), with resonance (r = 0.51 over all free rolls) and drive (0.26-0.30) the strongest
+  links to level, both of which the rules cap.
+- **Filter level by shape and cutoff at C4 (observed, 2026-11-18, run
+  `bpsweep-2026-11-18_163331`, `work/bp_sweep.py`):** the rig's p5 base (one
+  oscillator, MPE off), C4 held 1 s, loudest 50 ms; cutoff as the 9-bit
+  value (twice the CC value sent), key track 127, resonance and drives 0
+  unless named. Low-pass 12 dB is flat from about 128 up (sine -21.9 dB,
+  saw -23.8) and 15-17 dB down at 64. **Band-pass is loudest at about
+  96** (sine -26.2 dB at 12 dB slope, -30.6 at 24 dB; saw -29.3 and
+  -34.1) and falls away on both sides: at 160 sine -38.6 / -55.4, saw
+  -34.7 / -41.7; at 220 sine about -56 / -66. High-pass 12 dB is flat up to
+  about 64, 5 (saw) to 10 dB (sine) down at 110, 10 to 28 dB down at 150.
+  Band-pass 24 dB at 128: **resonance 0 to 96 lifts a saw 20.6 dB** (-37.6
+  to -17.0) and a sine 3.8 dB; 120 self-oscillates (about -12 dB with
+  either wave). Pre drive 0 to 64: +2.2 to 3.6 dB (127: +9 to 11). Post
+  drive 0 to 48: +2.0 to 2.3 dB (127: +15 to 17). Key track 0 to 127:
+  within 0.3 dB at C4, so its pivot is at or near C4 (inferred). So
+  v0.26's band-pass range (100-220) sat above the note. v0.27 rolls
+  band-pass at 64-150 with resonance 40-96 and AenvFiltFreq within
+  -16..+16 (`rand.c`), and high-pass at most 110. On the synth (observed,
+  run `rand-2026-11-18_183717`, the same check as v0.26's): band-pass rule
+  rolls median -31.1 dB (was -37.1), 2 of 24 under -40 (was 9 of 25);
+  low-pass -24.9, high-pass -27.4; none clipped.
+
+**A mixer-fix flaw (v0.26 to v0.29; emulated):** `mixer_fix` lifted the loudest
+oscillator to 128-255 and then scaled all five levels by 420 / sum, which could
+take that oscillator back under 100 (128 with a sum of 600 gives 89), so the
+rule it enforces failed. `test_full_rolls_of_everything_stay_in_range_and_pass_the_checks`
+caught one such roll in 40 on the v0.30 build (its timing gave other seeds).
+v0.30 keeps the loudest oscillator and scales the other four into what it
+leaves of 420. Not seen on the rig (`work/rand_check.py`: no rule roll
+silent, v0.26 and v0.27).
+
+## The parameter setter and 9-bit controls (2026-11-16)
+
+Found while building the patch morph. Code **observed** (decompile), the
+refusal **emulated** (`tests/test_peak_morph.py`
+`test_a_low_fine_tune_comes_back`); not tried on the synth.
+
+- **`param_set_by_id` `0x0800F6AC` `(value, id)`**, the setter behind a
+  received CC, looks up the patch offset of the id (`0x0800F614`), compares
+  the value with that offset's descriptor minimum and maximum, and only
+  then calls `param_write` `0x0800F658` (writes the byte if it differs, ORs
+  the offset's group mask into `param_dirty_groups`, `mark_changed`) and
+  `pickup_arm`.
+- **For the coarse byte of a 9-bit pair the descriptor holds the pair's
+  range, and the setter holds the 7-bit byte against it.** Harmless where
+  the range starts at 0 (FiltFreq, the levels, LFO rates: 0-255). The three
+  oscillator Fine controls have 28-228 (offsets `0x33`, `0x48`, `0x5D`; CC
+  15, 18, 21 by the descriptor table): their coarse byte runs 14-114, and
+  **the setter refuses 14-27**. So over MIDI a stock Peak takes the Fine CC
+  only from 28 up (the lowest quarter of the downward range is reachable
+  from the panel only: inferred from this code, the panel path
+  `0x08017488` calls `param_write` directly).
+- **For the patch:** `param_put` (`section.c`), which every feature uses to
+  set a patch byte, sent such a byte through the setter, so section copy,
+  undo, a motion lane and now the morph could not set a Fine tune below
+  that. From v0.18 the coarse byte of a 9-bit pair goes to `param_write`
+  and `pickup_arm` directly.
+- **Over MIDI, 2026-11-17 (emulated, `tests/test_peak_ccpair.py`):** with
+  Settings receiving CCs, CC 15 at 14-27 sent over DIN through `cc`
+  `0x0800F124` leaves Osc 1 Fine as it was on the stock image; 28-127 are
+  stored as sent (so 115-127, above +100, are taken too). The same bug was
+  reported upstream for the Summit 2.2 (michaelkollmann/gipfel_mpe pull
+  request 3, open), whose fix lowers the three minimums to 14.
+- **Who reads the descriptor's min and max** (every literal-pool word that
+  points at `patch_param_desc` `0x200017CC` in the stock image, read in the
+  decompile; observed): `param_set_by_id` (literal `0x0800F708`, the check
+  above); `ui_value_change` `0x08018448` (`0x080186D0`), the menu encoder,
+  which for a pair (msb `0xFE`) builds the 9-bit value and clamps it to min
+  and max, so there they are 9-bit bounds as intended; two handlers of the
+  stepped panel buttons, `0x08016A30` (`0x08016AAC`) and `0x08016D58`
+  (`0x08016DEC`), which cycle a button's value through min to max (Fine is
+  a pot, not one of them, inferred from the button table's use). The other
+  readers take only the name, NRPN bytes or display type (`knob_overlay`
+  `0x08016CB0`, `0x08017DB8` building the offset-to-id table, `ui_draw_page`
+  `0x08018060`, `ui_draw_values` `0x080182AC`). The knob path (`knob_poll`
+  `0x08016DF4`) does not read min or max. In the patch, `disp.c` draws the
+  knob's value bar over min to max, and `morph.c` clamps a stored value to
+  them.
+- **So the fix is in the setter's caller, not the descriptors (v0.22,
+  `ccpair.c`):** lowering the minimum to 14 would let the menu encoder take
+  a Fine on a menu page down to 9-bit 14 (below the panel's −100) and would
+  move the centre of the patch's Fine value bar. Instead `cc`'s call of
+  `param_set_by_id` for a plain CC (`bl` at `0x0800F318`; the other call,
+  `0x0800F30E`, is NRPN data entry with ids from `0x80`) goes to
+  `ccpair_param_set`: for a CC whose patch offset (`param_offset_of_id`
+  `0x08017E68`) is a pair's coarse byte, the value is clamped to half the
+  pair's range (14-114 for Fine) and written through `param_write` and
+  `pickup_arm`, as the setter writes; every other id goes to stock's
+  setter. Emulated: CC 15, 18 and 21 store 14-114 as sent, 0-13 as 14 and
+  115-127 as 114; Resonance and the FiltFreq pair (0-255) store what stock
+  stores; the descriptors are stock's; a held note's oscillator pitch drops
+  from Fine −73 (CC 28) to −100 (CC 14). Not yet on the synth.
+
+## Compare and Save (2026-11-16)
+
+Read for the morph. Code **observed** (decompile), behaviour and screens
+**emulated** (`tests/test_peak_morph.py`, buttons pressed through the
+firmware's event queue); not yet on the synth with a morph running.
+
+- **Button events.** The panel scan puts one byte per event into a ring of
+  64 at `0x20003AD0+0x88` (the `button_table` index, bit 7 = pressed; write
+  index `+0x84`, read index `+0xDA`); `panel_event_read` `0x0800DDFC` takes
+  them for `panel_button_event` `0x08016FF0`.
+- **Compare** (action 8): `panel_button_event` writes `compare_held`
+  `0x200111F2` (1 pressed, 0 let go), then calls `compare_action`
+  `0x080188A8(pressed)`, which calls `patch_compare` `0x080130AC`.
+  Pressed: the patch `0x20012340` (0x201 bytes) is copied to
+  `compare_stash` `0x20012570`, then the stored record is read and loaded
+  with `patch_load` (`0x0801AF10`). Let go: the stash is copied back into
+  the patch and pushed to the sound chip (`0x08013044`), without
+  `patch_load`. In Save mode (UI mode 9) Compare works only on page 2 and
+  loads the destination's record instead (`0x0801AF44`).
+- **Pressing Compare ends all notes; letting go does not.** `patch_load`
+  `0x0801AEB8` calls `0x08011EA0`, which calls `voices_all_release`
+  `0x08011A20`: a release command to all eight voices, gates cleared
+  (code observed). Emulated on the stock image: a note held when Compare
+  is pressed loses its gate, a note played while it is held sounds and
+  goes on through the release (the release makes no `patch_load`); the
+  same on v0.19 with `MPE` On (`work/_compare_note.py`,
+  `tests/test_peak_morph.py`). On the synth with v0.19 (the user,
+  2026-11-16, series L): pressing Compare stopped the held note and the
+  voice LED went dark (observed; stock firmware on the synth not tried).
+  The same holds for any patch load: a patch change or Initialise.
+- **Save** (action 3, `settings_save_action` `0x08018FCC`): in the Settings
+  menu (mode 8) it stores the settings (screen `Settings Saved With` /
+  `PROTECT OFF`), not the patch. Elsewhere the first press opens Save mode
+  (mode 9: `SAVE RENAME      1/3`), the next two step to
+  `SAVE LOCATION    2/3` and `SAVE CATEGORY    3/3`, and the fourth calls
+  `patch_save` `0x08018F10(number, bank)`: the patch's 0x200 bytes to
+  record (number + (bank - 1) × 128) × 512 of the patch memory. It then
+  sets `patch_select` +4/+5 to the destination and shows
+  `Patch Saved To` with bank letter and number. No `patch_load`: the patch
+  in RAM is not touched.
+- **What that meant for the patch (v0.12 to v0.18).** The hook on
+  `patch_load`'s copy (`plock_copy`) cannot tell Compare's load from a
+  patch change. With a morph running, v0.18 took the stored patch as the
+  new edit and, at the release, the blend that stock copied back as an edit
+  again: after Compare at position 64 an edit of 100 against a stored 0 read
+  25 instead of 50, and at position 127 the edit was gone (emulated on
+  v0.18). From v0.19 the morph stands still while `compare_held` is set
+  and starts afresh after `patch_save` (hook at `0x0801903E`).
+- **The undo step and the motion lane (v0.12 to v0.19):** pressing Compare
+  also cleared the undo step and stopped a motion lane, because both are
+  cleared in the same hook (emulated on v0.19: after Compare `Mod` +
+  Page left said `Nothing to undo`, and the MOTION page read `Off`, the
+  control left at the lane's last value). From v0.20 the hook leaves all
+  three alone while `compare_held` is set: nothing is recorded, undone,
+  pasted or quick-assigned on the patch Compare plays, a lane keeps its
+  time but writes nothing, and both go on at the release
+  (`tests/test_peak_compare.py`, emulated; not on the synth).
+
+## Arp rhythm patterns (2026-11-16)
+
+Read for Euclidean rhythms (feature list step 17). Code **observed**
+(decompile); the format **emulated** by playing patterns built to it
+(`tests/test_peak_euclid.py`). Nothing on the synth yet.
+
+- **Where the 33 rhythms are.** The word at `arp_state_ptr` `0x20000640` is
+  the arp state's address (`0x200127D4`); the 33 words from `0x20000648`
+  point at the patterns, in flash from `0x080427C4` (Rhythm 33) up to
+  `0x08042E4C` (Rhythm 1). A pattern is a count byte, a zero byte, then
+  that many two-byte events.
+- **An event** is a velocity (`0x64` = 100; stock uses `0x32` to `0x68`
+  for accents) and a length in arp clocks. Velocity 0 is a rest. The step
+  is played at that velocity, not the key's: `arp_step` `0x080151A0` takes
+  it from state `+0x1D9` whenever `+0x1E3` is set, and `arp_tick` sets
+  that every tick (observed). Emulated on stock: a key struck at 30 played
+  at 100 in Rhythm 1, and at 100, 100, 65, 100, 66 in Rhythm 2. Six clocks are one step of the SyncRate. A note event is always
+  followed by a rest event: Rhythm 1 is `64 03 00 03` (a note of 3 clocks
+  and a rest of 3, every step), and Rhythm 4 starts with a lone rest
+  (`00 0C`).
+- **Playing them** (`arp_tick` `0x08015554`, called once per tick from
+  `tick_work` `0x0801192C`, the call at `0x08011956`): when the patch's
+  Rhythm (`+0xF1`) differs from the number kept at state `+0x1D8`, the
+  pattern's count goes to `+0x1D4`, the address of its events to `+8`, and
+  `arp_pattern_reset` `0x08014F68` starts it from the first event. The
+  reader `0x08015518` takes the event at index `+0x1D5` and wraps at the
+  count. For a rest the next event time (`+0x1D6`, clocks × 256) moves on
+  by its length. For a note the reader takes the next event too, moves on
+  by both lengths, and sets the step's end (`+0xC`) from ArpGateTime
+  (`+0xF3`): 64 gives the note's own length, 127 the whole of note and
+  rest, between them a share of the rest, below 64 a share of the note.
+- **Times are 16 bits**, compared by the sign of their difference, so one
+  event pair must stay under 128 clocks (21 steps). Stock's longest pair is
+  37 clocks.
+- **The pattern free-runs.** With no key held the events are still read and
+  timed; a key pressed when the arp has no notes restarts the pattern
+  (`arp_reset` `0x08014FA8`), so the first step sounds at once unless the
+  pattern starts with a rest.
+- **Swing** works on the 6-clock grid in `arp_tick`, apart from the
+  patterns.
+- **Which note a step plays** is chosen at each note event by
+  `arp_step_select` `0x08015408` (called from `arp_tick` at `0x0801574E`
+  while the arp is on): by the Type's flags (state `+0x1DE`) it walks the
+  play map up or down from the last note (`+0x1DC`, direction `+0x1DD`,
+  octave `+0x1E0`), or takes the played-order list at index `+0x1CC`, at
+  random for the random types (`arp_random_seed` `0x20011178`), or all of
+  the list at once for the chord types. Every note event moves the choice
+  on, so a pattern alone cannot repeat a note.
+- **Order within a note event** (observed in the decompile, used by v0.42's
+  ratchet chance; emulated in `tests/test_peak_ratchet.py`, observed on the
+  synth in AL3): `arp_tick` calls the reader `0x08015518` for the note
+  (velocity to `+0x1D9`), then again for its rest, both advancing `+0x1D5`
+  and wrapping at the count, and only then `arp_step_select`. So when that
+  call runs, `+0x1D5` is the index of the event after the note's rest. An
+  event rewritten to velocity 0 before the reader reaches it is read as a
+  rest of the same length.
+- **Voices for a repeated note (emulated, `work/_ratchet_voice.py`; the
+  feature list's check for ratchets):** with one key held, each step takes
+  the next voice in Mono2, Poly and Poly2, on stock and with MPE on
+  (voices 0, 1, 2, ... 7, 0); in Mono and MonoLG every step retriggers
+  voice 0. Poly2's choice depends on the levels the sound chip reports,
+  which the simulator only models.
+- **Ratchets (v0.21, emulated, `tests/test_peak_ratchet.py`):** the repeat
+  of a note is a note event with bit 7 set in its velocity. The hook on the
+  call of `arp_step_select` clears the bit and puts `+0x1CC`, `+0x1DB`,
+  `+0x1DC`, `+0x1DD`, `+0x1E0` and the seed back to what they were before
+  the note's first sounding, so stock chooses the same note again: checked
+  for all eight Types (the chord types repeat the whole chord). If the
+  chord changes between a note and its repeat, the repeat is chosen from
+  the new chord.
+- **A cost of the arp echo filter seen on the way (emulated):** with
+  Arp>MIDI On, a key on the global channel released within 100 ms of the
+  arp's own note off for the same note is taken for the echo and dropped
+  (`arp_echo.c` says so). With one key held the arp plays that very note,
+  so its release is at risk each time: in the simulator the arp then went
+  on after the key was let go, until the key was pressed and released
+  again. MPE notes arrive on member channels and are not affected.
+  **Mended in v0.20 (emulated, `tests/test_peak_arp_echo.py`):** a note
+  off is dropped only while a loop is known to be there, that is, within a
+  minute of one of the arp's note ons coming back. With no loop a release
+  always gets through; with a loop the filter works as before.
+
+## MIDI Tuning Standard in stock (2026-11-16)
+
+The feature list asked whether stock already takes real-time retuning. It
+does, for one note per message. Code **observed** (decompile), the
+single-note message **emulated** on the stock image (`work/_mts.py`);
+nothing on the synth.
+
+- **SysEx parsers.** Each received byte goes to eight parsers in turn
+  (`0x0801AE0C`), each with its own header from the table at `0x08042E98`:
+  Novation's `00 20 29 ...` ones, the identity request `7E 7F 06 01`, and
+  two for tuning.
+- **Single-note tuning change, real time** (`0x08019548`, header
+  `7F 00 08 02`): `F0 7F 00 08 02 tt ll kk xx yy zz F7` with the table
+  number `tt` 0 to 16. It calls `tuning_note_set` `0x08012CCC(tt, kk, xx,
+  yy, zz)`: the note's entry in the table becomes `xx << 8 | yy << 1 |
+  zz >> 6` (a semitone and 1/256 of one; `7F 7F 7F` means no change), and
+  if `tt` is the patch's table (patch `+0x162`), voices sounding that key
+  are retuned at once. Emulated: table 1, key 60 set to 61 and 50 cents
+  read `0x3D80` afterwards (`0x3C00` before).
+- **Limits (emulated):** the device ID must be `00`; the same message to
+  `7F` (all devices) changed nothing. The parser takes exactly 11 bytes
+  after `F0`, so only one note per message: with `ll` = 2 nothing changed.
+- **Bulk dump, non-real time** (`0x08019B40`, header `7E 00 08`):
+  sub-ID `00` with a table number answers with that table's dump
+  (`0x08019A6C`); sub-ID `01` takes a whole table, 128 notes of three
+  bytes after the 16-character name (observed, not emulated).
+- The tables are 17 × 128 words at `0x20012CF4`; the Init values are the
+  key number × 256 (equal temperament).
+- **What a patch could add:** accept device ID `7F`, and more than one note
+  in a message. Both are small changes to one parser; neither is built.
+- **Stock's parsers in detail (observed, decompile).** Each SysEx byte
+  reaches `sysex_rx_byte` from `midi_parse_byte` (`0x0800EFC0`); its calls
+  of the eight parsers are at `0x0801AE12` to `0x0801AE4A`, the single-note
+  one at `0x0801AE42`. `mts_single_note_rx` collects 10 bytes, compares the
+  first four with `7F 00 08 02`, then needs `F7` as the 11th; `ll` is never
+  read. It locks to the port of its `F0` until the message ends, and any
+  other status byte ends the message (a real-time byte too, if one
+  arrives). `mts_bulk_rx` takes `7E 00 08 01 tt`, then 401 bytes (name,
+  data, checksum) and `F7`; it doesn't test the checksum and doesn't call
+  `mark_changed` (the single-note parser does). The tables are 17 x 128
+  u16 (not words).
+- **The patch's parser (v0.25, `mts.c`; emulated in
+  `tests/test_peak_mts.py`):** after stock's, on every byte. Device ID `7F`
+  and three notes in one message reach the table (and `00` with three
+  notes); device `00` with one note is still stock's; wrong lengths,
+  device `10`, table 17 and a message cut by a note-on change nothing; a
+  clock byte inside a message doesn't end it; the bulk dump to `7F` sets
+  all 128 keys of its table only; a held note on the patch's table moves
+  at once (`voice_pitch`).
+- **On the synth (2026-11-18, v0.25, over USB; observed,
+  `work/mts_check.py`):** with the sound on table 16, a device-`7F`
+  single-note change moved A4 by +49.8 cents (target +50), a device-`00`
+  message with two notes moved A4 +24.9 and C5 +99.9 cents (+25, +100),
+  a device-`7F` bulk dump with every key one semitone down gave -100.2
+  cents, and a held A4 retuned by a device-`7F` message moved +49.8 cents
+  within the note. Reference A4 440.02 Hz.
+
+## Main-loop pace in the simulator (2026-11-16)
+
+**Emulated** (`work/_w_probe.py`): three broadcast writes to the sound chip
+(target 24, parameters 0, 3 and 13) are paced by the main loop, 712 of each
+in 100 ms idle on stock. With the patch 637 (v0.17) and 630 (v0.18): the
+patch's polls and hooks add about 12% to a main-loop pass in the
+simulator's count of instructions, the morph under 1% of that. Every other
+write of a note on and off is the same as stock (1,947 against 1,947).
+`tests/test_peak_sim.py` `test_mpe_off_writes_as_stock` compared the totals
+within 2% and tripped at v0.18 (2.1%); it now holds the note's own writes
+to 0.5% and the paced ones to 15%. On the synth the pace is not a concern
+so far: v0.17 lost 9 modulation ticks in 10 s, all of them page draws.
+
+**Per hook (2026-11-19, emulated, `work/_ablate.py`):** in the test's
+window (note on, 20 ms, note off, 20 ms) stock makes 283 paced writes and
+v0.28 245. The main thread gets 6,000 instructions per 50 µs slot less
+the interrupts', and the main loop passes about 70 times a millisecond
+(2,957 calls of `mpe_ui_poll` in the window), so a hook on its path that
+costs 60 instructions costs about 4 % of the paced writes. Taking one
+hook out at a time (stock's call back in its place), with v0.28 plus the
+Settings-mode test moved before `ui_current_page` (248): `mpe_ui_poll`
++11, `mpe_globals_apply_poll` +9, the Euclid arp tick +8, the per-tick
+`mpe_osc_pitch_tick` +4 (an interrupt: its time comes out of the main
+thread's), `qa_panel_read` +2, the rest 0. **v0.29** runs the patch's
+UI polls and its settings check once per 1 kHz tick (stock's
+`sysex_rx_poll` and `globals_apply_poll` still on every pass) and takes
+a short path to `arp_tick` when the Euclid rhythm and ratchet are off:
+267 (94 %). A code hook over all of flash sees only part of what runs
+(`work/_loop_profile.py` counted 718,000 instructions in a window that
+has 4.8 million), so per-function counts from it are not used.
+On the synth (v0.29, series V; observed): the rig run `2026-11-19_103004` gave 136 pass, 0 fail, 5 info,
+and the editor check `editor-2026-11-19_103529` against the series U baseline: every answer the same but the settings dump, in one byte: data byte 0x31 (globals +0x31, Members; the dump's data byte n is globals +n, inferred from the known values around it) 0 -> 15, which the patch reads as the same setting (0 = 15); most likely written by V1's Zone edit (inferred), in RAM only.
+
+## Pedal sources and the note-off velocity (2026-11-17)
+
+From the decompile and the disassembly (**observed** unless marked).
+
+- **`note_off` ignores the velocity.** `note_off` `0x0800F4B0` gets a
+  pointer to the message's data bytes and reads only the note (`*param_1`);
+  the second byte, the note-off velocity, is never read. `note_on` with
+  velocity 0 calls it the same way. The arp path (`arp_note_off`) doesn't
+  read it either. So stock has no use for release velocity anywhere, and
+  the guide's matrix source list (Direct to Noise, 24 entries; the same
+  list as the pointer table at `0x08046480`) has no release-velocity source.
+- **The two pedal sources.** `mod_update` `0x0801088C` sends `n` = 2 and
+  `n` = 3 (`voice_mod_write(0xA, n, value)`, parameters `0x62`/`0x63` to
+  every voice) on every tick at `0x080109C0` and `0x08010A0E`, plus
+  `part_mod_write(2/3)` just after. The values are `parts+8` and `parts+9`,
+  each smoothed by 1/8 of the step per tick (`voice_state+0x38`/`+0x3C`,
+  16.16; 127 becomes `0x7FFF`). `parts+8` is set by CC 11 (the `cc` handler's
+  case `0xB`, `FUN_08011D74`) and by the pedal input code at `0x080171C4`,
+  which also sends CC 11 out; `parts+9` by CC 2 (`FUN_08011D80`). So
+  `0x62` is the source the guide calls `ExprPED1` and `0x63` `BrthPED2`
+  (inferred from that and from the source list's order after `ModWheel`
+  0x60 and `AftTouch` 0x61; the matrix source indices are 3 and 4).
+  **Observed on the synth 2026-11-18** (v0.24, run
+  `relvel-2026-11-18_083855`): CC 11 moves matrix source 3 (`ExprPED1`),
+  and writes to `n` = 3 move matrix source 4 (`BrthPED2`).
+- **The patch's release velocity (v0.24, `relvel.c`; emulated in
+  `tests/test_peak_relvel.py`):** with Settings `RELEASE VEL` > `Source`
+  on a pedal source, that broadcast is dropped and `mpe_note_release`
+  writes the note-off's velocity (`<< 8`, 127 = `0x7FFF`; a note-on with
+  velocity 0 counts as 64) into the source of each gated voice with that
+  note, then calls stock's `voice_release`. In the simulator the source
+  write comes right before the voice's release command (`0x3F`, command 3),
+  only for the released voice, and with MPE on only for the note-off's
+  channel.
+- **On the synth (2026-11-18, v0.24; observed):** the chip applies the
+  source value written microseconds before the release command to that
+  release, so no deferral is needed. `BrthPED2` x `Direct` to `AmpEnv R`
+  at +40, base release 30, one note per take: t20 by note-off velocity
+  1 gives 0.118 s (twice), 40 gives 0.235, 64 gives 0.455, 100 gives
+  1.571, 127 gives 3.956 and 3.736. A take at velocity 1 right after one
+  at 127 is as short as the first (no carry-over). By ear (user,
+  LinnStrument in MPE): two held notes lifted at different speeds keep
+  their own release, so the per-voice write reaches only its voice (not
+  measured).
+
+## All sound off, all notes off and the panic (2026-11-18)
+
+Read for the front-panel panic (v0.28, `panic.c`). Code **observed**
+(decompile); behaviour **emulated** (`tests/test_peak_panic.py`).
+
+- **The guide has no panic and no button combinations** (Peak hardware
+  overview and Peak in detail, read 2026-11-18). Audition plays middle C
+  (note 60) while held; Mod is one of the nine menu buttons.
+- **CC 120** (value 0) in `cc` `0x0800F124` calls `all_sound_off`
+  `0x08011E90`: `voices_all_release(1)` (FPGA 10:0x17 = 10,
+  `voice_state`+0x238 = 1, a release command to every voice, gates and the
+  sustain and sostenuto holds cleared), then `0x08011E00` (FPGA 8:0x12
+  and 8:0x13 = 0, part parameters 7, 4 and 9 = 0, 10 = 0xC800).
+  **CC 123 to 127** (value 0; CC 126 with any value) call `0x08011E54`,
+  `voices_all_release(0)`. CC 121 is taken and ignored; CC 122 calls
+  `0x08018BE4`.
+- **Neither touches the held keys or the arp.** The keys held are a
+  bitmap at `note_state` `0x200127D4`+0xD8 (`held_note_add` `0x0800F364`;
+  all clear = the next note starts a phrase) and the mono modes' last
+  note at +0x1D3; the arp keeps its keys at arp state +0x168 and its play
+  map at +0x178 (`arp_clear` `0x08014DB8` empties the play map and its
+  counts, as `patch_load` does; not +0x168). Emulated on v0.28 without
+  the panic: in Mono, a key whose note-off never came sounds again when
+  a later key is let go, and the arp plays on for keys whose note-offs
+  never came; with the panic both stop.
+- **The panic** (Mod + Audition, taken in `qa_panel_read` with its
+  release, so Audition's note does not sound): `all_sound_off`, the
+  held-key bitmap and last note, the arp's keys and play map, the MPE
+  voice bindings and per-note channels, and every channel's stored bend,
+  pressure and slide. The delay and reverb tails are left: CC 120 does
+  not cut them either (inferred from the v0.27 randomiser run, where a
+  take after a loud delay started at -16.6 dB).
+- **On the synth** (v0.28, series T, 2026-11-18/19; **observed**, user):
+  Audition alone plays middle C as stock; Mod + Audition stops a held
+  LinnStrument note without sounding middle C and shows `PANIC` /
+  `All notes off`; the held pad's later release does nothing. A latched
+  arp stops, Arp On and Key Latch stay lit, and a new chord plays without
+  the old one (the keys-held map was cleared). The Mono stuck-key case is
+  emulated only. Rig `2026-11-19_072602`: 135 pass, 1 fail, 5 info (one
+  stray partial in `b1_zone_change`; 0 of 300 when re-run alone).
+
+## The editor protocol (2026-11-19)
+
+Read for the editor baseline (roadmap step 5). Code **observed**
+(decompile and disassembly); answers **emulated** on the stock image and
+v0.28 (`tests/test_peak_editor.py`, `work/_editor_probe.py`). Components
+itself was not read or recorded: which of these it sends, and when, is
+not known.
+
+- **Eight SysEx parsers**, not seven: `sysex_rx_byte` `0x0801AE0C` gives
+  each byte to `fpga_update_rx` `0x0801A880` first (FPGA blocks, header
+  `00 20 29 00 7C 00 7E`, and the updater, `00 20 29 00 71 00 7E`), then
+  the factory test `0x08019118` (`00 20 29 30 01`; its command `7F`
+  writes DataFlash), the identity request, the editor `0x08019FC0`, the
+  backup patch format `0x0801A5B4` (`00 20 29 01 11 01 33`), the old
+  patch format `0x08019314` (`00 20 29 63 65`) and the two tuning
+  parsers. Headers in the table at `0x08042E98`.
+- **The editor** (`editor_rx`): `F0 00 20 29 01 10 00 7E`, a command, five
+  bytes (the first two zero), `F7`; a write carries its data before
+  `F7`. Jump tables at `0x0801A094` (75 entries, 13 used) and
+  `0x0801A2A4`; the answers go out from `sysex_rx_poll` on the port the
+  request came in on.
+
+  | Request | Answer (emulated) |
+  |---|---|
+  | `40` | `00` + the edit buffer, 527 bytes |
+  | `41 00 bank patch` (bank 1-4 = A-D, patch 0-127 as on the screen; observed on the synth) | `01` + that stored patch, 527 bytes |
+  | `44` | `04` + the settings, 527 bytes |
+  | `46 block part` (block < 11, part < 5) | `06` + block, part, 514 bytes (531) |
+  | `47 n` (n < 74) | `07` + n and a 7-character wavetable name: 0 `Sine   `, 73 `User 10` |
+  | `4A 00 bank` (1-4) | the 128 patches of the bank as `01` answers, paced (about 21 s over DIN) |
+  | `49 n` (n < 10) | no answer; calls `0x08013670` (not read) |
+
+  **An answer sent back unchanged is the matching write:** `00` into the
+  edit buffer, `01` into the stored patch it names, `04` into the
+  settings, `06` into the wavetable block (the Peak fills in other bytes of
+  the block itself: inferred derived data), `07` into the name of user
+  slot n (0-9; the request numbers it 64 + n). All emulated with a
+  changed value read back.
+- **The patch's settings travel with the settings dump** (emulated on
+  v0.28): the 18 stored bytes at globals `0x30`-`0x38`, `0x3E`-`0x40`
+  and `0x45`-`0x4A` are in the `04` answer and come back when it is
+  written. A Components settings backup and restore keeps them (if
+  Components uses `44`/`04`: not known).
+- **v0.28 answers as stock** (emulated, MPE off): every request above,
+  the first 3 s of a bank dump, the write and read-back of each kind,
+  and MIDI out for notes with the arp on and Arp>Midi On, CCs, a program
+  change and All Notes Off: the same bytes, step by step.
+- **On the synth** (v0.28 over USB, `tools/editor_check.py`, run `editor-2026-11-19_085344`;
+  **observed**): every request answered once at the emulated length; the
+  identity as emulated; wavetable names 0-63 the factory tables (`Sine   `,
+  `Triangl`, ...), 64-73 `User 1 ` to `User 10`; the tuning tables named
+  `Peak Table 00` and on; request 4A with bank 4 sent the 128 patches of
+  bank D, each tagged 4 and its number (D003 `Element Song`), and D002's
+  answer to 41 equals its copy in the bank dump: **banks are 1-4 for A-D,
+  patches 0-127 as on the screen.** The edit buffer sent back as write 00
+  read back the same. Wavetable block 10 changed between two runs a
+  minute apart (5 to 149 bytes of a part; blocks 0-9 did not): inferred a
+  working buffer, not a user slot. Components (user, series U) shows the
+  firmware as `2.2, build 2108, FPGA 469` and reads the patches and the
+  user wavetable list.
+
+## Patch selection and the patch dump (2026-11-19)
+
+Read for v0.30's patch dump (`pdump.c`). Code **observed** (decompile);
+behaviour **emulated** (`tests/test_peak_pdump.py`).
+
+- **`program_change`** `0x0800F0EC` (channel handler 4) loads a stored
+  patch only when settings byte `0x15` (Bank/Patch) has bit 0 (receive)
+  set; the bank is the last bank select kept at `note_state`+0x1E5 (0xFF:
+  keep the current bank), then cleared. The simulator boots with `0x15` =
+  0, so a program change there loads nothing unless a test sets it.
+- **`patch_select_load`** `0x0801AF78` (bank | number << 8): checks the
+  bank (1-4), loads the stored patch (`0x0801AF10`: DataFlash read and
+  `patch_load`), calls `patch_select_set` `0x08018C58` (only `patch_select`
+  +4 bank, +5 number) and `mark_changed`. Callers: `program_change`,
+  `0x08018C74` (inferred: the panel's patch selection) and `settings_load`
+  (power-up). Compare (`0x0801AF10` directly), Initialise and the SysEx
+  patch receivers call `patch_load` without it.
+- **The main loop's SysEx answers** go to `sysex_state`+0x67F: port 0 is
+  USB (`0x0801D484`), anything else DIN (`0x0800EE48`). Request 40's
+  handler `0x08019F58` (`editor_patch_request`) only sets +0x67C = 2 and
+  the port; `sysex_rx_poll` sends the current patch on its next pass.
+- **v0.30** hooks `patch_select_load`'s call of `patch_select_set`
+  (`0x0801AFC2`): with Settings PATCH DUMP > Send = USB (globals `0x4E`,
+  stored; 0 on the synth before, inferred unused by stock) it calls
+  `editor_patch_request(0)` once the main loop runs, or on the next tick
+  while another answer is being sent. Emulated: a program change sends
+  one 527-byte answer 00 holding the patch now loaded; Off sends nothing;
+  the editor's own write 00 is not echoed. v0.32: a dump waiting behind
+  another answer is dropped when Send is turned Off meanwhile.
+- **A dump lost to an editor request (v0.30-v0.36; fixed in v0.37,
+  emulated).** The hook made the request during the patch load, so an
+  editor request read later in the same main-loop pass (before
+  `sysex_rx_poll` at `0x0800D1C4`) set +0x67C over it, and the dump was
+  never sent: `editor_patch_request` (`0x08019F58`) sets the state
+  without looking at it (observed; the other requests' handlers are
+  inferred to do the same, the test uses the identity state). v0.37
+  only notes the dump at the load; `pdump_reply_poll`, called on every
+  pass right before `sysex_rx_poll` (in `mpe_ui_poll`), makes the
+  request when the state is 0, and the same call answers it.
+  `tests/test_peak_pdump.py::test_an_editor_request_in_the_same_pass_does_not_lose_the_dump`
+  failed on v0.36 and passes on v0.37. On the synth (series AE2,
+  2026-11-22, observed): six program changes, each sent over USB with an
+  identity request right behind it, gave one dump and one identity reply
+  each; the dump came first every time (the patch load ran its pass
+  before the request was read), so the same-pass case itself did not
+  come up on the synth: the fix is emulated only, and the trials show it
+  changed nothing else.
+- **On the synth** (v0.30, series W, 2026-11-19; **observed**): with Send
+  = USB, a bank select and program change for D002 brought one answer 00
+  over USB, equal to the current patch; with Send = Off, none. The dump
+  is the patch as loaded: with PARAM LOCK Lock FX on, its FX group is the
+  previous patch's, not the stored one's.
+
+## MIDI clock, Start and Song Position (2026-11-19)
+
+Read for v0.31's patch timing (`ptime.c`). Code **observed** (decompile,
+disassembly, the `.data` image); behaviour **emulated**
+(`tests/test_peak_ptime.py`).
+
+- **System messages** go through a table in RAM, `midi_sys_handlers`
+  `0x200001E0` (from `.data`): per status F0-FF a handler, the data length
+  and flags. Flag 4 (F8-FF): `midi_parse_byte` calls the handler at once.
+  Otherwise the bytes are collected and go to `midi_channel_filter` like a
+  channel message (so the patch's `mpe_channel_filter` sees F2 with its
+  two bytes).
+- **Start** (FA): `midi_start_rx` `0x0800F0C0` -> `0x08010E30`, which only
+  sets a flag. **Continue** (FB), **Stop** (FC) and **Song Position
+  Pointer** (F2) have handlers that return. Clock bytes (F8) are taken
+  before parsing by the MIDI input loop `0x0800F084`: `midi_clock_rx_1`
+  `0x0800FBE8` (call `0x0800F0A0`) and `midi_clock_rx_0` `0x0800FBD0`
+  (call `0x0800F0A8`).
+- **The tempo clock position** `0x20012268` (clock count << 16 | fraction)
+  is an accumulator the 1 kHz tick advances at the current tempo; no write
+  resets it on Start (inferred: its two literal-pool references are in
+  `tempo_clock_step` and a reader). Stock has no song position, so a
+  DAW's bar lines can't be read from it.
+- **The panel's patch choice** is `panel_patch_apply` `0x08018C74`: with
+  no cue pending it calls `patch_select_load` (`0x08018C9A`), then sends
+  CC 32 and a program change out when Bank/Patch transmits; with a cue
+  pending (Patch Cue) it only redraws, and the cued patch's button press
+  comes back through it.
+- **v0.31** counts the external clock itself (Start = position 0 on the
+  next clock byte, SPP x 6 on the next one after Continue, Stop or 100 ms
+  without a clock byte = not playing) and, with Settings PATCH TIMING >
+  Change at = Beat / Bar / 2 Bars / 4 Bars (globals `0x4F`), holds a
+  program change or panel patch choice until the clock byte of the next
+  24 / 96 / 192 / 384 position. Emulated: a program change at position 9
+  loads on the 87th clock after it (position 96); Beat after SPP 3 loads
+  at position 24; Now and no clock load at once; Stop and a lost clock
+  load a waiting change; a later change replaces it.
+- **The patch's Settings display types** start at `0xA0` (v0.31; `0xE0`
+  before, and `0xFE` was the last free code): stock reads the kind 3
+  display byte only at the formatter call the patch replaces
+  (`0x080181D4`-`0x080181D8`), and its own types end at `0x60`
+  (inferred safe).
+- **On the synth** (v0.31, series X, 2026-11-20; **observed**): `work/ptime_check.py` (run `ptime-2026-11-20_082821`, observed): Start, 230 clock bytes at 120 BPM over USB, a program change for D001 (with CC 32 = 4) after clock 10 and one for D002 after clock 150, then Stop: the patch dumps came after clock 96 (+19.4 ms) and after clock 192 (+11.0 ms), the next bar lines; each dump arrives within one clock period (20.8 ms) of the bar line's clock byte, the load and the 527-byte dump included.
+  The panel's patch choice was not tried on the synth until series Z (below).
+- **Review fixes (v0.32, 2026-11-20; emulated):** a program change in
+  the first two clocks of a step loads at once (a DAW that sends it on the
+  bar sends it just after that tick's clock byte, and v0.31 held it a
+  whole step); Continue without a Song Position Pointer goes on from the
+  clock after where Stop left the count (v0.31 counted that clock again);
+  a program change with a bank stock refuses (CC 32 = 0 or above 4) no
+  longer replaces a waiting change; the patch hands each clock byte to
+  stock's handler before a waiting load, because `0x0800F764` measures
+  the tempo from the ms counter when the byte is handled and a load takes
+  10-20 ms (observed by the patch dumps in series X). Each has a test
+  that failed on v0.31 (the clock order excepted: not visible in the
+  simulator's tempo).
+- **A Continue after power-up (v0.31-v0.36; fixed in v0.37, emulated).**
+  The count starts at 0 at boot, and Continue set it playing: a bare
+  Continue (no Song Position Pointer) before any Start since power-up
+  counted from bar 1, wherever the DAW was, so a change loaded on a line
+  the DAW wasn't at. Stock keeps no song position (above), so nothing
+  else says where the song is. v0.37 keeps the count unplaced until a
+  Start or a Song Position Pointer; until then a Continue doesn't start
+  it and changes load at once, as stock.
+  `tests/test_peak_ptime.py::test_continue_after_power_up_waits_for_a_song_position`
+  failed on v0.36 and passes on v0.37. On the synth (series AE2,
+  2026-11-22, observed; `work/hw-runs/powerup-2026-11-22_185327`): after
+  power-up, a Continue and 60 BPM clock over USB, a change asked after
+  clock 10 loaded at once; after a Song Position Pointer 0 and Continue,
+  one asked after clock 10 loaded on clock 96.
+- **On the synth** (v0.32, series Y, 2026-11-20; **observed**): `work/ptime_check.py` at 120 BPM (run `ptime-2026-11-20_095426`) reported the first D001 and the third change one clock late (dumps 27.6 and 22.6 ms after the expected clock, past the next clock byte at 20.8 ms) and D002 on time; the check reads the load's clock from when its dump arrives, which a clock period this short can't separate. Re-run at 60 BPM with each patch's load-to-dump time measured first without a clock (run `ptime-2026-11-20_095536`: D002 5.2 ms, D001 5.5 ms): D001 on clock 96 (+10.6 ms), D002 on 192 (+9.5 ms), D001 asked for just after bar 4's clock on 288, at once (+18.8 ms): all as expected. With the clock running, the dumps came 9.5-27.6 ms after their clock byte against 5.2-5.5 ms without one (inferred: USB scheduling of the program change and the dump). The check now runs at 60 BPM by default.
+- **The panel's patch choice on the synth** (v0.32): **Series Z (2026-11-20, no new image; observed):** `work/ptime_panel.py`: Start, 60 s of clock at 60 BPM, Stop, nothing else sent, while the user chose patches on the panel. Run `ptpanel-2026-11-20_103015`: no presses (the steps hadn't said clearly that they go during the run). Run `ptpanel-2026-11-20_103403`: about 7 taps of Patch + and Patch -, mixed: six loads, all on bar lines but one 63 ms after another (a choice just after a line) and the last released by Stop; not matched to presses. Run `ptpanel-2026-11-20_104045`, Patch + only, three times from D002: D003 on clock 288 (bar 4's line), D004 on 768 (bar 9), D005 on 960 (bar 11), each dump 12-16 ms after its clock: **patches chosen on the panel land on the bar line.** **Open: the waiting message showed the wrong number on the synth:** `PATCH TIMING` / `D 55` / `at the next bar` while D003 waited (then `D 56` for D004, `D 57` for D005; user); the loads were right, and the simulator draws `D003`, `D004` (`work/_panel_probe.py`); not explained.
+- **The wrong number, found (2026-11-20; observed in the disassembly, emulated):** `program_change` `0x0800F0EC` builds its argument for `patch_select_load` as two bytes on its stack (bank at sp+4, program at sp+5) and loads it with `ldr r0, [sp, #4]` (`0x0800F110`), so bits 16-31 are whatever the stack held; stock's `patch_select_load` uses only the low half. `ptime_select` took a `uint16_t`, the compiler trusted the register, and the message's number (`arg >> 8`) took the garbage in (the simulator showed `D·55` for D003 after a program change, `tests/test_peak_ptime.py`); the waiting load was stored as 16 bits and was right. On the synth the panel's own message (`D003`) is replaced by the program-change one because stock sends its program change out after a panel choice (Bank/Patch transmit) and reads port 2 back in right away (`0x08018DBC` calls `0x0800F608`; inferred, the simulator doesn't loop it). v0.33 takes a word and masks it. The other hooks with 8-bit parameters were checked at their call sites: stock forms those arguments with ldrb, uxtb, ubfx or immediates (`work/_narrow_args.py`). **On the synth (v0.33, series AA, observed):** three Patch + choices during a 60 BPM clock showed `D004`, `D005`, `D006` while each waited, and each loaded on a bar line (`ptpanel-2026-11-20_145348`).
+
+## MIDI input ports and the clock source (2026-11-20)
+
+Read for v0.34's per-port filters (`pfilter.c`) and the patch timing's clock
+port. Code **observed** (disassembly) unless marked.
+
+- **Three inputs**, each with its own receive ring and parser state:
+  `0x200040B4 + port * 0x110` (+0 write index, +1 read index, +2 a 256-byte
+  ring; +0x104 to +0x10B the parser: data pointer, bytes still to come,
+  running status). `midi_port_select` `0x0800EF54` sets
+  `midi_port_current` `0x20012266` and the parser pointer at
+  `0x200040B4+0x330`; `midi_rx_put` `0x0800F5B0` (byte, port) writes a ring.
+- **Port 0 is USB:** the USB receive `0x0801D2AC` puts each packet's bytes
+  in with port 0 (`0x0801D2F0`). **Port 1 is DIN** (emulated: 9 bytes into
+  the simulated USART raise port 1's write index by 9, the others' not;
+  `work/_port_probe.py`). **Port 2 is the synth's own output read back in:**
+  `midi_out_byte` `0x08017340` (byte, dest) sends to USB `0x0801D484` and
+  DIN `0x0800EE48`, but with a flag at `0x20012340+0xF5` and globals
+  `+0x13` (Arp>MIDI) set it puts the byte into port 2 instead (purpose
+  inferred: the arp's notes played by the synth itself).
+- **The MIDI input loop** `0x0800F5F0` reads ports 0, 1, 2 in that order,
+  each through `midi_input_port` `0x0800F084` (clock bytes to
+  `midi_clock_rx_0`/`_1`, the rest to `midi_parse_byte`); `0x0800F608`
+  reads port 2 alone (after the panel's patch choice, `0x08018DBC`).
+  `midi_parse_byte` passes `midi_port_current` as `midi_channel_filter`'s
+  `src` (`0x0800F00A`, `0x0800F06A`), so the patch's `mpe_channel_filter`
+  knows each message's port.
+- **The clock source** (emulated, stock image, `work/_clocksrc_probe.py`):
+  `clock_state` `0x2000461C` +0 collects the ports a clock came from (bit 0
+  DIN, bit 1 USB) and +1 is the port the tempo follows: Settings `Source`
+  (globals `+0x08`: 0 Auto, 1 Internal, 2 Ext-Auto, 3 MIDI, 4 USB) Internal
+  gives 0; Auto and Ext-Auto give the port with a clock (both: DIN); MIDI
+  gives 1 and USB 2 whichever port the clock comes on. With a clock on both
+  ports and Auto, +1 stays 0 for the first 16 clock pairs (2 ms apart) and
+  then reads 1 (`work/_clocksrc_probe2.py`). `0x0800F764` (port bits,
+  port, countdown) only measures the tempo from the followed port.
+- **v0.34:** `mpe_channel_filter` drops a channel message from port 0 or 1
+  whose group is Off in Settings USB IN / DIN IN (globals `0x50`-`0x55`, 0
+  on the synth before: the settings dump of `editor-2026-11-20_100121`,
+  observed); port 2 is never filtered. Note-offs and CC 120/123 always pass.
+  The patch timing counts clock, Start, Continue, Stop and Song Position
+  only from the port `clock_state` +1 names (before it names one: Source
+  MIDI or USB, or with Auto the first port heard); with Source Internal,
+  none, so patch changes load at once. Emulated in
+  `tests/test_peak_pfilter.py` (USB and port 2 written into their rings)
+  and `tests/test_peak_ptime.py`.
+
+## A blank settings chip (2026-11-18)
+
+Roadmap step 3. The simulator normally seeds a blank DataFlash; with that
+switched off (`tests/test_peak_blank.py`) the chip reads 0xFF everywhere.
+
+- **`settings_load` reads no index from a blank chip** (observed in the
+  decompile, emulated). `settings_load` `0x0801AFD8` copies the 0x200 bytes
+  at `0x300000` into the globals and passes `globals+6` (u16) to the patch
+  loader `0x0801AF78`, which returns at once when bit 15 is set, as it is
+  for `0xFFFF`. Only `+0x1E`/`+0x1F` are forced to 1. So the Summit's "copies
+  from arbitrary RAM" (port plan 2b item 4) doesn't happen on the Peak.
+- **Stock itself doesn't run on a blank chip** (emulated). No patch loads,
+  so the edit buffer stays 0xFF; that turns the arp on, and the arp reads
+  its pattern through a null pointer (`FUN_08015518`, `pc=0x0801552A`,
+  pointer at arp state `+8`). The simulator stops there, stock and patched
+  alike, half a second after boot. On a unit address 0 is the boot alias,
+  so it would read bytes rather than fault (inferred). A blank chip needs
+  a format (Init Patch in 512 slots, multis, globals), which the Peak
+  application doesn't contain; it only happens on a chip that was never
+  formatted or was wiped outside the application.
+- **The patch's stored settings tolerate any byte** (observed in the source,
+  emulated). Globals `0x30`-`0x38`, `0x3E`-`0x40`, `0x45`-`0x4A` read 0xFF
+  on a blank chip (or on a unit whose bytes were never written); every
+  reader falls back to its default (`mpe.h`). With all of them at 0xFF the
+  MPE pages show the defaults (Zone Off, Members 15, bend 48/2, Squared,
+  Off, Stock, locks Off, 1 bar, Morph Off, Pulses Off, Steps 16, Rotate 0,
+  Ratchet Off, Every 1, Source Off) and a note plays and releases as stock,
+  with `BrthPED2` still broadcast.
+- **Conclusion:** no guard in the patch. The patch's own part is already
+  safe; the rest is stock's behaviour on an unformatted chip, and fixing it
+  would mean writing a factory format into the patch for a state a user
+  doesn't reach.
 
 ## Dead ends
 
@@ -178,5 +1370,6 @@ strings read from the image (`.data` is copied from flash `0x08045210` to RAM
 
 ## Open
 
-- MIDI **input** dispatch (note on/off, bend, channel pressure, CC).
-- Note-on → voice allocation call chain; per-voice struct layout.
+- The sound chip's replies in numbers: when a voice's state goes from 0 to
+  1 or 2 and the level's scale. The behaviour that follows from them is
+  observed (voice allocation section).

@@ -109,6 +109,16 @@ RECIPES = {r.name: r for r in [
            "the filter, pressure (Z) opens it a little and raises the level",
            {(0x083, "FiltFreq"): 50, (0x082, "FiltResonance"): 30, (0x06F, "Osc1Level"): 90},
            [(1, "ModWheel", 40, "FiltFreq"), (2, "AftTouch", 20, "FiltFreq"), (3, "AftTouch", 30, "Osc1 Lev")]),
+    # Not a test sound either: one patch that makes every MPE dimension audible at once (PressCurve, bend,
+    # per-note release). Pressure (Z) opens a closed, resonant filter and raises the level; Slide (Y) fades in
+    # an octave-up sine; bend is per note; release is long enough to hear each note end on its own.
+    Recipe("mt", "mpe", "MT MPE test: a saw through a closed resonant filter; pressure opens the filter and "
+           "raises the level, Slide fades in an octave-up sine, release 50",
+           {(0x083, "FiltFreq"): 40, (0x082, "FiltResonance"): 45, (0x06F, "Osc1Level"): 80,
+            (0x092, "AmpAttack"): 0, (0x093, "AmpDecay"): 0, (0x094, "AmpSustain"): 127,
+            (0x095, "AmpRelease"): 50, (0x096, "Velocity"): 64,
+            (0x04D, "Wave"): "Sine", (0x045, "O2Range"): 65, (0x071, "Osc2Level"): 0},
+           [(1, "AftTouch", 45, "FiltFreq"), (2, "AftTouch", 20, "Osc1 Lev"), (3, "ModWheel", 60, "Osc2 Lev")]),
     MultiRecipe("m1", "M1 Multi: Part A = P1 (MPE, Upper Zone 9-15 + master 16), Part B = P5 an octave up "
                 "(MPE off, its Part channel)", "p1", "p5o"),
     MultiRecipe("f5", "F5 Multi: as M1, but Part A on a Lower Zone 2-4 whose master is the global channel 1",
