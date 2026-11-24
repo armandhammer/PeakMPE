@@ -3,12 +3,14 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** series AL continues: the user does AL4 (Chance 100 %,
-Ratchet Off), then AL5 "GO rig" (`hwrig run --stage all`,
-`tools/editor_check.py`). AL1-AL3 done 2026-11-23 (hardware log, adfeaf7
-row): v0.42 (label `MPEg`) flashed; at Chance 50 % 23 of 48 steps doubled,
-none missing, all on the grid (`work/ratchet_chance_check.py`). Series AK
-closed 2026-11-23 (hardware log, 6a79415 row).
+**Next step:** ask what next. Series AL closed 2026-11-23: v0.42 (label
+`MPEg`) on the synth, Settings ARP RATCHET > Chance at 50 % doubled 23 of
+48 steps on the grid (`work/ratchet_chance_check.py`); with Chance 100 %
+and Ratchet Off, rig 136/0/5, and the editor check differs only in the
+Chance byte, now written as 100 % (not saved). No open series. Every item
+on the user's list is built and checked on the synth; never on the synth:
+DIN IN Patch Off (no DIN output on the rig) and a loop through a real DAW.
+Moving the `peak` branch to `main` (push, PR) is the user's call.
 
 **v0.35 built** (label `MPEZ`): just intonation, `ji.c`, Settings JUST
 TUNE (Mode Off, Fixed, Adapt; Root C-B): a per-voice offset after
