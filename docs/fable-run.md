@@ -5,7 +5,10 @@ A fresh session reads this first and continues at "Next step".
 
 **Next step:** ask what next. v0.44 (label `MPEi`, image `2da22466…`)
 on the synth 2026-11-24: rig 136/0/5, arp loopback stops on release on
-the rig's P1 sound, editor check unchanged against v0.43. No open series.
+the rig's P1 sound, editor check unchanged against v0.43; EnvSync with a
+USB clock waits while Compare is held and applies the new tempo after the
+release (`envsync-compare-2026-11-24_112708`: 52/54 at 100 BPM, Compare's
+patch untouched, 42/43 at 200 BPM after the release). No open series.
 
 **v0.44** (label `MPEi`): the rest of the outside audit, all in the
 simulator. EnvSync waits while Compare is held (`envsync.c`): with an
