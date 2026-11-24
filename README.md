@@ -56,7 +56,7 @@ Peak cuts when every voice is still in its attack, checked in the
 simulator and on a Peak; 0.40 changes which held note it cuts when
 they are equally loud, checked in the simulator and on a Peak; 0.41
 adds Keep Low, checked in the simulator and on a Peak; 0.42 adds the
-ratchet Chance, checked in the simulator so far), a 600-run stress soak left no stuck note, a LinnStrument played
+ratchet Chance, checked in the simulator and on a Peak), a 600-run stress soak left no stuck note, a LinnStrument played
 it over DIN in one and two zones, and each feature below was tried on the
 synth (by hand, or by the rig where the panel can't do it). Not tested on other firmware versions or other units.
 
@@ -175,7 +175,7 @@ screen, Select 1 to 3, pick a line; the encoder changes it.
   every nth note; `Chance` (10-100 %, default 100 %) plays each ratcheted note's
   repeats by chance, as stock's ArpChance does for steps: a lost roll
   plays the note once, on the same grid (0.42, checked in the simulator
-  so far).
+  and on a Peak).
 
 ### Editing
 

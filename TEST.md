@@ -47,6 +47,9 @@ one note held for 40 steps, the Peak's arp notes read from its MIDI out.
 Expected: every step sounds, and about half of them (between 8 and 32 of
 40) sound twice, always on the half step.
 
+Done 2026-11-23 (AL1 to AL3): 23 of 48 steps twice, none missing, all on
+the grid.
+
 ### AL4. Back as before (your hands, after I report AL3)
 
 1. Press **Settings**, then **Page right** or **Page left** until the top

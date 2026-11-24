@@ -885,6 +885,14 @@ Read for Euclidean rhythms (feature list step 17). Code **observed**
   random for the random types (`arp_random_seed` `0x20011178`), or all of
   the list at once for the chord types. Every note event moves the choice
   on, so a pattern alone cannot repeat a note.
+- **Order within a note event** (observed in the decompile, used by v0.42's
+  ratchet chance; emulated in `tests/test_peak_ratchet.py`, observed on the
+  synth in AL3): `arp_tick` calls the reader `0x08015518` for the note
+  (velocity to `+0x1D9`), then again for its rest, both advancing `+0x1D5`
+  and wrapping at the count, and only then `arp_step_select`. So when that
+  call runs, `+0x1D5` is the index of the event after the note's rest. An
+  event rewritten to velocity 0 before the reader reaches it is read as a
+  rest of the same length.
 - **Voices for a repeated note (emulated, `work/_ratchet_voice.py`; the
   feature list's check for ratchets):** with one key held, each step takes
   the next voice in Mono2, Poly and Poly2, on stock and with MPE on

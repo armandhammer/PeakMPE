@@ -472,7 +472,7 @@ Measurements (step 6) can run on the rig while code is written for others.
     not per patch: a patch's Rhythm byte above 32 would index past stock's
     table on a Peak without the patch.
     **Ratchets built 2026-11-16 (v0.21, emulated; on the synth, series M6:
-    x2, x3 and Every 4 pass). Chance built 2026-11-23 (v0.42, emulated):**
+    x2, x3 and Every 4 pass). Chance built 2026-11-23 (v0.42, emulated; on the synth, series AL3):**
     `Chance` (10-100 %) on the same page rolls once at each ratcheted
     note; a lost roll turns its repeats into rests of the same length.
     Settings > ARP RATCHET with `Ratchet` (Off, x2, x3: a note sounds two
