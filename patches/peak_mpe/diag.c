@@ -112,10 +112,10 @@ void diag_text(uint32_t which, char *out)
                 put_hex(&p, last[2]);
             }
         }
-    } else if (which == 1) {
-        put_dec(&p, count);
+    } else if (which == 1) {       /* the last eight digits: nine would overrun the field (v0.43) */
+        put_dec(&p, count % 100000000u);
     } else {
-        put_dec(&p, DIN_OVERFLOWS);
+        put_dec(&p, DIN_OVERFLOWS % 100000000u);
     }
     *p = 0;
 }

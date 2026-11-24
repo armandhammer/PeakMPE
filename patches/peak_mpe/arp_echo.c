@@ -47,20 +47,28 @@ struct echo {
     uint16_t sent;        /* arp_echo_now when sent */
 };
 
-static struct echo pending[ECHO_SLOTS];
+static struct echo echo_slot[ECHO_SLOTS];
 static uint16_t arp_echo_now;
 static uint16_t loop_left;    /* ticks for which a loop still counts as there */
+static uint8_t sweep;         /* the slot arp_echo_tick looks at next */
 
 static int expired(const struct echo *e)
 {
     return (uint16_t)(arp_echo_now - e->sent) > ECHO_WINDOW;
 }
 
+/* One slot a tick is freed once its window is over, so each is freed within
+ * ECHO_WINDOW + ECHO_SLOTS ticks. The clock is 16 bits: an entry left in place
+ * would read as fresh again 65,536 ticks later and drop a real note (v0.43). */
 void arp_echo_tick(void)
 {
     arp_echo_now++;
     if (loop_left)
         loop_left--;
+    struct echo *e = &echo_slot[sweep];
+    sweep = (uint8_t)((sweep + 1) & (ECHO_SLOTS - 1));
+    if (e->status && expired(e))
+        e->status = 0;
 }
 
 static void expect(uint8_t type, uint32_t note)
@@ -68,7 +76,7 @@ static void expect(uint8_t type, uint32_t note)
     uint32_t pick = 0;
     uint16_t oldest = 0;
     for (uint32_t i = 0; i < ECHO_SLOTS; i++) {
-        struct echo *e = &pending[i];
+        struct echo *e = &echo_slot[i];
         if (!e->status || expired(e)) {
             pick = i;
             break;
@@ -79,9 +87,9 @@ static void expect(uint8_t type, uint32_t note)
             pick = i;
         }
     }
-    pending[pick].status = (uint8_t)(type | (midi_global_channel & 0x0F));
-    pending[pick].note = (uint8_t)note;
-    pending[pick].sent = arp_echo_now;
+    echo_slot[pick].status = (uint8_t)(type | (midi_global_channel & 0x0F));
+    echo_slot[pick].note = (uint8_t)note;
+    echo_slot[pick].sent = arp_echo_now;
 }
 
 /* Replaces arp_step's call of arp_midi_note_on (0x08015202). Remembered
@@ -110,7 +118,7 @@ int arp_echo_drop(const uint8_t *msg)
         return 0;
     status |= msg[0] & 0x0F;
     for (uint32_t i = 0; i < ECHO_SLOTS; i++) {
-        struct echo *e = &pending[i];
+        struct echo *e = &echo_slot[i];
         if (e->status != status || e->note != msg[1])
             continue;
         int hit = !expired(e);

@@ -40,6 +40,7 @@
  */
 
 #include "mpe.h"
+#define DISP_TABLES_DEFINE              /* the tables live here; envsync.c uses two */
 #include "disp_tables.h"
 
 /* Display floors: settings below these were under the measuring chain's
@@ -268,6 +269,29 @@ static void load_next_glyph(void)
     glyph_next = (uint8_t)(g + 1);
 }
 
+/* 1-7: stock's character to put back next; 0: none to put back. Ours took
+ * codes 1-7 only, so code 0 is still stock's. */
+static uint8_t restore_next;
+
+/* Puts back one of stock's characters per call, as load_next_glyph loads
+ * ours. Up to v0.42 lcd_load_cgram put all eight back at once: 65 writes,
+ * about 3.3 ms in one main-loop pass, each time an overlay's message ran out
+ * (found in a code audit, 2026-11-23; the figure from the 51 us a write
+ * measured in docs/peak-motion-morph.md). */
+static void restore_next_glyph(void)
+{
+    uint32_t g = restore_next;
+    lcd_write_cmd(0x40 + 8 * g);
+    for (uint32_t row = 0; row < 8; row++)
+        lcd_write_data(lcd_cgram_glyphs[8 * g + row]);
+    if (++g >= GLYPHS) {
+        g = 0;
+        lcd_write_cmd(0x80);                    /* back to DDRAM, as lcd_init leaves it */
+    }
+    restore_next = (uint8_t)g;
+    lcd_cache_lost_ac();
+}
+
 /* --- Bars ---------------------------------------------------------------- */
 
 /* The character for cells [lo, hi) of pixel space (5 pixels per cell, left
@@ -421,14 +445,17 @@ int disp_knob_overlay(uint32_t id, uint32_t prev, uint32_t cur, uint32_t saved, 
  * puts stock's characters back when no message is on the display any more. */
 void disp_poll(void)
 {
-    if (!glyph_next)
+    if (!glyph_next) {
+        if (restore_next)
+            restore_next_glyph();
         return;
+    }
+    restore_next = 0;                           /* a new overlay: ours go in again from code 1 */
     if (!ui_msg_state[2]) {
         glyph_next = 0;
         bar_pending = 0;
-        lcd_load_cgram();
-        lcd_write_cmd(0x80);                    /* back to DDRAM, as lcd_init leaves it */
-        lcd_cache_lost_ac();
+        restore_next = 1;
+        restore_next_glyph();
         return;
     }
     if (glyph_next < GLYPHS) {

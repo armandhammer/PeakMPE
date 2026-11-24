@@ -3,8 +3,15 @@
 #define DISP_TABLES_H
 #include <stdint.h>
 
+extern const uint16_t disp_attack_ms[128];
+extern const uint16_t disp_decay_ms[128];
+extern const uint16_t disp_release_ms[128];
+extern const uint16_t disp_cutoff_hz[256];
+
+#ifdef DISP_TABLES_DEFINE
+
 /* Attack: full ramp, ms (entries below the floor repeat the floor's time). */
-static const uint16_t disp_attack_ms[128] = {
+const uint16_t disp_attack_ms[128] = {
     35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35,
     35, 35, 35, 35, 35, 35, 35, 35, 35, 37, 40, 43, 46, 51, 55, 59,
     64, 69, 74, 79, 85, 91, 97, 104, 111, 119, 128, 137, 147, 157, 167, 178,
@@ -16,7 +23,7 @@ static const uint16_t disp_attack_ms[128] = {
 };
 
 /* Decay: time to -40 dB, ms (entries below the floor repeat the floor's time). */
-static const uint16_t disp_decay_ms[128] = {
+const uint16_t disp_decay_ms[128] = {
     61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61,
     61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 65, 69, 73,
     78, 83, 89, 95, 101, 108, 116, 124, 133, 142, 151, 161, 172, 183, 195, 208,
@@ -28,7 +35,7 @@ static const uint16_t disp_decay_ms[128] = {
 };
 
 /* Release: time to -40 dB, ms (entries below the floor repeat the floor's time). */
-static const uint16_t disp_release_ms[128] = {
+const uint16_t disp_release_ms[128] = {
     10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 11, 12, 13,
     14, 16, 18, 20, 22, 24, 27, 30, 33, 36, 40, 44, 48, 52, 56, 60,
     65, 71, 78, 85, 92, 95, 99, 107, 121, 129, 138, 151, 165, 175, 185, 196,
@@ -40,7 +47,7 @@ static const uint16_t disp_release_ms[128] = {
 };
 
 /* Filter cutoff, Hz, by the 9-bit knob value (CC 29 x 2 + fine bit). */
-static const uint16_t disp_cutoff_hz[256] = {
+const uint16_t disp_cutoff_hz[256] = {
     16, 17, 17, 18, 18, 19, 19, 20, 21, 21, 22, 23, 23, 24, 25, 25,
     26, 27, 28, 29, 30, 31, 31, 32, 33, 34, 35, 37, 38, 39, 40, 41,
     43, 44, 45, 46, 48, 49, 50, 52, 53, 55, 57, 58, 60, 62, 64, 65,
@@ -58,5 +65,7 @@ static const uint16_t disp_cutoff_hz[256] = {
     10608, 10902, 11204, 11515, 11835, 12163, 12500, 12847, 13203, 13584, 13976, 14379, 14793, 15220, 15659, 16111,
     16575, 17012, 17460, 17920, 18392, 18876, 19373, 19883, 20407, 20925, 21456, 22000, 22559, 23131, 23718, 23718,
 };
+
+#endif
 
 #endif

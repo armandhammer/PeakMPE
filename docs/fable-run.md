@@ -3,11 +3,29 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** ask what next. Series AL closed 2026-11-23: v0.42 (label
+**Next step:** ask what next. v0.43 (label `MPEh`) on the synth
+2026-11-24: rig 136/0/5, arp loopback stops on release on the rig's P1
+sound, editor check unchanged but for the unsaved Chance byte. No open
+series.
+
+**v0.43** (label `MPEh`): fixes from an outside code audit of v0.42
+(2026-11-23; most findings did not hold up against stock and the compiled
+output). The arp echo filter frees one expired slot per tick, so its
+16-bit clock can't make an old entry fresh again 65.5 s later; the MIDI
+monitor counts keep their last 8 digits; stock's display characters go
+back one per pass (`disp.c` `restore_next_glyph`), not in one 3 ms call;
+a Settings edit outside the MPE page no longer clears that page's `*`;
+`disp_tables.h` defines its tables once (-518 B). Keep Low with Unison
+2/4 was tested and needs no change (`tests/test_peak_steal.py`). On the
+synth: the first loopback run, on the sound the Peak booted into, kept
+playing after release; that sound's arp rhythm differed, and on P1 the
+run was as v0.41 (hardware log).
+
+Series AL closed 2026-11-23: v0.42 (label
 `MPEg`) on the synth, Settings ARP RATCHET > Chance at 50 % doubled 23 of
 48 steps on the grid (`work/ratchet_chance_check.py`); with Chance 100 %
 and Ratchet Off, rig 136/0/5, and the editor check differs only in the
-Chance byte, now written as 100 % (not saved). No open series. Every item
+Chance byte, now written as 100 % (not saved). Every item
 on the user's list is built and checked on the synth; never on the synth:
 DIN IN Patch Off (no DIN output on the rig) and a loop through a real DAW.
 Moving the `peak` branch to `main` (push, PR) is the user's call.

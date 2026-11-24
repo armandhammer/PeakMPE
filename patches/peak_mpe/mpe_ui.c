@@ -612,7 +612,8 @@ static void edit_setting(uint16_t index, int32_t delta)
             ui_draw_values();
         return;
     }
-    mpe_live_to_globals();
+    if (index <= MPE_G_MASTER_RANGE)   /* an MPE layout item starts from the live layout */
+        mpe_live_to_globals();         /* (up to v0.42 any item did: the page's '*' went before Save) */
     const struct mpe_desc *d = &mpe_global_desc[index];
     int32_t v;
     switch (index) {

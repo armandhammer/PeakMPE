@@ -264,6 +264,20 @@ def test_custom_characters_are_restored(built, board, stock):
     assert _glyphs(board) == stock_set
 
 
+def test_stock_characters_go_back_one_per_pass(built, board, stock):
+    """Up to v0.42 the message running out put all eight back in one pass
+    (lcd_load_cgram: 65 writes, about 3.3 ms). Now one character per pass,
+    as ours are loaded: 8 data and 1 command, plus the DDRAM command last."""
+    stock_set = _glyphs(stock)
+    _a, _r = _patched(board, built, AMP_ATTACK, 63, 64, 0)
+    assert _glyphs(board) != stock_set
+    board.uc.mem_write(MSG_STATE + 2, b"\x00")           # the message time has run out
+    passes = _poll(board, built, passes=9)
+    assert max(passes) <= 10, passes
+    assert passes[7:] == [0, 0], passes                    # done after seven passes
+    assert _glyphs(board) == stock_set
+
+
 def _event_writes(b, addr, pid, prev, cur, saved):
     """LCD data and command writes of one knob event redrawn in place, the
     screen holding the previous event's text (no blanking in between)."""

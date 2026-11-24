@@ -255,6 +255,8 @@ void lcd_write_cmd(uint32_t cmd);
 void lcd_write_data(uint32_t byte);
 /* (): CGRAM address 0 and the 64 bytes at 0x20000A78: stock's box frame. */
 void lcd_load_cgram(void);
+/* lcd_cgram_glyphs 0x20000A78: stock's custom characters 0-7, 8 bytes each. */
+extern const uint8_t lcd_cgram_glyphs[64];
 /* (code): one character through the escape state machine (9 = cursor). */
 void lcd_putc_esc(uint32_t code);
 /* (code): one character to the display (0xBA space, 0xBB-0xBF -> 0x95-code,

@@ -257,6 +257,40 @@ def test_keep_low_unison_8_still_plays_a_second_note(keep):
         b.uc.mem_write(PATCH + UNISON, b"\x00")
 
 
+def _voices_of(b):
+    """{note: number of gated voices playing it}."""
+    out = {}
+    for n, g in zip(_notes(b), _gates(b)):
+        if g:
+            out[n] = out.get(n, 0) + 1
+    return out
+
+
+@pytest.mark.parametrize("unison, per_note", [(1, 2), (3, 4)])
+def test_keep_low_unison_a_lower_note_does_not_split_the_bass(keep, unison, per_note):
+    """Unison 2 and 4, every voice busy, a note below the bass: the bass keeps
+    all its voices and the new note takes the oldest other note's. The kept
+    note is chosen once per note, not again for each of its unison voices:
+    once the new note's first voice is gated it is the lowest, and the next
+    voice would have taken half the bass (a code audit's case, 2026-11-23)."""
+    b = keep
+    b.uc.mem_write(PATCH + UNISON, bytes([unison]))
+    try:
+        chord = (48, 60, 64, 67)[:8 // per_note]
+        for n in chord:
+            _send(b, 0x90, n, 100, ms=40)
+        assert _voices_of(b) == {n: per_note for n in chord}
+        _send(b, 0x90, 36, 100, ms=40)
+        got = _voices_of(b)
+        assert got.get(48) == per_note, got           # the bass is whole
+        assert got.get(36) == per_note, got
+        assert all(c == per_note for c in got.values()), got   # no note split
+    finally:
+        for n in (36, 48, 60, 64, 67):
+            _off(b, n, 2)
+        b.uc.mem_write(PATCH + UNISON, b"\x00")
+
+
 def test_keep_low_settings_page(board, mpe_built):
     from test_peak_sim import _call, _show
     b = board

@@ -167,3 +167,41 @@ def test_a_key_let_go_right_after_the_arps_note_off_stops_the_arp(built):
     b.run_ms(1000)
     late = [x for x in _notes(b.din.tx_log) if x[0] > released + 200 and x[1] & 0xF0 == 0x90]
     assert not late, f"arp still playing after the key was let go: {late[:4]}"
+
+
+def test_an_old_arp_note_does_not_drop_a_real_note_when_the_clock_wraps(built):
+    """The filter's clock is 16 bits. Arp>Midi on and no loop: the arp's notes
+    never come back, so their entries were never cleared, and 65,536 ticks
+    after one was sent its age read as fresh again. A real note on of that
+    note then counted as an echo: dropped, and a loop taken as there for a
+    minute (found in a code audit, 2026-11-23). From v0.43 a tick frees one
+    expired slot, so all are free well before the clock comes round.
+    The wrap is made by setting the clock back to an entry's send time,
+    which is what the clock reads 65,536 ticks on."""
+    b = _boot(built.patched)
+    pending, now = built.blob.address("echo_slot"), built.blob.address("arp_echo_now")
+    loop_left = built.blob.address("loop_left")
+    b.uc.mem_write(PATCHES + ARP_ON, b"\x01")
+    b.uc.mem_write(GLOBALS + ARP_MIDI, b"\x01")
+    b.run_ms(100)
+    b.din.tx_log.clear()
+    for x in (0x90, 60, 100):
+        b.din.rx_queue.append((b.time_us, x))
+    b.run_ms(600)
+    for x in (0x80, 60, 0):
+        b.din.rx_queue.append((b.time_us, x))
+    b.run_ms(200)
+    b.uc.mem_write(PATCHES + ARP_ON, b"\x00")
+    assert any(s & 0xF0 == 0x90 for _t, s, _n, _v in _notes(b.din.tx_log)), "the arp sent nothing"
+    b.run_ms(300)
+    slots = bytes(b.uc.mem_read(pending, 4 * 32))
+    sent = [int.from_bytes(slots[4 * i + 2:4 * i + 4], "little") for i in range(32)
+            if slots[4 * i + 1] == 60]
+    assert sent, "no entry for the arp's note 60"
+    assert all(slots[4 * i] == 0 for i in range(32)), f"entries left after their window: {slots.hex(' ')}"
+    b.uc.mem_write(now, ((sent[-1] + 5) & 0xFFFF).to_bytes(2, "little"))
+    for x in (0x90, 60, 100):
+        b.din.rx_queue.append((b.time_us, x))
+    b.run_ms(5)
+    assert int.from_bytes(b.uc.mem_read(loop_left, 2), "little") == 0, \
+        "a real note on was taken for the arp's echo"
