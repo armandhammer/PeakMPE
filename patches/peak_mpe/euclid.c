@@ -38,6 +38,16 @@
  * own patterns are not rewritten. In the poly modes every repeat takes the
  * next voice, in the mono modes it retriggers the one voice (emulated).
  *
+ * Chance (v0.42, globals +0x59, 10-100 % in tens; a byte out of range reads
+ * as 100 %): at the first sounding of each ratcheted note one roll decides
+ * whether its repeats play. The reader (0x08015518) has by then taken the
+ * note and its rest, so state +0x1D5 is the index of the next event: the
+ * note's repeats, if it has any. A lost roll writes their velocity 0, which
+ * stock reads as a rest of the same length, so the timing stands and
+ * arp_step_select isn't called for them; a won roll writes them back. The
+ * roll is the patch's own (xorshift), so the arp's Random type and its seed
+ * are not disturbed. As stock's ArpChance, 100 % always plays.
+ *
  * The arp compares times as 16-bit numbers with eight fraction bits, so one
  * step of the pattern (a note with its rest, or a rest alone) has to stay
  * under 128 clocks: a longer gap is written as several rests of at most 96.
@@ -54,15 +64,19 @@
 
 #define A_PATTERN 8                /* arp state: pointer to the pattern's events */
 #define A_COUNT 0x1D4              /* the number of events */
+#define A_INDEX 0x1D5              /* the index of the next event to read (reader 0x08015518) */
 #define A_RHYTHM 0x1D8             /* the Rhythm number the pattern was loaded for */
 #define A_VELOCITY 0x1D9           /* the velocity of the note event just read */
 #define PATCH_RHYTHM 0xF1
 #define REPEAT 0x80                /* in an event's velocity: a ratchet's repeat of the note before */
 #define MAX_RATCHET 3
 #define MAX_EVERY 8
+#define CHANCE_TENTHS 10
 
 PATCH_NOINIT static uint8_t events[2 * (2 * MAX_RATCHET * MAX_STEPS + 6)];
 static uint8_t made[5];                      /* what events[] holds: pulses, steps, rotate, ratchet, every */
+PATCH_NOINIT static uint8_t repeat_at[sizeof events / 2];   /* 1: the event is a ratchet's repeat */
+static uint32_t roll_state;                  /* xorshift32; 0 until seeded */
 
 /* What stock's choice of the next note reads and writes (arp state offsets),
  * as it was before the last note that was not a repeat. */
@@ -104,6 +118,23 @@ uint32_t euclid_every(void)
     return v == 0 || v > MAX_EVERY ? 1 : v;
 }
 
+/* The ratchet's chance in tenths: 10 = always. */
+uint32_t euclid_chance(void)
+{
+    uint8_t v = globals[MPE_G_EUC_CHANCE];
+    return v == 0 || v > CHANCE_TENTHS ? CHANCE_TENTHS : v;
+}
+
+static uint32_t roll(void)
+{
+    uint32_t x = roll_state ? roll_state : mpe_ticks() * 2654435761u + 1u;
+    x ^= x << 13;
+    x ^= x >> 17;
+    x ^= x << 5;
+    roll_state = x ? x : 1u;
+    return x;
+}
+
 /* Step i of n has a note: k of them, as even as whole steps allow. */
 static uint32_t pulse_at(uint32_t i, uint32_t k, uint32_t n, uint32_t r)
 {
@@ -113,6 +144,7 @@ static uint32_t pulse_at(uint32_t i, uint32_t k, uint32_t n, uint32_t r)
 static uint8_t *put_rest(uint8_t *p, uint32_t clocks)
 {
     while (clocks) {
+        repeat_at[(p - events) / 2] = 0;
         uint32_t t = clocks > MAX_SPAN ? MAX_SPAN : clocks;
         *p++ = 0;
         *p++ = (uint8_t)t;
@@ -140,6 +172,8 @@ static uint32_t build(uint32_t k, uint32_t n, uint32_t r, uint32_t ratchet, uint
         for (uint32_t t = 0; t < times; t++) {
             uint32_t rest = span - note + (t + 1 == times ? empty * STEP_CLOCKS : 0);
             uint32_t first = rest > MAX_SPAN - note ? MAX_SPAN - note : rest;
+            repeat_at[(p - events) / 2] = t != 0;
+            repeat_at[(p - events) / 2 + 1] = 0;
             *p++ = (uint8_t)(t ? VELOCITY | REPEAT : VELOCITY);
             *p++ = (uint8_t)note;
             *p++ = 0;                            /* the note's own rest: Gate works on this one */
@@ -185,6 +219,21 @@ void euclid_arp_tick(void)
     arp_tick();
 }
 
+/* The roll for the note just read: its repeats, the events from +0x1D5 up
+ * to the next note that isn't one, sound or rest. */
+static void chance_for_repeats(const uint8_t *a)
+{
+    uint32_t count = a[A_COUNT], i = a[A_INDEX];
+    uint32_t c = euclid_chance();
+    int keep = c >= CHANCE_TENTHS || roll() % CHANCE_TENTHS < c;
+    for (uint32_t n = 0; n < count; n++, i = i + 1 < count ? i + 1 : 0) {
+        if (repeat_at[i])
+            events[2 * i] = keep ? (uint8_t)(VELOCITY | REPEAT) : 0;
+        else if (events[2 * i])
+            break;                               /* the next note */
+    }
+}
+
 /* Replaces arp_tick's call of arp_step_select (0x0801574E), made for every
  * note event while the arp is on. */
 void euclid_step_select(void)
@@ -199,6 +248,8 @@ void euclid_step_select(void)
         for (uint32_t i = 0; i < sizeof choice; i++)
             choice[i] = a[choice_at[i]];
         choice_seed = arp_random_seed;
+        if (*(uint8_t **)(a + A_PATTERN) == events)
+            chance_for_repeats(a);
     }
     arp_step_select();
 }

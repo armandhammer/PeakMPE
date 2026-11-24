@@ -62,6 +62,7 @@
 #define MPE_G_JI 0x56            /* just intonation (ji.c), stored: Mode 0 Off, 1 Fixed, 2 Adapt (other = Off); */
                                  /* Root at 0x57, 0-11 = C-B (other = C) */
 #define MPE_G_KEEP_LOW 0x58      /* voice stealing keeps the lowest note (steal.c), stored: 1 On; other = Off */
+#define MPE_G_EUC_CHANCE 0x59    /* ratchet chance in tenths, stored: 1-10 = 10-100 %; 0 or > 10 = 100 % */
 
 #define MPE_DEFAULT_MEMBERS 15
 #define MPE_DEFAULT_NOTE_RANGE 48
@@ -230,6 +231,7 @@ uint32_t euclid_rotate(void);
 void euclid_step_select(void);   /* hook: arp_tick's call of arp_step_select */
 uint32_t euclid_ratchet(void);   /* 1 = no ratchet, 2, 3 */
 uint32_t euclid_every(void);
+uint32_t euclid_chance(void);   /* the ratchet's chance in tenths: 1-10 */
 
 /* relvel.c */
 void relvel_note(const uint8_t *msg);   /* every channel message, before routing */

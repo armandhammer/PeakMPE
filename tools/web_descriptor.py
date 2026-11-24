@@ -73,8 +73,8 @@ META = {
     },
     ("peak", "mpe"): {
         "title": "MPE for Peak",
-        "version": "0.41",
-        "label": "MPEf Ver 108.469",
+        "version": "0.42",
+        "label": "MPEg Ver 108.469",
         "summary": "Per-note pitch bend, pressure (channel or poly aftertouch) and slide (MPE) on the Peak's "
                    "8 voices, a per-patch MPE switch (VOICE page) and Settings MPE pages; one or two zones. "
                    "v0.2: the arpeggiator ignores its own notes when a DAW sends them back (MIDI loop). "
@@ -115,6 +115,7 @@ META = {
                    "v0.39: when every voice is still in its attack (a slow pad), a new note takes the oldest note, not the one played just before it. "
                    "v0.40: when every voice is held, a new note takes a note the sustain or sostenuto pedal is holding before a key you are still holding down, and otherwise the oldest note. "
                    "v0.41: Settings VOICE STEAL > Keep Low: when voices run out, a new note never takes the lowest note that sounds, so a bass note under a chord keeps playing. "
+                   "v0.42: Settings ARP RATCHET > Chance (10-100 %): each ratcheted note plays its repeats by chance, as ArpChance does for steps. "
                    "Tested on one Peak with the automated hardware test rig and played from a LinnStrument.",
     },
 }

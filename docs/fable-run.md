@@ -3,14 +3,13 @@
 The running record of the work in [fable-run-brief.md](fable-run-brief.md).
 A fresh session reads this first and continues at "Next step".
 
-**Next step:** ask what next (the ratchet chance is the last item on the
-user's list). Series AK closed 2026-11-23 (no new image; hardware log,
-6a79415 row): Keep Low with Unison 8, the arp echo filter with and
-without a loop, and USB IN CC Off all work on the synth; the editor check
-after AK5 shows the settings as before. The status audit the same day
-corrected the labels of twelve features the hardware log shows observed.
-Never on the synth: DIN IN Patch Off (no DIN output on the rig; the
-LinnStrument sends no program change) and a loop through a real DAW.
+**Next step:** series AL (v0.42, label `MPEg`): the user flashes, then AL1
+boot, AL2 the page and Chance 50 %, AL3 `work/ratchet_chance_check.py`, AL4
+Chance back to 100 %, AL5 the rig. v0.42 (2026-11-23, chosen by the user,
+the last item on the list): Settings ARP RATCHET > Chance, one roll per
+ratcheted note; a lost roll writes the note's repeat events to velocity 0
+(rests of the same length), found from the reader's index state +0x1D5
+(`euclid.c`). Series AK closed 2026-11-23 (hardware log, 6a79415 row).
 
 **v0.35 built** (label `MPEZ`): just intonation, `ji.c`, Settings JUST
 TUNE (Mode Off, Fixed, Adapt; Root C-B): a per-voice offset after

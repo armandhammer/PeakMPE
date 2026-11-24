@@ -15,7 +15,48 @@ Setup for all series: **quit Ableton and any other MIDI app.**
 
 ---
 
-## No open series
+## Series AL: ratchet chance (image `MPEg Ver`)
 
-Series A to AK are done (results in
-[docs/hardware-log.md](docs/hardware-log.md)). The next series will be AL.
+New image v0.42 (boot screen `MPEg Ver 108.469`). Series A to AK are done
+(results in [docs/hardware-log.md](docs/hardware-log.md)).
+
+What v0.42 adds: Settings > `ARP RATCHET` > `Chance` (10 % to 100 %, default
+100 %). With a ratchet on, each ratcheted note plays its repeats only by
+chance; otherwise it plays once, on the same grid.
+
+### AL1. Boot
+
+1. Switch the Peak on. Expected boot screen: `MPEg Ver 108.469`.
+2. Turn the **Patch select** knob to **D002**.
+
+### AL2. The page
+
+1. Press **Settings**, then **Page right** until the top line reads
+   `ARP RATCHET    14/44`. Expected: Select 1 line `Ratchet    Off`,
+   Select 2 line `Every        1`, Select 3 line `Chance     100%`.
+2. Press **Select 1** and turn the value encoder one click clockwise.
+   Expected Select 1 line: `Ratchet    x2`.
+3. Press **Select 3** and turn the value encoder five clicks anticlockwise.
+   Expected Select 3 line: `Chance      50%`.
+4. Press **Settings** to leave. Don't save.
+
+### AL3. Rig (I play)
+
+Say **GO rig**. I run `work/ratchet_chance_check.py` (about 15 s): arp on,
+one note held for 40 steps, the Peak's arp notes read from its MIDI out.
+Expected: every step sounds, and about half of them (between 8 and 32 of
+40) sound twice, always on the half step.
+
+### AL4. Back as before (your hands, after I report AL3)
+
+1. Press **Settings**, then **Page right** or **Page left** until the top
+   line reads `ARP RATCHET    14/44`. Press **Select 3** and turn the value
+   encoder five clicks clockwise: `Chance     100%`. Press **Select 1** and
+   turn the value encoder one click anticlockwise: `Ratchet    Off`.
+2. Press **Settings** to leave. Don't save.
+
+### AL5. Regression (I play)
+
+Say **GO rig**. I run `hwrig run --stage all` (expected 136 pass, 0 fail,
+5 info) and `tools/editor_check.py` (expected: nothing changed against
+AK6's run).

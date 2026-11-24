@@ -15,6 +15,7 @@ from test_peak_sim import GLOBALS, PATCHES, _boot, _call, _show, mpe_built  # no
 
 ARP_STEP = 0x080151A0
 G_RATCHET, G_EVERY = 0x48, 0x49
+G_CHANCE = 0x59                         # tenths: 1-10 = 10-100 %; other = 100 %
 RATCHET_PAGE = EUCLID_PAGE + 1
 TYPE, VOICE_MODE = 0xF0, 0x22
 X2, X3 = 1, 2
@@ -132,6 +133,13 @@ def test_ratchet_page(mpe_built):
     _show(b, 8, RATCHET_PAGE, 1)
     _call(b, blob.address("mpe_ui_value_change"), 20)
     assert _show(b, 8, RATCHET_PAGE, 0)[2].split() == ["Every", "8"]
+    b.uc.mem_write(GLOBALS + G_CHANCE, bytes([0xFF]))                # never written: 100 %
+    assert _show(b, 8, RATCHET_PAGE, 2)[3].split()[:2] == ["Chance", "100%"]
+    _call(b, blob.address("mpe_ui_value_change"), -5)
+    assert b.u8(GLOBALS + G_CHANCE) == 5
+    assert _show(b, 8, RATCHET_PAGE, 2)[3].split()[:2] == ["Chance", "50%"]
+    _call(b, blob.address("mpe_ui_value_change"), -20)
+    assert _show(b, 8, RATCHET_PAGE, 2)[3].split()[:2] == ["Chance", "10%"]   # 10 % is the end
     assert _show(b, 8, RATCHET_PAGE + 1, 0)[0].startswith("RELEASE VEL ")
     assert _show(b, 8, RATCHET_PAGE + 2, 0)[0].startswith("RANDOMISE ")
     assert _show(b, 8, RATCHET_PAGE + 3, 0)[0].startswith("PATCH DUMP ")
@@ -157,3 +165,65 @@ def test_the_chord_types_repeat_the_whole_chord(board, arp_type):
         chords.setdefault(round(t * 2) / 2, set()).add(n)
     assert sorted(chords)[:4] == [0.5, 1.0, 1.5, 2.0], played
     assert all(chords[t] == {60, 64, 67} for t in sorted(chords)[:4]), played
+
+
+# --- v0.42: Settings ARP RATCHET > Chance -----------------------------------
+# One roll at each ratcheted note decides whether its repeats play; a lost
+# roll turns them into rests of the same length, so the grid stands.
+
+@pytest.fixture
+def chance(board):
+    def set_(tenths):
+        board.uc.mem_write(GLOBALS + G_CHANCE, bytes([tenths]))
+    yield set_
+    board.uc.mem_write(GLOBALS + G_CHANCE, bytes([0]))
+
+
+def _per_step(played, steps):
+    """How many times each of the first `steps` steps sounded, and whether every
+    sounding is on the grid (a step's start or a third or half of it)."""
+    count = [0] * steps
+    on_grid = True
+    for t, _n in played:
+        s = int(t + 0.01)
+        if s < steps:
+            count[s] += 1
+        frac = t - s
+        on_grid &= any(abs(frac - f) < 0.07 for f in (0, 1 / 3, 0.5, 2 / 3))
+    return count, on_grid
+
+
+def test_chance_100_plays_every_repeat(board, chance):
+    chance(10)
+    assert _near(_times(_play(board, X2, 1, 700)), [0, 0.5, 1, 1.5, 2, 2.5, 3])
+
+
+def test_chance_50_drops_some_repeats_and_keeps_the_grid(board, chance):
+    chance(5)
+    count, on_grid = _per_step(_play(board, X2, 1, int(41 * STEP_MS)), 40)
+    assert on_grid
+    assert all(c in (1, 2) for c in count), count                   # the step itself always sounds
+    assert 8 <= count.count(2) <= 32, count                          # 40 rolls at 50 %
+
+
+def test_chance_10_rarely_repeats(board, chance):
+    chance(1)
+    count, _ = _per_step(_play(board, X2, 1, int(41 * STEP_MS)), 40)
+    assert all(c in (1, 2) for c in count), count
+    assert count.count(2) <= 12, count                               # 40 rolls at 10 %
+
+
+def test_chance_a_x3_ratchet_plays_whole_or_not_at_all(board, chance):
+    chance(5)
+    count, on_grid = _per_step(_play(board, X3, 1, int(31 * STEP_MS)), 30)
+    assert on_grid
+    assert all(c in (1, 3) for c in count), count                   # never just one of the two repeats
+    assert 1 <= count.count(3) <= 29, count
+
+
+def test_chance_leaves_unratcheted_notes_alone(board, chance):
+    chance(1)
+    played = _play(board, X2, 2, 1100, keys=(60, 64, 67))           # every second note ratchets
+    count, _ = _per_step(played, 8)
+    assert all(c >= 1 for c in count), count
+    assert all(count[i] == 1 for i in range(0, 8, 2)), count        # the notes that don't ratchet: once each

@@ -21,7 +21,7 @@
  *   MORPH           Morph (Off/ModWheel); read-only: the position, the number of
  *                   controls that differ (morph.c)
  *   ARP EUCLID      Pulses (Off, 1-32), Steps (1-32), Rotate (euclid.c)
- *   ARP RATCHET     Ratchet (Off, x2, x3), Every (1-8) (euclid.c)
+ *   ARP RATCHET     Ratchet (Off, x2, x3), Every (1-8), Chance (10-100 %) (euclid.c)
  *   RELEASE VEL     Source (Off, ExprPED1, BrthPED2) (relvel.c)
  *   RANDOMISE       Section, Amount (10-100 %), Roll (rand.c)
  *   PATCH DUMP      Send (Off, USB) (pdump.c)
@@ -73,7 +73,7 @@ struct mpe_page {
 };
 
 #define STOCK_DESCS 0x22           /* Peak global_param_desc: records 0x00-0x21, then other data */
-#define MPE_G_LAST MPE_G_KEEP_LOW  /* the last record of new_descs */
+#define MPE_G_LAST MPE_G_EUC_CHANCE  /* the last record of new_descs */
 #define MPE_DESCS (MPE_G_LAST + 1)
 #define MPE_PAGE_AT 4              /* after MIDI CONTROL (stock page 3) */
 #define MPE_PAGES 18
@@ -81,7 +81,7 @@ struct mpe_page {
 #define UI_MODE_SETTINGS PEAK_UI_SETTINGS
 #define UI_MODE (ui_state[0])
 
-enum { DISP_ZONE = 0xA0, DISP_MEMBERS, DISP_NOTE, DISP_MASTER, DISP_CURVE, DISP_ENVSYNC, DISP_LOCK_FX, DISP_LOCK_ARP, DISP_LOCK_VOICE, DISP_SECT, DISP_DOIT, DISP_DLAST, DISP_DCOUNT, DISP_DOVF, DISP_GLIDE, DISP_MLEN, DISP_MSTATE, DISP_LATE, DISP_MORPH, DISP_MPOS, DISP_MDIFF, DISP_EPULSES, DISP_ESTEPS, DISP_EROTATE, DISP_ERATCHET, DISP_EEVERY, DISP_RELVEL, DISP_RSECT, DISP_RAMT, DISP_ROLL, DISP_PDUMP, DISP_PTIME, DISP_PF0, DISP_PF1, DISP_PF2, DISP_PF3, DISP_PF4, DISP_PF5, DISP_JMODE, DISP_JROOT, DISP_KEEPLOW, DISP_END };
+enum { DISP_ZONE = 0xA0, DISP_MEMBERS, DISP_NOTE, DISP_MASTER, DISP_CURVE, DISP_ENVSYNC, DISP_LOCK_FX, DISP_LOCK_ARP, DISP_LOCK_VOICE, DISP_SECT, DISP_DOIT, DISP_DLAST, DISP_DCOUNT, DISP_DOVF, DISP_GLIDE, DISP_MLEN, DISP_MSTATE, DISP_LATE, DISP_MORPH, DISP_MPOS, DISP_MDIFF, DISP_EPULSES, DISP_ESTEPS, DISP_EROTATE, DISP_ERATCHET, DISP_EEVERY, DISP_RELVEL, DISP_RSECT, DISP_RAMT, DISP_ROLL, DISP_PDUMP, DISP_PTIME, DISP_PF0, DISP_PF1, DISP_PF2, DISP_PF3, DISP_PF4, DISP_PF5, DISP_JMODE, DISP_JROOT, DISP_KEEPLOW, DISP_ECHANCE, DISP_END };
 
 #define FIELD 8                    /* value field: columns 11-18, the mark is at 19 */
 
@@ -157,6 +157,7 @@ static const struct mpe_desc new_descs[] = {
     {0, 2, 0x40, 0x48, DISP_JMODE, "Mode"},           /* records 0x56, 0x57: stored in the globals (ji.c) */
     {0, 11, 0x40, 0x49, DISP_JROOT, "Root"},
     {0, 1, 0x40, 0x4A, DISP_KEEPLOW, "Keep Low"},     /* record 0x58: stored in the globals (steal.c) */
+    {1, 10, 0x40, 0x4B, DISP_ECHANCE, "Chance"},      /* record 0x59: stored in the globals (euclid.c) */
 };
 
 /* Last drawn per item. Only compared with what would be drawn now, so its
@@ -225,6 +226,7 @@ static void build_tables(void)
     page_init(&mpe_pages[9], title_ratchet);
     page_item(&mpe_pages[9], MPE_G_EUC_RATCHET);
     page_item(&mpe_pages[9], MPE_G_EUC_EVERY);
+    page_item(&mpe_pages[9], MPE_G_EUC_CHANCE);
     page_init(&mpe_pages[10], title_relvel);
     page_item(&mpe_pages[10], MPE_G_RELVEL);
     page_init(&mpe_pages[11], title_rand);
@@ -431,6 +433,10 @@ static void render_view(const struct mpe_live *v, uint32_t display, char *out)
     }
     case DISP_EEVERY:
         put_num3(&p, euclid_every());
+        break;
+    case DISP_ECHANCE:
+        put_num3(&p, euclid_chance() * 10);
+        *p++ = '%';
         break;
     case DISP_LATE: {
         char buf[16];
@@ -655,6 +661,9 @@ static void edit_setting(uint16_t index, int32_t delta)
         break;
     case MPE_G_EUC_EVERY:
         v = (int32_t)euclid_every();
+        break;
+    case MPE_G_EUC_CHANCE:
+        v = (int32_t)euclid_chance();
         break;
     case MPE_G_PFILTER:
     case MPE_G_PFILTER + 1:
